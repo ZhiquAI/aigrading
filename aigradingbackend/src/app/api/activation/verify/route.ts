@@ -55,18 +55,21 @@ export async function POST(request: Request) {
         const deviceQuota = await prisma.deviceQuota.upsert({
             where: { deviceId },
             update: {
-                quota: { increment: activationCode.quota }
+                remaining: { increment: activationCode.quota },
+                total: { increment: activationCode.quota }
             },
             create: {
                 deviceId,
-                quota: 10 + activationCode.quota  // 免费10次 + 购买配额
+                remaining: 10 + activationCode.quota,  // 免费10次 + 购买配额
+                total: 10 + activationCode.quota,
+                used: 0
             }
         });
 
         return apiSuccess({
             type: activationCode.type,
             addedQuota: activationCode.quota,
-            totalQuota: deviceQuota.quota
+            totalQuota: deviceQuota.remaining
         }, `激活成功，已增加 ${activationCode.quota} 份配额`);
 
     } catch (error) {
@@ -99,7 +102,9 @@ export async function GET(request: Request) {
             deviceQuota = await prisma.deviceQuota.create({
                 data: {
                     deviceId,
-                    quota: 10  // 免费10次
+                    remaining: 10,  // 免费10次
+                    total: 10,
+                    used: 0
                 }
             });
         }
@@ -114,8 +119,8 @@ export async function GET(request: Request) {
 
         return apiSuccess({
             isPaid,
-            quota: deviceQuota.quota,
-            totalUsed: deviceQuota.totalUsed,
+            quota: deviceQuota.remaining,
+            totalUsed: deviceQuota.used,
             activations: activationCodes.map(c => ({
                 type: c.type,
                 quota: c.quota,
