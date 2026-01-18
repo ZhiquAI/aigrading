@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改 - 辅助模式多题批改结果</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        surface: "#FFFFFF",
+                        background: "#F9FAFB",
+                        "text-main": "#111827",
+                        "text-sub": "#6B7280",
+                    },
+                    fontFamily: { display: ["'Noto Sans SC'", "sans-serif"] },
+                },
+            },
+        };
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #E5E7EB;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-200 font-display text-text-main antialiased h-screen flex justify-center items-center">
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-float flex flex-col overflow-hidden relative border border-white/50 ring-1 ring-black/5">
+        <!-- Navigation -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 z-20 relative shadow-sm h-[60px]">
+            <div class="flex flex-1 h-full items-end">
+                <button
+                    class="flex-1 py-3.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 relative bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">edit_note</span>
+                        智能批改
+                    </div>
+                </button>
+                <button class="flex-1 py-3.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">history</span>
+                        批改记录
+                    </div>
+                </button>
+                <button class="flex-1 py-3.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">analytics</span>
+                        数据分析
+                    </div>
+                </button>
+            </div>
+            <div class="flex items-center gap-1 pl-2 ml-1 border-l border-gray-100 h-8 my-auto">
+                <button class="p-2 rounded-full hover:bg-gray-100 text-gray-400">
+                    <span class="material-symbols-outlined text-[20px]">settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mode Badge Bar -->
+        <div
+            class="px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold shadow-sm">
+                    <span class="material-symbols-outlined text-[14px]">back_hand</span>
+                    辅助批改
+                </span>
+                <span class="text-[11px] text-green-600 font-medium flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                    3道题已完成
+                </span>
+            </div>
+            <button
+                class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-red-200 text-red-500 text-[11px] font-bold hover:bg-red-50 transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[14px]">stop</span>
+                停止
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 flex flex-col gap-3">
+            <!-- Summary Card -->
+            <div
+                class="bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 rounded-2xl p-4 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-20 h-20 rounded-full bg-white/10 blur-xl"></div>
+                <div class="relative flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-lg">张三</h2>
+                        <p class="text-white/70 text-xs">智学网 · 本次批阅 3 道题</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-black">108<span class="text-lg text-white/60">/130</span></div>
+                        <div class="text-[10px] text-white/50">合计得分</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions List -->
+            <div class="space-y-2">
+                <!-- Question 1 - Expanded -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <button
+                        class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                                <span class="text-blue-600 font-black text-sm">22</span>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-sm font-bold text-gray-800">第22题</div>
+                                <div class="text-[10px] text-gray-400">材料分析题 · 3小题</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="text-right">
+                                <div class="text-lg font-black text-blue-600">42<span
+                                        class="text-xs text-gray-400">/50</span></div>
+                            </div>
+                            <span
+                                class="material-symbols-outlined text-gray-400 text-[20px] transition-transform rotate-180">expand_more</span>
+                        </div>
+                    </button>
+                    <!-- Expanded Content -->
+                    <div class="px-4 pb-3 border-t border-gray-50">
+                        <div class="pt-3 space-y-2">
+                            <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                    <span class="text-xs text-gray-600">第(1)小题</span>
+                                </div>
+                                <span class="text-xs font-bold text-green-600">10/10</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                                    <span class="text-xs text-gray-600">第(2)小题</span>
+                                </div>
+                                <span class="text-xs font-bold text-orange-600">18/25</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                    <span class="text-xs text-gray-600">第(3)小题</span>
+                                </div>
+                                <span class="text-xs font-bold text-green-600">14/15</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question 2 - Collapsed -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <button
+                        class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                                <span class="text-green-600 font-black text-sm">23</span>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-sm font-bold text-gray-800">第23题</div>
+                                <div class="text-[10px] text-gray-400">论述题 · 2小题</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="text-right">
+                                <div class="text-lg font-black text-green-600">40<span
+                                        class="text-xs text-gray-400">/40</span></div>
+                                <div class="text-[9px] text-green-500 font-medium flex items-center gap-0.5">
+                                    <span class="material-symbols-outlined text-[10px]">star</span>满分
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined text-gray-400 text-[20px]">expand_more</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Question 3 - Collapsed -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <button
+                        class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                                <span class="text-orange-600 font-black text-sm">24</span>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-sm font-bold text-gray-800">第24题</div>
+                                <div class="text-[10px] text-gray-400">综合题 · 4小题</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="text-right">
+                                <div class="text-lg font-black text-orange-600">26<span
+                                        class="text-xs text-gray-400">/40</span></div>
+                            </div>
+                            <span class="material-symbols-outlined text-gray-400 text-[20px]">expand_more</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Hint -->
+            <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 flex items-center gap-3">
+                <span class="material-symbols-outlined text-[20px] text-amber-600">touch_app</span>
+                <p class="text-[11px] text-amber-700 flex-1">请在平台逐题录入分数并提交，完成后点击"继续下一份"</p>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white p-4 border-t border-gray-100 shrink-0 z-20">
+            <button
+                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">navigate_next</span>
+                继续下一份
+            </button>
+        </footer>
+    </div>
+</body>
+
+</html>

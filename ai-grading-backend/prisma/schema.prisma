@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 用户表
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String // bcrypt 加密存储
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  configs Config[]
+  records GradingRecord[]
+}
+
+// 配置表（存储用户的各种配置，如模型设置、评分标准等）
+model Config {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String // 配置名称：model_config, rubric_xxx 等
+  value     String // 配置内容（JSON 字符串）
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key]) // 同一用户不能有重复的 key
+  @@index([userId])
+}
+
+// 批改记录表
+model GradingRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  questionNo  String? // 题号
+  studentName String // 学生姓名
+  examNo      String? // 准考证号
+  score       Float // 得分
+  maxScore    Float // 满分
+  comment     String? // 评语
+  breakdown   String? // 详细得分项（JSON 字符串）
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([questionNo])
+}
+
+// 激活码表
+model ActivationCode {
+  id         String    @id @default(cuid())
+  code       String    @unique // 激活码：ZY-XXXX-XXXX
+  type       String // trial, basic, standard, pro
+  quota      Int // 配额数量：300, 1000, 2000, 3000
+  reusable   Boolean   @default(false) // 是否可重复使用（试用码false，付费码true）
+  maxDevices Int       @default(1) // 最大绑定设备数
+  status     String    @default("active") // 状态：active, disabled
+  usedBy     String? // 使用者设备ID（仅用于不可重复的激活码）
+  usedAt     DateTime? // 使用时间（仅用于不可重复的激活码）
+  expiresAt  DateTime? // 过期时间（可选）
+  createdAt  DateTime  @default(now())
+  batchId    String? // 批次ID（用于批量生成管理）
+
+  @@index([code])
+  @@index([status])
+  @@index([batchId])
+}
+
+// 设备配额表（追踪设备的剩余配额）
+model DeviceQuota {
+  id        String   @id @default(cuid())
+  deviceId  String   @unique // 设备标识
+  remaining Int      @default(0) // 剩余配额
+  total     Int      @default(0) // 总配额
+  used      Int      @default(0) // 已使用配额
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deviceId])
+}
+
+// 使用记录表（追踪每次使用）
+model UsageRecord {
+  id        String   @id @default(cuid())
+  deviceId  String // 设备标识
+  metadata  String? // 附加信息（题型、模型等）- JSON字符串
+  createdAt DateTime @default(now())
+
+  @@index([deviceId])
+  @@index([createdAt])
+}
+
+// 评分细则表（基于设备存储）
+model DeviceRubric {
+  id          String   @id @default(cuid())
+  deviceId    String // 设备标识
+  questionKey String // 题目唯一KEY
+  rubric      String // 评分细则内容
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([deviceId, questionKey]) // 同一设备同一题目只能有一份
+  @@index([deviceId])
+}
+
+// 激活记录表（追踪所有激活行为）
+model ActivationRecord {
+  id         String   @id @default(cuid())
+  code       String // 激活码
+  deviceId   String // 设备ID
+  quotaAdded Int // 本次添加的额度
+  createdAt  DateTime @default(now())
+
+  @@index([code])
+  @@index([deviceId])
+  @@index([createdAt])
+}

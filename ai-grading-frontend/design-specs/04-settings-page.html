@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改 - 设置页面</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        surface: "#FFFFFF",
+                        background: "#F9FAFB",
+                        "text-main": "#111827",
+                        "text-sub": "#6B7280",
+                    },
+                    fontFamily: { display: ["'Noto Sans SC'", "sans-serif"] },
+                },
+            },
+        };
+    </script>
+</head>
+
+<body class="bg-gray-200 font-display text-text-main antialiased h-screen flex justify-center items-center">
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-float flex flex-col overflow-hidden relative border border-white/50 ring-1 ring-black/5">
+        <!-- Navigation with Settings Active -->
+        <nav class="flex items-center px-4 bg-white border-b border-gray-100 shrink-0 z-20 relative shadow-sm h-[60px]">
+            <button class="p-2 rounded-full hover:bg-gray-100 text-gray-400 mr-2">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </button>
+            <h1 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px] text-blue-500">settings</span>
+                通用设置
+            </h1>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 flex flex-col gap-4">
+            <!-- AI Model Config Section -->
+            <section class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">smart_toy</span>
+                    AI 模型配置
+                </h2>
+
+                <!-- Provider Selection -->
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 mb-2 block">服务商</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button
+                            class="py-2 px-3 rounded-lg text-xs font-bold border-2 border-blue-500 bg-blue-50 text-blue-600 transition-colors">
+                            OpenAI
+                        </button>
+                        <button
+                            class="py-2 px-3 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-gray-300 transition-colors">
+                            Google
+                        </button>
+                        <button
+                            class="py-2 px-3 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-gray-300 transition-colors">
+                            智谱AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Model Selection -->
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 mb-2 block">模型</label>
+                    <select
+                        class="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
+                        <option>gpt-4o</option>
+                        <option>gpt-4o-mini</option>
+                        <option>gpt-4-turbo</option>
+                    </select>
+                </div>
+
+                <!-- API Endpoint -->
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 mb-2 block">API 端点</label>
+                    <input type="text" value="https://api.openai.com/v1/chat/completions"
+                        class="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 font-mono text-[11px]" />
+                </div>
+
+                <!-- API Key -->
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 mb-2 block">API Key</label>
+                    <div class="relative">
+                        <input type="password" value="sk-xxxxxxxxxxxxxxxx"
+                            class="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 font-mono" />
+                        <button class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
+                            <span class="material-symbols-outlined text-[18px]">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Test Connection -->
+                <button
+                    class="w-full py-2.5 rounded-lg text-sm font-bold border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    连接成功
+                </button>
+            </section>
+
+            <!-- Grading Strategy Section -->
+            <section class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">speed</span>
+                    批改策略
+                </h2>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <!-- Pro Mode - Selected -->
+                    <label class="cursor-pointer">
+                        <input type="radio" name="strategy" class="peer sr-only" checked />
+                        <div
+                            class="p-3 rounded-xl border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-50/40 bg-gray-50 hover:bg-gray-100 transition-all text-center">
+                            <div
+                                class="w-10 h-10 mx-auto mb-2 rounded-full bg-blue-100 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[22px] text-blue-600">psychology</span>
+                            </div>
+                            <div class="text-xs font-bold text-gray-700">标准模式</div>
+                            <div class="text-[10px] text-gray-400">Pro</div>
+                        </div>
+                    </label>
+
+                    <!-- Flash Mode -->
+                    <label class="cursor-pointer">
+                        <input type="radio" name="strategy" class="peer sr-only" />
+                        <div
+                            class="p-3 rounded-xl border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-50/40 bg-gray-50 hover:bg-gray-100 transition-all text-center">
+                            <div
+                                class="w-10 h-10 mx-auto mb-2 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[22px] text-yellow-600">bolt</span>
+                            </div>
+                            <div class="text-xs font-bold text-gray-700">高速模式</div>
+                            <div class="text-[10px] text-gray-400">Flash</div>
+                        </div>
+                    </label>
+
+                    <!-- Reasoning Mode -->
+                    <label class="cursor-pointer relative">
+                        <input type="radio" name="strategy" class="peer sr-only" />
+                        <div
+                            class="p-3 rounded-xl border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-50/40 bg-gray-50 hover:bg-gray-100 transition-all text-center">
+                            <span
+                                class="absolute -top-1 -right-1 text-[9px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-medium">慢</span>
+                            <div
+                                class="w-10 h-10 mx-auto mb-2 rounded-full bg-purple-100 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[22px] text-purple-600">neurology</span>
+                            </div>
+                            <div class="text-xs font-bold text-gray-700">深度推理</div>
+                            <div class="text-[10px] text-gray-400">Reasoning</div>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Rubric Management -->
+            <section class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">fact_check</span>
+                            评分标准管理
+                        </h2>
+                        <p class="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">check_circle</span>
+                            已配置 (第22题)
+                        </p>
+                    </div>
+                    <button
+                        class="px-3 py-2 rounded-lg text-xs font-bold border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                        配置细则
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white p-4 border-t border-gray-100 shrink-0 z-20">
+            <button
+                class="w-full bg-[#111827] hover:bg-black text-white py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">save</span>
+                保存设置
+            </button>
+        </footer>
+    </div>
+</body>
+
+</html>

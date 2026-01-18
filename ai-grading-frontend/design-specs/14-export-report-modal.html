@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改 - 导出分析报告</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        surface: "#FFFFFF",
+                        background: "#F9FAFB",
+                        "text-main": "#111827",
+                        "text-sub": "#6B7280",
+                    },
+                    fontFamily: { display: ["'Noto Sans SC'", "sans-serif"] },
+                },
+            },
+        };
+    </script>
+</head>
+
+<body class="bg-gray-200 font-display text-text-main antialiased h-screen flex justify-center items-center">
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-float flex flex-col overflow-hidden relative border border-white/50 ring-1 ring-black/5">
+
+        <!-- Background (dimmed page) -->
+        <div class="absolute inset-0 bg-black/40 z-30"></div>
+
+        <!-- Export Report Modal -->
+        <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 z-40 bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[24px] text-purple-600">analytics</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800">导出分析报告</h3>
+                        <p class="text-[11px] text-gray-400">生成完整的批改数据分析</p>
+                    </div>
+                </div>
+                <button class="p-2 rounded-lg hover:bg-gray-100 text-gray-400">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-5 space-y-5">
+                <!-- Report Type -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block">报告类型</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- PDF Report - Selected -->
+                        <button class="p-4 rounded-xl border-2 border-purple-500 bg-purple-50 text-left relative">
+                            <div class="absolute top-2 right-2">
+                                <span class="material-symbols-outlined text-[18px] text-purple-600"
+                                    style="font-variation-settings: 'FILL' 1">check_circle</span>
+                            </div>
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-2">
+                                <span class="material-symbols-outlined text-[24px] text-red-500">picture_as_pdf</span>
+                            </div>
+                            <div class="text-sm font-bold text-gray-800">PDF 报告</div>
+                            <div class="text-[10px] text-gray-500 mt-0.5">含图表和AI分析</div>
+                        </button>
+
+                        <!-- CSV Data -->
+                        <button
+                            class="p-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white text-left transition-colors">
+                            <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mb-2">
+                                <span class="material-symbols-outlined text-[24px] text-green-600">table_chart</span>
+                            </div>
+                            <div class="text-sm font-bold text-gray-800">原始数据</div>
+                            <div class="text-[10px] text-gray-500 mt-0.5">CSV 表格格式</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Current Data Scope Info -->
+                <div class="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px] text-blue-600">info</span>
+                        <div>
+                            <div class="text-xs font-medium text-blue-800">当前数据范围</div>
+                            <div class="text-[10px] text-blue-600">第22题 · 38条记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content Options -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block">报告内容</label>
+                    <div class="bg-gray-50 rounded-xl p-3 space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked
+                                class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">统计概览</div>
+                                <div class="text-[10px] text-gray-400">平均分、及格率、优秀率等</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked
+                                class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">分数分布图</div>
+                                <div class="text-[10px] text-gray-400">柱状图展示各分数段人数</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked
+                                class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">AI 教学建议</div>
+                                <div class="text-[10px] text-gray-400">基于数据的智能分析和改进建议</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox"
+                                class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">详细记录列表</div>
+                                <div class="text-[10px] text-gray-400">包含每条批改的具体信息</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+                <button
+                    class="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">
+                    取消
+                </button>
+                <button
+                    class="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                    生成报告
+                </button>
+            </div>
+        </div>
+
+        <!-- Hidden background (for context) -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 h-[60px]">
+            <div class="flex flex-1 h-full items-end">
+                <button class="flex-1 py-3.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">edit_note</span>
+                        智能批改
+                    </div>
+                </button>
+                <button class="flex-1 py-3.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">history</span>
+                        批改记录
+                    </div>
+                </button>
+                <button class="flex-1 py-3.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">analytics</span>
+                        数据分析
+                    </div>
+                </button>
+            </div>
+        </nav>
+    </div>
+</body>
+
+</html>

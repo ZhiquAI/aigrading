@@ -1,0 +1,64 @@
+{
+    "version": "2.0",
+    "questionId": "19-1",
+    "title": "举措分析",
+    "totalScore": 6,
+    "createdAt": "2026-01-16T00:00:00.000Z",
+    "updatedAt": "2026-01-16T00:00:00.000Z",
+    "scoringStrategy": {
+        "type": "pick_n",
+        "maxPoints": 3,
+        "pointValue": 2,
+        "allowAlternative": false,
+        "strictMode": true
+    },
+    "answerPoints": [
+        {
+            "id": "1-1",
+            "content": "举办国际体育赛事",
+            "keywords": [
+                "体育+赛事"
+            ],
+            "requiredKeywords": [
+                "赛事"
+            ],
+            "score": 2,
+            "deductionRules": "只写'赛事'不提'国际'或'举办'，扣1分"
+        },
+        {
+            "id": "1-2",
+            "content": "培养和输送国际体育组织人才",
+            "keywords": [
+                "国际体育组织+人才",
+                "培养+人才",
+                "输送+人才"
+            ],
+            "requiredKeywords": [
+                "人才"
+            ],
+            "score": 2,
+            "deductionRules": "只写'人才'不提'国际体育组织'或'培养/输送'，扣1分"
+        },
+        {
+            "id": "1-3",
+            "content": "开展国际体育文化交流",
+            "keywords": [
+                "体育+文化交流"
+            ],
+            "requiredKeywords": [
+                "文化交流"
+            ],
+            "score": 2,
+            "deductionRules": "只写'交流'不提'文化'或'国际/体育'，扣1分"
+        }
+    ],
+    "gradingNotes": [
+        "严格按照参考答案评分",
+        "每点2分，满分6分",
+        "答出3点即可得满分",
+        "答案表述不完整的（如只写核心词不写限定词）扣1分",
+        "答非所问或完全不符的该点0分",
+        "与参考答案不符的酌情扣1-2分"
+    ],
+    "alternativeRules": "严格匹配参考答案，表述不完整扣1分，表述错误扣2分"
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改 - 辅助批改进行中</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        surface: "#FFFFFF",
+                        background: "#F9FAFB",
+                        "text-main": "#111827",
+                        "text-sub": "#6B7280",
+                    },
+                    fontFamily: { display: ["'Noto Sans SC'", "sans-serif"] },
+                },
+            },
+        };
+    </script>
+    <style>
+        @keyframes countUp {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .animate-count {
+            animation: countUp 0.3s ease-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-200 font-display text-text-main antialiased h-screen flex justify-center items-center">
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-float flex flex-col overflow-hidden relative border border-white/50 ring-1 ring-black/5">
+        <!-- Navigation -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 z-20 relative shadow-sm h-[60px]">
+            <div class="flex flex-1 h-full items-end">
+                <button
+                    class="flex-1 py-3.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 relative bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">edit_note</span>
+                        智能批改
+                    </div>
+                </button>
+                <button
+                    class="flex-1 py-3.5 text-sm font-medium text-gray-400 border-b-2 border-transparent cursor-not-allowed">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">history</span>
+                        批改记录
+                    </div>
+                </button>
+                <button
+                    class="flex-1 py-3.5 text-sm font-medium text-gray-400 border-b-2 border-transparent cursor-not-allowed">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">analytics</span>
+                        数据分析
+                    </div>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mode Badge Bar - Assist Mode with Blue Theme -->
+        <div
+            class="px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold shadow-sm">
+                    <span class="material-symbols-outlined text-[14px]">back_hand</span>
+                    辅助批改模式
+                </span>
+                <span class="text-[11px] text-blue-600 font-medium animate-pulse">运行中...</span>
+            </div>
+            <button
+                class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-red-200 text-red-500 text-[11px] font-bold hover:bg-red-50 transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[14px]">stop</span>
+                停止
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main
+            class="flex-1 overflow-hidden bg-gradient-to-b from-[#F9FAFB] to-blue-50/30 flex flex-col items-center justify-center relative">
+            <!-- Background Decorations -->
+            <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                <div class="absolute top-16 left-8 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-40"></div>
+                <div class="absolute bottom-16 right-8 w-28 h-28 bg-indigo-100 rounded-full blur-3xl opacity-40"></div>
+            </div>
+
+            <!-- Animation Content -->
+            <div class="relative z-10 flex flex-col items-center">
+                <!-- Stats Counter Card -->
+                <div class="bg-white rounded-2xl shadow-xl border border-blue-100 p-6 mb-6 text-center min-w-[200px]">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">已完成批阅</div>
+                    <div class="text-5xl font-black text-blue-600 animate-count">12</div>
+                    <div class="text-xs text-gray-500 mt-1">份答卷</div>
+                </div>
+
+                <!-- Current Step Card -->
+                <div class="bg-white rounded-2xl px-5 py-4 shadow-lg border border-gray-100 w-72">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[24px] text-blue-600 animate-spin"
+                                style="animation-duration: 2s">progress_activity</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-bold text-gray-800">正在处理下一份...</div>
+                            <div class="text-[11px] text-gray-400">等待页面加载</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="flex items-center gap-4 mt-6">
+                    <div class="text-center">
+                        <div class="text-lg font-black text-gray-700">1:48</div>
+                        <div class="text-[10px] text-gray-400">运行时长</div>
+                    </div>
+                    <div class="w-px h-8 bg-gray-200"></div>
+                    <div class="text-center">
+                        <div class="text-lg font-black text-blue-600">9.0<span class="text-xs text-gray-400">秒</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400">平均耗时</div>
+                    </div>
+                    <div class="w-px h-8 bg-gray-200"></div>
+                    <div class="text-center">
+                        <div class="text-lg font-black text-gray-700">41.2</div>
+                        <div class="text-[10px] text-gray-400">平均分</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white p-4 border-t border-gray-100 shrink-0 z-20">
+            <!-- Last Graded -->
+            <div class="bg-blue-50 rounded-xl p-3 border border-blue-100 mb-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px] text-blue-600">check_circle</span>
+                        <span class="text-xs text-gray-600">上一份：<span class="font-bold text-gray-800">王五</span></span>
+                    </div>
+                    <div class="text-lg font-black text-blue-600">38<span class="text-xs text-gray-400">/50</span></div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <span class="text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                    <span class="material-symbols-outlined text-[12px]">info</span>
+                    辅助模式需手动确认分数，AI 不会自动提交
+                </span>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
