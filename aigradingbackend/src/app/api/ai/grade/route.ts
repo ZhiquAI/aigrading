@@ -19,7 +19,9 @@ async function getOrCreateDeviceQuota(deviceId: string) {
         quota = await prisma.deviceQuota.create({
             data: {
                 deviceId,
-                quota: 300  // 免费300次
+                remaining: 300,  // 免费300次
+                total: 300,
+                used: 0
             }
         });
     }
@@ -33,15 +35,15 @@ async function deductQuota(deviceId: string): Promise<boolean> {
         where: { deviceId }
     });
 
-    if (!quota || quota.quota <= 0) {
+    if (!quota || quota.remaining <= 0) {
         return false;
     }
 
     await prisma.deviceQuota.update({
         where: { deviceId },
         data: {
-            quota: { decrement: 1 },
-            totalUsed: { increment: 1 }
+            remaining: { decrement: 1 },
+            used: { increment: 1 }
         }
     });
 
@@ -81,7 +83,7 @@ export async function POST(request: Request) {
         const deviceQuota = await getOrCreateDeviceQuota(deviceId);
 
         // 检查配额
-        if (deviceQuota.quota <= 0) {
+        if (deviceQuota.remaining <= 0) {
             return apiError('配额已用完，请购买更多配额', 403);
         }
 
@@ -130,8 +132,8 @@ export async function POST(request: Request) {
         return apiSuccess({
             ...result,
             provider,
-            remaining: updatedQuota?.quota || 0,
-            totalUsed: updatedQuota?.totalUsed || 0
+            remaining: updatedQuota?.remaining || 0,
+            totalUsed: updatedQuota?.used || 0
         }, '批改完成');
 
     } catch (error) {
@@ -168,8 +170,8 @@ export async function GET(request: Request) {
 
         return apiSuccess({
             isPaid: paidActivations > 0,
-            quota: deviceQuota.quota,
-            totalUsed: deviceQuota.totalUsed
+            quota: deviceQuota.remaining,
+            totalUsed: deviceQuota.used
         });
 
     } catch (error) {
