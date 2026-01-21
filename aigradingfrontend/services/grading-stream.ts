@@ -81,19 +81,46 @@ ${rubricText}
 
     const systemPrompt = '你是一位高效的阅卷专家。请根据评分细则对学生答案进行评分，返回 JSON 格式结果。';
 
-    // 使用流式调用
-    const openaiConfig = createOpenAIConfig(config);
+    // 根据 provider 选择调用方式
     let fullText = '';
 
     try {
-        for await (const chunk of callOpenAIStream(
-            openaiConfig,
-            systemPrompt,
-            userPrompt,
-            studentImageBase64
-        )) {
-            fullText += chunk;
-            onChunk(chunk);  // 实时回调，更新UI
+        // 动态导入阿里云服务
+        const { callAlibaba, createAlibabaConfig } = await import('./alibabaService');
+
+        if (config.provider === 'alibaba') {
+            // 阿里云 Qwen-VL 使用非流式调用（更稳定的 JSON 输出）
+            const alibabaConfig = createAlibabaConfig(config);
+
+            // 模拟流式效果：先显示提示，然后一次性显示结果
+            onChunk('正在分析答题卡...\n');
+
+            fullText = await callAlibaba(
+                alibabaConfig,
+                systemPrompt,
+                userPrompt,
+                studentImageBase64,
+                {
+                    jsonMode: true,  // 启用 JSON 模式
+                    maxTokens: 4096
+                }
+            );
+
+            onChunk(fullText);  // 显示完整结果
+        } else {
+            // OpenAI 兼容格式流式调用（OpenAI、智谱等）
+            const openaiConfig = createOpenAIConfig(config);
+            const streamGenerator = callOpenAIStream(
+                openaiConfig,
+                systemPrompt,
+                userPrompt,
+                studentImageBase64
+            );
+
+            for await (const chunk of streamGenerator) {
+                fullText += chunk;
+                onChunk(chunk);  // 实时回调，更新UI
+            }
         }
 
         // 调试信息
@@ -122,15 +149,50 @@ ${rubricText}
             throw new Error('AI返回格式错误，请重试');
         }
 
-        // 解析结果
+        // JSON 修复函数
+        const repairJSON = (text: string): string => {
+            let repaired = text;
+
+            // 1. 找到最后一个完整的 } 并截断后面的内容
+            const lastBrace = repaired.lastIndexOf('}');
+            if (lastBrace > 0) {
+                repaired = repaired.substring(0, lastBrace + 1);
+            }
+
+            // 2. 移除 JSON 字符串值中的未转义换行符
+            // 在 "..." 内的换行替换为 \\n
+            repaired = repaired.replace(/"([^"]*?)"/g, (match) => {
+                return match
+                    .replace(/\n/g, '\\n')
+                    .replace(/\r/g, '\\r')
+                    .replace(/\t/g, '\\t');
+            });
+
+            // 3. 移除对象末尾的逗号
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+            return repaired;
+        };
+
+        // 解析结果（带修复重试）
         let result;
         try {
             result = JSON.parse(cleanedText);
         } catch (parseError) {
-            console.error('[grading-stream] JSON解析失败');
-            console.error('[grading-stream] 错误:', parseError);
-            console.error('[grading-stream] 尝试解析的文本:', cleanedText);
-            throw new Error(`批改结果解析失败: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
+            console.warn('[grading-stream] 首次JSON解析失败，尝试修复...');
+            console.log('[grading-stream] 原始文本:', cleanedText.substring(0, 500));
+
+            try {
+                const repairedText = repairJSON(cleanedText);
+                console.log('[grading-stream] 修复后文本:', repairedText.substring(0, 500));
+                result = JSON.parse(repairedText);
+                console.log('[grading-stream] JSON修复成功!');
+            } catch (repairError) {
+                console.error('[grading-stream] JSON修复也失败了');
+                console.error('[grading-stream] 修复错误:', repairError);
+                console.error('[grading-stream] 完整原始文本:', cleanedText);
+                throw new Error(`批改结果解析失败: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
+            }
         }
 
         const studentResult: StudentResult = {

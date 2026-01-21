@@ -9,7 +9,7 @@ import { StudentResult } from '../types';
 
 // 后端 API 地址
 // @ts-ignore - Vite 环境变量
-const API_BASE_URL = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3000';
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 // 获取设备 ID（用于限制使用次数）
 function getDeviceId(): string {

@@ -82,6 +82,10 @@ export const PROVIDER_DEFAULTS: Record<ModelProviderType, { endpoint: string; mo
     zhipu: {
         endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
         model: 'glm-4.6v'
+    },
+    alibaba: {
+        endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+        model: 'qwen-vl-max'
     }
 };
 
@@ -105,7 +109,8 @@ export const MODEL_SUGGESTIONS: Record<ModelProviderType, string[]> = {
         'gemini-1.5-pro',
         'gemini-1.5-flash'
     ],
-    zhipu: ['glm-4.6v', 'glm-4.7', 'glm-4v-flash']
+    zhipu: ['glm-4.6v', 'glm-4.7', 'glm-4v-flash'],
+    alibaba: ['qwen-vl-max', 'qwen-vl-plus', 'qwen3-vl-plus', 'qwen3-vl-flash']
 };
 
 /**
@@ -114,7 +119,8 @@ export const MODEL_SUGGESTIONS: Record<ModelProviderType, string[]> = {
 export const PROVIDER_NAMES: Record<ModelProviderType, string> = {
     openai: 'OpenAI',
     google: 'Google Gemini',
-    zhipu: '智谱AI'
+    zhipu: '智谱AI',
+    alibaba: '阿里云百炼'
 };
 
 export { DEFAULT_CONFIG, STORAGE_KEY_CONFIG };

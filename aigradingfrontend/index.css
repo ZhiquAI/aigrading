@@ -128,3 +128,24 @@ select:focus {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-subtle);
 }
+
+/* Accessibility: Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-slide-in-right,
+    .animate-spin,
+    .animate-pulse {
+        animation: none !important;
+    }
+}

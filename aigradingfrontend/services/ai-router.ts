@@ -12,10 +12,11 @@ import { getAppConfig } from './config-service';
 import { callGemini, callGeminiMultiImage, testGeminiConnection } from './gemini-core';
 import { callOpenAI, callOpenAIMultiImage, testOpenAIConnection, createOpenAIConfig } from './openaiService';
 import { callZhipu, callZhipuMultiImage, testZhipuConnection, createZhipuConfig } from './zhipuService';
+import { callAlibaba, callAlibabaMultiImage, testAlibabaConnection, createAlibabaConfig } from './alibabaService';
 
 // ==================== 类型定义 ====================
 
-export type ModelProvider = 'google' | 'openai' | 'zhipu';
+export type ModelProvider = 'google' | 'openai' | 'zhipu' | 'alibaba';
 
 export interface AICallOptions {
     jsonMode?: boolean;
@@ -92,6 +93,19 @@ export async function callAIWithConfig(
                 }
             );
 
+        case 'alibaba':
+            return callAlibaba(
+                createAlibabaConfig(config),
+                systemPrompt,
+                userPrompt,
+                imageBase64,
+                {
+                    jsonMode: options?.jsonMode,
+                    temperature: options?.temperature,
+                    maxTokens: options?.maxTokens
+                }
+            );
+
         default:
             throw new Error(`不支持的 AI 提供商: ${provider}`);
     }
@@ -156,6 +170,18 @@ export async function callAIMultiImageWithConfig(
                 { temperature: options?.temperature }
             );
 
+        case 'alibaba':
+            return callAlibabaMultiImage(
+                createAlibabaConfig(config),
+                systemPrompt,
+                userPrompt,
+                images,
+                {
+                    jsonMode: options?.jsonMode,
+                    temperature: options?.temperature
+                }
+            );
+
         default:
             throw new Error(`不支持的 AI 提供商: ${provider}`);
     }
@@ -178,6 +204,9 @@ export async function testAIConnection(config?: AppConfig): Promise<boolean> {
         case 'zhipu':
             return testZhipuConnection(createZhipuConfig(c));
 
+        case 'alibaba':
+            return testAlibabaConnection(createAlibabaConfig(c));
+
         default:
             console.error(`不支持的 AI 提供商: ${provider}`);
             return false;
@@ -194,7 +223,8 @@ export function getProviderName(provider?: ModelProvider): string {
     const names: Record<ModelProvider, string> = {
         google: 'Google Gemini',
         openai: 'OpenAI',
-        zhipu: '智谱 AI'
+        zhipu: '智谱 AI',
+        alibaba: '阿里云百炼'
     };
     return names[p] || '未知';
 }

@@ -9,8 +9,8 @@ import { parseRubricJSON } from '../types/rubric';
 import { generateRulesPrompt, getCurrentSubject } from './config-service';
 
 // ==================== 配置 ====================
-
-const BACKEND_URL = 'http://localhost:3000';
+// @ts-ignore - Vite 环境变量
+const BACKEND_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 function getDeviceId(): string {
     return localStorage.getItem('app_device_id') || 'unknown';

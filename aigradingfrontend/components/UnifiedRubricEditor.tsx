@@ -1051,7 +1051,7 @@ const UnifiedRubricEditor: React.FC<UnifiedRubricEditorProps> = ({
                         value={aiInput}
                         onChange={(e) => setAiInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && aiInput.trim() && !isProcessing && handleAICommand()}
-                        placeholder="✨ AI 优化选中内容..."
+                        placeholder="✨ AI 优化选中内容…"
                         className="flex-1 bg-transparent text-xs text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none h-8"
                         disabled={!rubricText.trim() || isProcessing}
                     />

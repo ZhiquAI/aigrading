@@ -11,7 +11,7 @@ import { StudentResult } from '../types';
 
 // 后端 API 地址
 // @ts-ignore - Vite 环境变量
-const API_BASE_URL = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3000';
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 // Edge 代理端点
 const EDGE_PROXY_URL = `${API_BASE_URL}/api/ai/proxy`;

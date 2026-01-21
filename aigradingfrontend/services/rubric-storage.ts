@@ -13,7 +13,8 @@ import { parseRubricJSON } from '../types/rubric';
 // ==================== 配置 ====================
 
 const STORAGE_PREFIX = 'rubric_v2_';
-const BACKEND_URL = 'http://localhost:3000';
+// @ts-ignore - Vite 环境变量
+const BACKEND_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 // ==================== 本地存储 ====================
 

@@ -15,10 +15,11 @@ export enum GradingMode {
 export enum ModelProvider {
   OpenAI = 'openai',
   Google = 'google',
-  Zhipu = 'zhipu'
+  Zhipu = 'zhipu',
+  Alibaba = 'alibaba'
 }
 
-export type ModelProviderType = 'openai' | 'google' | 'zhipu';
+export type ModelProviderType = 'openai' | 'google' | 'zhipu' | 'alibaba';
 
 export interface AppConfig {
   provider: ModelProviderType;

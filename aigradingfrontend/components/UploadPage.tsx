@@ -72,9 +72,9 @@ const UploadArea: React.FC<UploadAreaProps> = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     if (disabled) return;
-    
+
     const files = Array.from(e.dataTransfer.files) as File[];
     handleFiles(files);
   }, [disabled]);
@@ -126,12 +126,12 @@ const UploadArea: React.FC<UploadAreaProps> = ({
         className="hidden"
         disabled={disabled}
       />
-      
+
       <div
         className={`
           relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all
-          ${isDragOver 
-            ? 'border-primary-500 bg-primary-50' 
+          ${isDragOver
+            ? 'border-primary-500 bg-primary-50'
             : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
@@ -148,7 +148,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({
           `}>
             <CloudUpload className={`w-8 h-8 ${isDragOver ? 'text-primary-600' : 'text-gray-400'}`} />
           </div>
-          
+
           <div className="space-y-2">
             <p className="text-lg font-medium text-gray-900">
               拖拽文件到此处，或点击选择文件
@@ -237,7 +237,7 @@ const FileCard: React.FC<FileCardProps> = ({
           <div className="p-2 bg-gray-100 rounded-lg">
             <FileText className="w-6 h-6 text-gray-600" />
           </div>
-          
+
           <div className="flex-1">
             <h4 className="font-medium text-gray-900 truncate">
               {file.name}
@@ -271,7 +271,7 @@ const FileCard: React.FC<FileCardProps> = ({
             <Eye className="w-4 h-4 mr-1" />
             预览
           </Button>
-          
+
           {file.status === 'error' && onReRecognize && (
             <Button
               variant="outline"
@@ -282,7 +282,7 @@ const FileCard: React.FC<FileCardProps> = ({
               重试
             </Button>
           )}
-          
+
           {file.status === 'pending' && (
             <Button
               variant="outline"
@@ -381,7 +381,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
             {/* 控制面板 */}
             <div className="p-4 border-b">
               <h4 className="font-medium mb-3">图像调整</h4>
-              
+
               <div className="space-y-3">
                 {/* 缩放控制 */}
                 <div className="flex items-center justify-between">
@@ -446,7 +446,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
             {/* OCR 结果 */}
             <div className="flex-1 p-4 overflow-y-auto">
               <h4 className="font-medium mb-3">识别结果</h4>
-              
+
               {file.ocrResult ? (
                 <div className="space-y-3">
                   {/* 状态信息 */}
@@ -456,7 +456,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
                       {file.ocrResult.confidence}%
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-sm">
                     <span>处理时间:</span>
                     <span>{file.ocrResult.processingTime}s</span>
@@ -474,13 +474,13 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
                         {isEditing ? '取消' : '编辑'}
                       </Button>
                     </div>
-                    
+
                     {isEditing ? (
                       <textarea
                         value={editedText}
                         onChange={(e) => setEditedText(e.target.value)}
                         className="w-full h-32 p-2 border rounded-lg resize-none"
-                        placeholder="编辑识别文本..."
+                        placeholder="编辑识别文本…"
                       />
                     ) : (
                       <div className="p-3 bg-gray-50 rounded-lg">
@@ -506,7 +506,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
                         保存编辑
                       </Button>
                     )}
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -516,7 +516,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
                       <RefreshCw className="w-4 h-4 mr-1" />
                       重新识别
                     </Button>
-                    
+
                     <Button
                       size="sm"
                       onClick={onConfirm}
@@ -550,14 +550,14 @@ const UploadPage: React.FC = () => {
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
     setIsUploading(true);
-    
+
     try {
       const newFiles: UploadedFile[] = [];
-      
+
       for (const file of selectedFiles) {
         // 创建文件URL
         const url = URL.createObjectURL(file);
-        
+
         // 创建上传文件记录
         const uploadedFile: UploadedFile = {
           id: Math.random().toString(36).substr(2, 9),
@@ -568,17 +568,17 @@ const UploadPage: React.FC = () => {
           status: 'pending',
           uploadedAt: new Date()
         };
-        
+
         newFiles.push(uploadedFile);
       }
-      
+
       setFiles(prev => [...prev, ...newFiles]);
-      
+
       // 自动开始识别
       for (const file of newFiles) {
         await recognizeFile(file.id);
       }
-      
+
     } catch (error) {
       toast.error('文件上传失败');
     } finally {
@@ -587,17 +587,17 @@ const UploadPage: React.FC = () => {
   };
 
   const recognizeFile = async (fileId: string) => {
-    setFiles(prev => prev.map(file => 
+    setFiles(prev => prev.map(file =>
       file.id === fileId ? { ...file, status: 'processing' } : file
     ));
 
     try {
       // 模拟OCR识别过程
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // 模拟识别结果
       const mockOCRResult: OCRResult = {
-        text: "这是一道数学题的解答过程...\n\n1. 首先计算...\n2. 然后代入...\n3. 最后得到答案...",
+        text: "这是一道数学题的解答过程…\n\n1. 首先计算…\n2. 然后代入…\n3. 最后得到答案…",
         confidence: 95,
         processingTime: 2.3,
         questions: [
@@ -611,18 +611,18 @@ const UploadPage: React.FC = () => {
         ]
       };
 
-      setFiles(prev => prev.map(file => 
-        file.id === fileId 
-          ? { ...file, status: 'success', ocrResult: mockOCRResult } 
+      setFiles(prev => prev.map(file =>
+        file.id === fileId
+          ? { ...file, status: 'success', ocrResult: mockOCRResult }
           : file
       ));
-      
+
       toast.success('文件识别完成');
     } catch (error) {
-      setFiles(prev => prev.map(file => 
+      setFiles(prev => prev.map(file =>
         file.id === fileId ? { ...file, status: 'error' } : file
       ));
-      
+
       toast.error('文件识别失败');
     }
   };
@@ -645,14 +645,14 @@ const UploadPage: React.FC = () => {
   };
 
   const handleEdit = (fileId: string, text: string) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId 
-        ? { 
-            ...file, 
-            ocrResult: file.ocrResult 
-              ? { ...file.ocrResult, text } 
-              : undefined
-          } 
+    setFiles(prev => prev.map(file =>
+      file.id === fileId
+        ? {
+          ...file,
+          ocrResult: file.ocrResult
+            ? { ...file.ocrResult, text }
+            : undefined
+        }
         : file
     ));
   };
@@ -717,7 +717,7 @@ const UploadPage: React.FC = () => {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="grid gap-4">
                 {files.map(file => (
                   <FileCard

@@ -53,7 +53,7 @@ interface KnowledgePoint {
 }
 
 const AnalysisView: React.FC = () => {
-    const [insight, setInsight] = useState("正在生成 AI 分析...");
+    const [insight, setInsight] = useState("正在生成 AI 分析…");
     const [history, setHistory] = useState<HistoryRecord[]>([]);
     const [selectedQuestion, setSelectedQuestion] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);

@@ -291,7 +291,7 @@ const RubricDrawer: React.FC<RubricDrawerProps> = ({ isOpen, onClose, onSave, in
                 <div className="relative">
                   <textarea
                     className="w-full text-xs p-3 pr-10 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400/20 focus:border-purple-400 outline-none resize-none bg-white min-h-[60px]"
-                    placeholder="告诉 AI 如何修改，例如：给每个得分点增加具体示例..."
+                    placeholder="告诉 AI 如何修改，例如：给每个得分点增加具体示例…"
                     value={refineSuggestion}
                     onChange={(e) => setRefineSuggestion(e.target.value)}
                     autoFocus
@@ -321,7 +321,7 @@ const RubricDrawer: React.FC<RubricDrawerProps> = ({ isOpen, onClose, onSave, in
             <div className="relative group">
               <textarea
                 className="w-full h-[320px] p-4 text-xs leading-relaxed font-mono bg-white text-gray-700 outline-none resize-none selection:bg-blue-100"
-                placeholder="// 评分细则将显示在这里..."
+                placeholder="// 评分细则将显示在这里…"
                 value={rubricText}
                 onChange={(e) => setRubricText(e.target.value)}
                 spellCheck={false}

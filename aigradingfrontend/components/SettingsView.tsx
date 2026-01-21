@@ -9,7 +9,11 @@ import PrivacyPolicy from './PrivacyPolicy';
 import MembershipCard from './MembershipCard';
 import ActivationView from './ActivationView';
 import { isProxyMode, setProxyMode } from '../services/proxyService';
-import { getAppConfig, saveAppConfig, PROVIDER_DEFAULTS, MODEL_SUGGESTIONS, ModelProviderType } from '../services/config-service';
+import { getAppConfig, saveAppConfig, PROVIDER_DEFAULTS, MODEL_SUGGESTIONS } from '../services/config-service';
+import { ModelProviderType } from '../types';
+
+// @ts-ignore - Vite 环境变量
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 
 interface SettingsViewProps {
@@ -112,6 +116,32 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         } else {
           throw new Error('Key 格式不正确，应为 {id}.{secret}');
         }
+      } else if (apiConfig.provider === 'alibaba') {
+        // 阿里云 API 测试 - 验证 Key 格式并调用 API
+        if (!apiConfig.apiKey.startsWith('sk-')) {
+          throw new Error('Key 格式不正确，应以 sk- 开头');
+        }
+        // 使用简单的请求测试连接
+        const res = await fetch(apiConfig.endpoint || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiConfig.apiKey}`
+          },
+          body: JSON.stringify({
+            model: apiConfig.modelName || 'qwen-vl-max',
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 5
+          }),
+          signal: AbortSignal.timeout(15000)
+        });
+        if (res.ok) {
+          setApiTestStatus('success');
+          setApiTestMessage('阿里云百炼 API 连接成功');
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `HTTP ${res.status}`);
+        }
       } else {
         // OpenAI 兼容 API 测试
         // 从 chat/completions 端点提取基础 URL 并调用 /models 端点测试
@@ -172,7 +202,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         <MembershipCard
           onActivate={() => setIsActivationOpen(true)}
           onPurchase={() => {
-            window.open('http://localhost:3000/pay', '_blank');
+            window.open(`${API_BASE_URL}/pay`, '_blank');
           }}
         />
 
@@ -189,8 +219,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                 AI 服务商
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['google', 'openai', 'zhipu'] as const).map((provider) => (
+              <div className="grid grid-cols-4 gap-2">
+                {(['google', 'openai', 'zhipu', 'alibaba'] as const).map((provider) => (
                   <button
                     key={provider}
                     onClick={() => {
@@ -207,7 +237,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                   >
-                    {provider === 'google' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : '智谱'}
+                    {provider === 'google' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : provider === 'zhipu' ? '智谱' : '阿里云'}
                   </button>
                 ))}
               </div>
@@ -216,10 +246,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             {/* API Endpoint 输入 */}
             {apiConfig.provider !== 'google' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                <label htmlFor="api-endpoint" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                   API Endpoint
                 </label>
                 <input
+                  id="api-endpoint"
                   type="text"
                   value={apiConfig.endpoint}
                   onChange={(e) => setApiConfig(prev => ({ ...prev, endpoint: e.target.value }))}
@@ -229,18 +260,20 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <p className="text-[10px] text-gray-400 mt-1">
                   {apiConfig.provider === 'openai' && '支持 OpenAI 兼容格式的第三方中转地址'}
                   {apiConfig.provider === 'zhipu' && '默认使用智谱官方地址,可自定义'}
+                  {apiConfig.provider === 'alibaba' && '默认使用阿里云百炼官方地址'}
                 </p>
               </div>
             )}
 
             {/* API Key 输入 */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+              <label htmlFor="api-key" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                 API Key
               </label>
               <div className="relative">
-                <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
                 <input
+                  id="api-key"
                   type={showApiKey ? 'text' : 'password'}
                   value={apiConfig.apiKey}
                   onChange={(e) => setApiConfig(prev => ({ ...prev, apiKey: e.target.value }))}
@@ -512,7 +545,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           setIsActivationOpen(false);
         }}
         onPurchase={() => {
-          window.open('http://localhost:3000/pay', '_blank');
+          window.open(`${API_BASE_URL}/pay`, '_blank');
         }}
         onFreeTrial={() => {
           setIsActivationOpen(false);

@@ -14,6 +14,9 @@ import { getUsageInfo as fetchUsageFromBackend } from './services/proxyService';
 import { ActivationView } from './components/ActivationView';
 import { Button } from './components/ui';
 
+// @ts-ignore - Vite 环境变量
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
+
 // 付费系统组件
 import QuotaDisplay from './components/QuotaDisplay';
 import ActivationModal from './components/ActivationModal';
@@ -370,7 +373,7 @@ const App: React.FC = () => {
                     isRubricConfigured={isRubricConfigured}
                     currentStrategy={gradingStrategy}
                     onStrategyChange={handleStrategyChange}
-                    onOpenAdmin={() => window.open('http://localhost:3001/admin', '_blank')}
+                    onOpenAdmin={() => window.open(`${API_BASE_URL}/admin/dashboard`, '_blank')}
                     onEditRubric={(questionKey, rubric, questionHint) => {
                       // 设置当前题目和细则内容
                       setManualQuestionKey(questionKey.replace('app_rubric_content:', ''));
