@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改助手 - 设计系统规范</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        /**
+         * ========================================
+         * 智能批改助手 - 统一设计系统配置
+         * ========================================
+         * 所有设计稿必须使用此配置以保持一致性
+         */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // ========== 色彩系统 ==========
+                    colors: {
+                        // 主色调
+                        primary: "#3B82F6",      // Blue-500 - 主操作、选中态
+                        secondary: "#10B981",   // Emerald-500 - 成功、积极
+                        danger: "#EF4444",      // Red-500 - 错误、危险
+                        warning: "#F59E0B",     // Amber-500 - 警告、注意
+
+                        // 表面颜色
+                        surface: "#FFFFFF",     // 卡片、弹窗背景
+                        background: "#F9FAFB",  // 页面背景 (Gray-50)
+
+                        // 文字颜色
+                        "text-main": "#111827", // Gray-900 - 主文字
+                        "text-sub": "#6B7280",  // Gray-500 - 次要文字
+                        "text-hint": "#9CA3AF", // Gray-400 - 提示文字
+                    },
+
+                    // ========== 字体系统 ==========
+                    fontFamily: {
+                        display: ["'Noto Sans SC'", "sans-serif"],
+                    },
+
+                    // ========== 阴影系统 ==========
+                    boxShadow: {
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        'float': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        'inner-light': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                    },
+
+                    // ========== 圆角系统 ==========
+                    borderRadius: {
+                        'card': '1rem',      // 16px - 卡片
+                        'button': '0.75rem', // 12px - 按钮
+                        'badge': '9999px',   // 全圆角 - 徽章
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        /* ========== 滚动条样式 ========== */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #E5E7EB;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #D1D5DB;
+        }
+
+        /* ========== 动画效果 ========== */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
+
+        @keyframes slide {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(300%);
+            }
+        }
+
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .animate-pulse-ring {
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+
+        .animate-slide {
+            animation: slide 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-display text-text-main antialiased min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-black text-gray-900 mb-2">🎨 设计系统规范</h1>
+            <p class="text-gray-500">智能批改助手 UI 统一设计标准 v1.0</p>
+        </div>
+
+        <!-- Color Palette -->
+        <section class="bg-white rounded-2xl p-6 shadow-card mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-500">palette</span>
+                色彩系统
+            </h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Primary Colors -->
+                <div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">主题色</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-blue-500 shadow-md"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Primary</div>
+                                <div class="text-xs text-gray-500 font-mono">#3B82F6</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500 shadow-md"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Secondary</div>
+                                <div class="text-xs text-gray-500 font-mono">#10B981</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-red-500 shadow-md"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Danger</div>
+                                <div class="text-xs text-gray-500 font-mono">#EF4444</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-amber-500 shadow-md"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Warning</div>
+                                <div class="text-xs text-gray-500 font-mono">#F59E0B</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Surface Colors -->
+                <div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">表面色</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Surface</div>
+                                <div class="text-xs text-gray-500 font-mono">#FFFFFF</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Background</div>
+                                <div class="text-xs text-gray-500 font-mono">#F9FAFB</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-gray-900"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Text Main</div>
+                                <div class="text-xs text-gray-500 font-mono">#111827</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-gray-500"></div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Text Sub</div>
+                                <div class="text-xs text-gray-500 font-mono">#6B7280</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography -->
+        <section class="bg-white rounded-2xl p-6 shadow-card mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-500">text_fields</span>
+                字体规范
+            </h2>
+
+            <div class="space-y-4">
+                <div class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+                    <span class="text-xl font-black text-gray-900">标题 H1</span>
+                    <span class="text-xs text-gray-400 font-mono">text-xl font-black</span>
+                </div>
+                <div class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+                    <span class="text-lg font-bold text-gray-800">标题 H2</span>
+                    <span class="text-xs text-gray-400 font-mono">text-lg font-bold</span>
+                </div>
+                <div class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+                    <span class="text-sm font-bold text-gray-700">标题 H3</span>
+                    <span class="text-xs text-gray-400 font-mono">text-sm font-bold</span>
+                </div>
+                <div class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+                    <span class="text-sm text-gray-600">正文文本</span>
+                    <span class="text-xs text-gray-400 font-mono">text-sm</span>
+                </div>
+                <div class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+                    <span class="text-xs text-gray-500">辅助文本</span>
+                    <span class="text-xs text-gray-400 font-mono">text-xs</span>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-[10px] text-gray-400">微小文本</span>
+                    <span class="text-xs text-gray-400 font-mono">text-[10px]</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Components -->
+        <section class="bg-white rounded-2xl p-6 shadow-card mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-500">widgets</span>
+                组件规范
+            </h2>
+
+            <!-- Buttons -->
+            <div class="mb-6">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">按钮</h3>
+                <div class="flex flex-wrap gap-3">
+                    <button
+                        class="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-md hover:bg-blue-700 transition-colors">
+                        主要按钮
+                    </button>
+                    <button
+                        class="px-4 py-2.5 rounded-xl bg-white text-gray-700 text-sm font-bold border border-gray-200 hover:bg-gray-50 transition-colors">
+                        次要按钮
+                    </button>
+                    <button
+                        class="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-200 hover:bg-red-100 transition-colors">
+                        危险按钮
+                    </button>
+                    <button
+                        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg">
+                        渐变按钮
+                    </button>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="mb-6">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">徽章</h3>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] rounded-full font-medium">蓝色标签</span>
+                    <span
+                        class="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded-full font-medium">绿色标签</span>
+                    <span
+                        class="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] rounded-full font-medium">橙色标签</span>
+                    <span class="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] rounded-full font-medium">红色标签</span>
+                    <span
+                        class="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] rounded-full font-medium">紫色标签</span>
+                </div>
+            </div>
+
+            <!-- Status Badges -->
+            <div class="mb-6">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">状态指示器</h3>
+                <div class="flex gap-2">
+                    <div
+                        class="flex items-center px-2 py-1.5 rounded-md border text-[10px] font-medium bg-green-50 text-green-700 border-green-200">
+                        <span class="material-symbols-outlined text-[12px] mr-1.5">check_circle</span>
+                        成功状态
+                    </div>
+                    <div
+                        class="flex items-center px-2 py-1.5 rounded-md border text-[10px] font-medium bg-red-50 text-red-500 border-red-200">
+                        <span class="material-symbols-outlined text-[12px] mr-1.5">error</span>
+                        错误状态
+                    </div>
+                    <div
+                        class="flex items-center px-2 py-1.5 rounded-md border text-[10px] font-medium bg-orange-50 text-orange-600 border-orange-200">
+                        <span class="material-symbols-outlined text-[12px] mr-1.5">warning</span>
+                        警告状态
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards -->
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">卡片</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl p-4 shadow-card border border-gray-100">
+                        <div class="text-sm font-bold text-gray-700 mb-1">标准卡片</div>
+                        <div class="text-xs text-gray-500">rounded-xl shadow-card border-gray-100</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
+                        <div class="text-sm font-bold mb-1">渐变卡片</div>
+                        <div class="text-xs text-white/70">用于得分卡片头部</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spacing & Layout -->
+        <section class="bg-white rounded-2xl p-6 shadow-card mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-500">space_dashboard</span>
+                布局规范
+            </h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">间距</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">p-4</code> 卡片内边距</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">gap-2</code> 紧凑列表</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">gap-3</code> 标准列表</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">gap-4</code> 宽松列表</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">mb-3</code> 标题与内容间距</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">圆角</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">rounded-2xl</code> 容器/大卡片</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">rounded-xl</code> 卡片/按钮</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">rounded-lg</code> 小组件</li>
+                        <li><code class="text-xs bg-gray-100 px-1 rounded">rounded-full</code> 徽章/图标</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Icons -->
+        <section class="bg-white rounded-2xl p-6 shadow-card">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-500">emoji_symbols</span>
+                图标规范
+            </h2>
+
+            <p class="text-sm text-gray-600 mb-4">
+                使用 <a href="https://fonts.google.com/icons" class="text-blue-600 hover:underline">Material Symbols
+                    Outlined</a>，统一使用 Outlined 样式。
+            </p>
+
+            <div class="grid grid-cols-6 gap-4">
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-gray-50 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-[24px] text-gray-600">edit_note</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400">批改</span>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-gray-50 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-[24px] text-gray-600">analytics</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400">分析</span>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-gray-50 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-[24px] text-gray-600">settings</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400">设置</span>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-gray-50 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-[24px] text-gray-600">check_circle</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400">成功</span>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-gray-50 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-[24px] text-gray-600">error</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400">错误</span>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-gray-50 flex items-center justify-center mb-1">
+                        <span class="material-symbols-outlined text-[24px] text-gray-600">psychology</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400">AI</span>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>

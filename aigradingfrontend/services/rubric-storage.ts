@@ -88,6 +88,13 @@ function deleteFromLocal(questionId: string): void {
 // ==================== 后端同步 ====================
 
 /**
+ * 获取激活码（用于跨设备同步）
+ */
+function getActivationCode(): string | null {
+    return localStorage.getItem('activation_code');
+}
+
+/**
  * 获取设备 ID（用于后端识别）
  */
 function getDeviceId(): string {
@@ -103,11 +110,18 @@ function getDeviceId(): string {
  * 同步到后端（异步，不阻塞）
  */
 async function syncToBackend(rubric: RubricJSON): Promise<boolean> {
+    const activationCode = getActivationCode();
+    if (!activationCode) {
+        console.log('[RubricStorage] No activation code, skip backend sync');
+        return false;
+    }
+
     try {
-        const response = await fetch(`${BACKEND_URL}/api/rubrics`, {
+        const response = await fetch(`${BACKEND_URL}/api/rubric`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-activation-code': activationCode,
                 'x-device-id': getDeviceId(),
             },
             body: JSON.stringify(rubric),
@@ -130,9 +144,16 @@ async function syncToBackend(rubric: RubricJSON): Promise<boolean> {
  * 从后端获取评分细则
  */
 async function fetchFromBackend(questionId: string): Promise<RubricJSON | null> {
+    const activationCode = getActivationCode();
+    if (!activationCode) {
+        console.log('[RubricStorage] No activation code, skip backend fetch');
+        return null;
+    }
+
     try {
-        const response = await fetch(`${BACKEND_URL}/api/rubrics/${encodeURIComponent(questionId)}`, {
+        const response = await fetch(`${BACKEND_URL}/api/rubric?questionKey=${encodeURIComponent(questionId)}`, {
             headers: {
+                'x-activation-code': activationCode,
                 'x-device-id': getDeviceId(),
             },
         });
@@ -154,9 +175,16 @@ async function fetchFromBackend(questionId: string): Promise<RubricJSON | null> 
  * 从后端获取所有评分细则列表
  */
 async function fetchListFromBackend(): Promise<RubricListItem[]> {
+    const activationCode = getActivationCode();
+    if (!activationCode) {
+        console.log('[RubricStorage] No activation code, skip backend list fetch');
+        return [];
+    }
+
     try {
-        const response = await fetch(`${BACKEND_URL}/api/rubrics`, {
+        const response = await fetch(`${BACKEND_URL}/api/rubric`, {
             headers: {
+                'x-activation-code': activationCode,
                 'x-device-id': getDeviceId(),
             },
         });
@@ -329,11 +357,18 @@ export async function deleteRubric(questionId: string): Promise<void> {
     // 1. 先删本地
     deleteFromLocal(questionId);
 
-    // 2. 后台删后端
+    // 2. 后台删后端（需要激活码）
+    const activationCode = getActivationCode();
+    if (!activationCode) {
+        console.log('[RubricStorage] No activation code, skip backend delete');
+        return;
+    }
+
     try {
-        await fetch(`${BACKEND_URL}/api/rubrics/${encodeURIComponent(questionId)}`, {
+        await fetch(`${BACKEND_URL}/api/rubric?questionKey=${encodeURIComponent(questionId)}`, {
             method: 'DELETE',
             headers: {
+                'x-activation-code': activationCode,
                 'x-device-id': getDeviceId(),
             },
         });

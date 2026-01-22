@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "智阅AI 个人版",
+  "version": "1.0.0",
+  "description": "AI 智能阅卷助手 - 个人免费版（需配置自己的 API Key）",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.zhixue.com/*",
+    "*://*.haofenshu.com/*",
+    "*://*.7net.cc/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://open.bigmodel.cn/*",
+    "https://dashscope.aliyuncs.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.zhixue.com/*",
+        "*://*.haofenshu.com/*",
+        "*://*.7net.cc/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "打开智阅AI 个人版"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

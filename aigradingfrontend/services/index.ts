@@ -20,13 +20,16 @@ export {
     PROVIDER_NAMES
 } from './config-service';
 
-// AI 调用服务
+// AI 调用服务（从 gemini-core 导出）
 export {
-    getGoogleClient,
-    testConnection,
-    callOpenAICompatible,
-    callOpenAICompatibleMultiImage
-} from './ai-service';
+    callGemini as getGoogleClient,
+    testGeminiConnection as testConnection
+} from './gemini-core';
+
+export {
+    callOpenAI as callOpenAICompatible,
+    callOpenAIMultiImage as callOpenAICompatibleMultiImage
+} from './openaiService';
 
 // 评分细则服务
 export {
@@ -36,12 +39,11 @@ export {
 } from './rubric-service';
 
 
-// 批改服务
+// 批改服务（从 geminiService 导出）
 export {
     assessStudentAnswer as gradeStudent,
-    generateGradingInsight,
-    getModelName
-} from './grading-service';
+    generateGradingInsight
+} from './geminiService';
 
 
 

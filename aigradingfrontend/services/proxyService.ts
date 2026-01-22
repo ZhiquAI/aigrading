@@ -73,6 +73,11 @@ export async function getUsageInfo(): Promise<UsageInfo> {
     }
 }
 
+// 获取激活码
+function getActivationCode(): string | null {
+    return localStorage.getItem('activation_code');
+}
+
 // 通过后端代理批改学生答案
 export interface ProxyGradeResult {
     score: number;
@@ -94,9 +99,11 @@ export async function gradeWithProxy(
     rubric: string,
     studentName?: string,
     questionNo?: string,
-    strategy?: 'flash' | 'pro' | 'reasoning'
+    strategy?: 'flash' | 'pro' | 'reasoning',
+    options?: { questionKey?: string; examNo?: string }
 ): Promise<StudentResult> {
     const deviceId = getDeviceId();
+    const activationCode = getActivationCode();
 
     // 创建 AbortController 用于超时控制
     const controller = new AbortController();
@@ -110,18 +117,28 @@ export async function gradeWithProxy(
         console.log('[Proxy] Using JSON rubric for grading');
     }
 
+    // 构建请求头
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-device-id': deviceId
+    };
+
+    // 如果有激活码，添加到 header（后端会自动存储批改记录）
+    if (activationCode) {
+        headers['x-activation-code'] = activationCode;
+    }
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/ai/grade`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-device-id': deviceId
-            },
+            headers,
             body: JSON.stringify({
                 imageBase64,
                 rubric: rubricToSend,
                 studentName,
                 questionNo,
+                questionKey: options?.questionKey,
+                examNo: options?.examNo,
                 strategy: strategy || 'pro'  // 默认使用精准模式
             }),
             signal: controller.signal

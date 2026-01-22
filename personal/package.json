@@ -1,0 +1,35 @@
+{
+  "name": "zhiyue-ai-personal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "智阅AI 个人版 - 纯前端 AI 智能阅卷助手",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:check": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@tanstack/react-virtual": "^3.13.18",
+    "chart.js": "^4.5.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^18.2.0",
+    "zustand": "^5.0.10"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/chrome": "^0.1.33",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.23",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0"
+  }
+}

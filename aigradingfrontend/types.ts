@@ -113,6 +113,8 @@ export interface ScoringStrategy {
   maxPoints?: number;       // pick_n 策略：最多计算几个得分点
   pointValue?: number;      // 每个得分点的分值
   allowAlternative: boolean; // 是否接受等效答案
+  strictMode?: boolean;     // 严格模式：填空题必须精确匹配
+  openEnded?: boolean;      // 开放题模式：言之有理即得满分
 }
 
 /**

@@ -7,7 +7,9 @@
 import { prisma } from '@/lib/prisma';
 import { gradeWithZhipu, GradeRequest } from '@/lib/zhipu';
 import { gradeWithGPT } from '@/lib/gpt';
-import { apiSuccess, apiError, apiServerError } from '@/lib/api-response';
+import { apiSuccess, apiError, apiServerError, apiRateLimited, ErrorCode } from '@/lib/api-response';
+import { checkRateLimit } from '@/lib/rate-limiter';
+import { createRequestLogger } from '@/lib/logger';
 
 // 获取或创建设备配额
 async function getOrCreateDeviceQuota(deviceId: string) {
@@ -60,16 +62,29 @@ async function deductQuota(deviceId: string): Promise<boolean> {
  * 批改学生答案（优先使用 Gemini，失败时回退到智谱）
  */
 export async function POST(request: Request) {
+    const reqLogger = createRequestLogger(request);
+
     try {
+        // 速率限制检查
+        const rateCheck = checkRateLimit(request, 'ai');
+        if (!rateCheck.allowed) {
+            reqLogger.warn('Rate limit exceeded', { clientId: rateCheck.clientId });
+            const retryAfter = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
+            return apiRateLimited(retryAfter);
+        }
+
         // 获取设备 ID
         const deviceId = request.headers.get('x-device-id');
         if (!deviceId) {
-            return apiError('缺少设备标识');
+            return apiError('缺少设备标识', 400, ErrorCode.INVALID_REQUEST);
         }
+
+        // 获取激活码（可选，用于存储批改记录）
+        const activationCode = request.headers.get('x-activation-code');
 
         // 解析请求体
         const body = await request.json();
-        const { imageBase64, rubric, studentName, questionNo, strategy } = body;
+        const { imageBase64, rubric, studentName, questionNo, questionKey, strategy, examNo } = body;
 
         if (!imageBase64) {
             return apiError('请提供学生答案图片');
@@ -128,6 +143,32 @@ export async function POST(request: Request) {
         const updatedQuota = await prisma.deviceQuota.findUnique({
             where: { deviceId }
         });
+
+        // 如果有激活码，自动存储批改记录
+        if (activationCode && result) {
+            try {
+                await prisma.gradingRecord.create({
+                    data: {
+                        activationCode,
+                        deviceId,
+                        questionNo: questionNo || null,
+                        questionKey: questionKey || null,
+                        studentName: studentName || '未知',
+                        examNo: examNo || null,
+                        score: Number(result.score) || 0,
+                        maxScore: Number(result.maxScore) || 0,
+                        comment: result.comment || null,
+                        breakdown: result.breakdown
+                            ? (typeof result.breakdown === 'string' ? result.breakdown : JSON.stringify(result.breakdown))
+                            : null
+                    }
+                });
+                console.log(`[Grade API] Record saved for ${activationCode.substring(0, 10)}...`);
+            } catch (recordError) {
+                // 存储失败不影响批改结果返回
+                console.warn('[Grade API] Failed to save record:', recordError);
+            }
+        }
 
         return apiSuccess({
             ...result,

@@ -27,7 +27,7 @@ export interface ScoringStrategy {
     /** 是否允许替代答案（半开放题：言之成理亦可给分，但最多50%分数） */
     allowAlternative: boolean;
     /** 严格模式：填空题必须精确匹配关键词 */
-    strictMode: boolean;
+    strictMode?: boolean;
     /** 开放题模式：言之有理即得满分 */
     openEnded?: boolean;
 }
@@ -56,18 +56,18 @@ export interface AnswerPoint {
  * 评分细则 JSON 格式 v2
  */
 export interface RubricJSON {
-    /** 格式版本 */
-    version: '2.0';
+    /** 格式版本（可选，默认 1.0） */
+    version?: '1.0' | '2.0';
     /** 题目唯一标识，如 "18-2", "19-1" */
     questionId: string;
     /** 题目标题/类型，如 "影响分析", "举措分析" */
     title: string;
     /** 总分 */
     totalScore: number;
-    /** 创建时间 (ISO 8601) */
-    createdAt: string;
-    /** 最后更新时间 (ISO 8601) */
-    updatedAt: string;
+    /** 创建时间 (ISO 8601, 可选) */
+    createdAt?: string;
+    /** 最后更新时间 (ISO 8601, 可选) */
+    updatedAt?: string;
     /** 评分策略 */
     scoringStrategy: ScoringStrategy;
     /** 得分点列表 */
@@ -149,8 +149,8 @@ export function parseRubricJSON(json: unknown): RubricJSON {
 
     const obj = json as Record<string, unknown>;
 
-    if (obj.version !== '2.0') {
-        throw new Error('不支持的评分细则版本，请使用 v2.0 格式');
+    if (obj.version && obj.version !== '1.0' && obj.version !== '2.0') {
+        throw new Error('不支持的评分细则版本，请使用 v1.0 或 v2.0 格式');
     }
 
     return obj as unknown as RubricJSON;

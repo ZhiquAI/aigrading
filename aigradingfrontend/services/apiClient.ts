@@ -3,7 +3,8 @@
  * 封装与后端的通信
  */
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:3001/api/client';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = `${API_BASE_URL}/api/client`;
 
 export interface ApiResponse<T = any> {
     success: boolean;

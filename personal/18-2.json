@@ -1,0 +1,67 @@
+{
+    "version": "2.0",
+    "questionId": "18-2",
+    "title": "影响分析",
+    "totalScore": 6,
+    "createdAt": "2026-01-16T00:00:00.000Z",
+    "updatedAt": "2026-01-16T00:00:00.000Z",
+    "scoringStrategy": {
+        "type": "pick_n",
+        "maxPoints": 3,
+        "pointValue": 2,
+        "allowAlternative": false,
+        "strictMode": true
+    },
+    "answerPoints": [
+        {
+            "id": "2-1",
+            "content": "破坏了中国的领土主权",
+            "keywords": [
+                "领土主权",
+                "主权"
+            ],
+            "score": 2
+        },
+        {
+            "id": "2-2",
+            "content": "为英国进一步侵略中国提供了便利",
+            "keywords": [
+                "英国侵略",
+                "侵略便利"
+            ],
+            "score": 2
+        },
+        {
+            "id": "2-3",
+            "content": "加剧了中国边疆危机",
+            "keywords": [
+                "边疆危机"
+            ],
+            "score": 2
+        },
+        {
+            "id": "2-4",
+            "content": "丰富了对新疆地区的地理认识",
+            "keywords": [
+                "新疆",
+                "地理认识"
+            ],
+            "score": 2
+        },
+        {
+            "id": "2-5",
+            "content": "刺激了中国近代地理学的发展",
+            "keywords": [
+                "近代地理学",
+                "地理学发展"
+            ],
+            "score": 2
+        }
+    ],
+    "gradingNotes": [
+        "严格按照参考答案评分",
+        "表述不准确或偏离题意的酌情扣分",
+        "任答3点得满分，每点2分"
+    ],
+    "alternativeRules": "严格匹配参考答案，表述不准确或偏离题意的酌情扣1分"
+}

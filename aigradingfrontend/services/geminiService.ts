@@ -153,10 +153,8 @@ export const testConnection = async (config: AppConfig): Promise<boolean> => {
       }
 
       console.log('[testConnection] Sending test request to model:', config.modelName);
-      await ai.models.generateContent({
-        model: config.modelName,
-        contents: 'ping',
-      });
+      const model = ai.getGenerativeModel({ model: config.modelName });
+      await model.generateContent('ping');
       console.log('[testConnection] Google connection successful');
       return true;
     } else {
@@ -484,16 +482,17 @@ export const autoGenerateRubric = async (
       const ai = getGoogleClient(config.apiKey);
       if (!ai) throw new Error("未配置 Google API Key");
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const response = await model.generateContent({
+        contents: [{
+          role: 'user',
           parts: [
             { text: promptText },
             { inlineData: { mimeType: 'image/jpeg', data: answerSheetImageBase64 } }
           ]
-        }
+        }]
       });
-      return response.text || "生成评分标准失败。";
+      return response.response.text() || "生成评分标准失败。";
 
     } else {
       // OpenAI / 智谱 兼容 API
@@ -756,22 +755,24 @@ ${rubricText}
         generateConfig.thinkingConfig = { thinkingBudget };
       }
 
-      const response = await ai.models.generateContent({
+      const model = ai.getGenerativeModel({
         model: modelName,
-        contents: {
+        generationConfig: Object.keys(generateConfig).length > 0 ? generateConfig as any : undefined
+      });
+
+      const response = await model.generateContent({
+        contents: [{
+          role: 'user',
           parts: [
             { text: systemPrompt + '\n\n' + userPrompt },
             { inlineData: { mimeType: 'image/jpeg', data: studentImageBase64 } }
           ]
-        },
-        config: Object.keys(generateConfig).length > 0 ? generateConfig : undefined
+        }]
       });
 
       // 提取响应文本
-      // response.text 会自动过滤掉 thought parts,返回完整的非 thought 文本
-      // 参考: @google/genai SDK 文档 - "If there are thought parts in the response,
-      // the concatenation of all text parts excluding the thought parts will be returned."
-      const text = cleanJsonResponse(response.text || '{}');
+      // response.response.text() 会自动过滤掉 thought parts
+      const text = cleanJsonResponse(response.response.text() || '{}');
       const result = JSON.parse(text);
 
       const studentResult: StudentResult = {
@@ -843,8 +844,9 @@ export const generateGradingInsight = async (avgScore: number, passRate: number)
     if (config.provider === 'google') {
       const ai = getGoogleClient(config.apiKey);
       if (!ai) return "AI 未连接";
-      const res = await ai.models.generateContent({ model: 'gemini-2.0-flash-exp', contents: prompt });
-      return res.text || "";
+      const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const res = await model.generateContent(prompt);
+      return res.response.text() || "";
     } else {
       // Simplified text call
       const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` };
@@ -895,8 +897,9 @@ ${suggestion}
     if (config.provider === 'google') {
       const ai = getGoogleClient(config.apiKey);
       if (!ai) return "AI 未连接";
-      const res = await ai.models.generateContent({ model: config.modelName, contents: prompt });
-      return res.text || "";
+      const model = ai.getGenerativeModel({ model: config.modelName });
+      const res = await model.generateContent(prompt);
+      return res.response.text() || "";
     } else {
       // OpenAI / Zhipu Compatible
       const headers: Record<string, string> = {

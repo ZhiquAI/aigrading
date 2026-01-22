@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改 - 批改记录（筛选第22题）</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        surface: "#FFFFFF",
+                        background: "#F9FAFB",
+                        "text-main": "#111827",
+                        "text-sub": "#6B7280",
+                    },
+                    fontFamily: { display: ["'Noto Sans SC'", "sans-serif"] },
+                },
+            },
+        };
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #E5E7EB;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-200 font-display text-text-main antialiased h-screen flex justify-center items-center">
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-float flex flex-col overflow-hidden relative border border-white/50 ring-1 ring-black/5">
+        <!-- Navigation -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 z-20 relative shadow-sm h-[60px]">
+            <div class="flex flex-1 h-full items-end">
+                <button
+                    class="flex-1 py-3.5 text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">edit_note</span>
+                        智能批改
+                    </div>
+                </button>
+                <button
+                    class="flex-1 py-3.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 relative bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">history</span>
+                        批改记录
+                    </div>
+                </button>
+                <button
+                    class="flex-1 py-3.5 text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">analytics</span>
+                        数据分析
+                    </div>
+                </button>
+            </div>
+            <div class="flex items-center gap-1 pl-2 ml-1 border-l border-gray-100 h-8 my-auto">
+                <button class="p-2 rounded-full hover:bg-gray-100 text-gray-400">
+                    <span class="material-symbols-outlined text-[20px]">settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Filter Bar - Selected Q22 -->
+        <div class="px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+            <!-- Question Filter - Selected State -->
+            <select
+                class="flex-1 text-xs bg-white border-2 border-blue-400 rounded-lg px-3 py-2 text-blue-600 font-bold focus:ring-2 focus:ring-blue-200">
+                <option>全部题目</option>
+                <option selected>第22题 (38份)</option>
+                <option>第23题 (25份)</option>
+                <option>第24题 (31份)</option>
+            </select>
+
+            <!-- Clear Filter -->
+            <button
+                class="flex items-center gap-1 px-3 py-2 rounded-lg bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs font-medium">
+                <span class="material-symbols-outlined text-[14px]">close</span>
+                清除
+            </button>
+
+            <!-- Export -->
+            <button
+                class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium">
+                <span class="material-symbols-outlined text-[16px]">download</span>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 flex flex-col gap-3">
+            <!-- Summary Stats - For Q22 Only -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white rounded-xl p-3 border border-blue-100 shadow-sm text-center">
+                    <div class="text-2xl font-black text-blue-600">38</div>
+                    <div class="text-[10px] text-gray-400">第22题已批</div>
+                </div>
+                <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                    <div class="text-2xl font-black text-blue-600">42.3</div>
+                    <div class="text-[10px] text-gray-400">平均分</div>
+                </div>
+                <div class="bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                    <div class="text-2xl font-black text-green-600">85%</div>
+                    <div class="text-[10px] text-gray-400">得分率</div>
+                </div>
+            </div>
+
+            <!-- Record List - Only Q22 Records -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-4 py-2.5 border-b border-gray-50 flex items-center justify-between bg-blue-50/50">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
+                            <span class="text-white font-black text-[10px]">22</span>
+                        </div>
+                        <span class="text-xs font-bold text-blue-600">第22题记录</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400">共 38 条</span>
+                </div>
+
+                <!-- All records are Q22 -->
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold">
+                            #1</div>
+                        <div class="text-[10px] text-gray-400">2分钟前</div>
+                    </div>
+                    <div class="text-lg font-black text-blue-600">42<span class="text-xs text-gray-400">/50</span></div>
+                </div>
+
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold">
+                            #2</div>
+                        <div class="text-[10px] text-gray-400">10分钟前</div>
+                    </div>
+                    <div class="text-lg font-black text-blue-600">45<span class="text-xs text-gray-400">/50</span></div>
+                </div>
+
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 text-xs font-bold">
+                            #3</div>
+                        <div class="flex items-center gap-1.5">
+                            <div class="text-[10px] text-gray-400">15分钟前</div>
+                            <span
+                                class="text-[9px] text-green-500 bg-green-50 px-1 py-0.5 rounded border border-green-100">★满分</span>
+                        </div>
+                    </div>
+                    <div class="text-lg font-black text-green-600">50<span class="text-xs text-gray-400">/50</span>
+                    </div>
+                </div>
+
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold">
+                            #4</div>
+                        <div class="text-[10px] text-gray-400">18分钟前</div>
+                    </div>
+                    <div class="text-lg font-black text-blue-600">38<span class="text-xs text-gray-400">/50</span></div>
+                </div>
+
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xs font-bold">
+                            #5</div>
+                        <div class="text-[10px] text-gray-400">22分钟前</div>
+                    </div>
+                    <div class="text-lg font-black text-orange-600">28<span class="text-xs text-gray-400">/50</span>
+                    </div>
+                </div>
+
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold">
+                            #6</div>
+                        <div class="text-[10px] text-gray-400">25分钟前</div>
+                    </div>
+                    <div class="text-lg font-black text-blue-600">44<span class="text-xs text-gray-400">/50</span></div>
+                </div>
+
+                <div
+                    class="border-b border-gray-50 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold">
+                            #7</div>
+                        <div class="text-[10px] text-gray-400">30分钟前</div>
+                    </div>
+                    <div class="text-lg font-black text-blue-600">40<span class="text-xs text-gray-400">/50</span></div>
+                </div>
+
+                <!-- Load More -->
+                <div class="p-2 text-center">
+                    <button class="text-xs text-blue-500 hover:text-blue-700 font-medium">加载更多 (还有31条)...</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

@@ -31,7 +31,7 @@ export interface GeminiConfig {
  */
 export function createGeminiClient(apiKey: string): GoogleGenerativeAI | null {
     if (!apiKey) return null;
-    return new GoogleGenerativeAI({ apiKey });
+    return new GoogleGenerativeAI(apiKey);
 }
 
 // ==================== 核心调用函数 ====================
@@ -78,13 +78,13 @@ export async function callGemini(
         generateConfig.responseMimeType = 'application/json';
     }
 
-    const response = await ai.models.generateContent({
+    const model = ai.getGenerativeModel({
         model: modelName,
-        contents: { parts },
-        config: Object.keys(generateConfig).length > 0 ? generateConfig : undefined
+        generationConfig: Object.keys(generateConfig).length > 0 ? generateConfig as any : undefined
     });
 
-    return response.text || '';
+    const response = await model.generateContent({ contents: [{ role: 'user', parts }] });
+    return response.response.text() || '';
 }
 
 /**
@@ -126,13 +126,13 @@ export async function callGeminiMultiImage(
         generateConfig.thinkingConfig = { thinkingBudget: options.thinkingBudget };
     }
 
-    const response = await ai.models.generateContent({
+    const model = ai.getGenerativeModel({
         model: modelName,
-        contents: { parts },
-        config: Object.keys(generateConfig).length > 0 ? generateConfig : undefined
+        generationConfig: Object.keys(generateConfig).length > 0 ? generateConfig as any : undefined
     });
 
-    return response.text || '';
+    const response = await model.generateContent({ contents: [{ role: 'user', parts }] });
+    return response.response.text() || '';
 }
 
 /**
@@ -151,12 +151,9 @@ export async function callGeminiText(
 
     const modelName = options?.modelName || GEMINI_DEFAULTS.defaultModel;
 
-    const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt
-    });
-
-    return response.text || '';
+    const model = ai.getGenerativeModel({ model: modelName });
+    const response = await model.generateContent(prompt);
+    return response.response.text() || '';
 }
 
 /**
@@ -170,10 +167,8 @@ export async function testGeminiConnection(
         const ai = createGeminiClient(apiKey);
         if (!ai) return false;
 
-        await ai.models.generateContent({
-            model: modelName || GEMINI_DEFAULTS.defaultModel,
-            contents: 'ping'
-        });
+        const model = ai.getGenerativeModel({ model: modelName || GEMINI_DEFAULTS.defaultModel });
+        await model.generateContent('ping');
 
         return true;
     } catch (e) {
@@ -209,19 +204,22 @@ export async function callGeminiWithSchema(
         generateConfig.thinkingConfig = { thinkingBudget: options.thinkingBudget };
     }
 
-    const response = await ai.models.generateContent({
+    const model = ai.getGenerativeModel({
         model: modelName,
+        generationConfig: generateConfig as any
+    });
+
+    const response = await model.generateContent({
         contents: [{
             role: 'user',
             parts: [
                 { text: prompt },
                 { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } }
             ]
-        }],
-        config: generateConfig
+        }]
     });
 
-    return response.text || '{}';
+    return response.response.text() || '{}';
 }
 
 // ==================== 策略配置 ====================

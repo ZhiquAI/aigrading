@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>智能批改 - 优化布局设计稿 v3</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        danger: "#EF4444",
+                        surface: "#FFFFFF",
+                        background: "#F9FAFB",
+                    },
+                    fontFamily: {
+                        display: ["'Noto Sans SC'", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #E5E7EB;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-200 font-display text-gray-900 antialiased h-screen flex justify-center items-center gap-6 p-4">
+
+    <!-- ==================== 设计说明 ==================== -->
+    <div class="w-[280px] h-[700px] overflow-y-auto p-4 bg-white rounded-2xl shadow-lg text-sm">
+        <h1 class="text-lg font-bold mb-4">📐 设计优化说明</h1>
+
+        <div class="space-y-4 text-xs text-gray-600">
+            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <h3 class="font-bold text-blue-800 mb-1">核心改动</h3>
+                <ul class="list-disc list-inside space-y-1 text-blue-700">
+                    <li>环境检测压缩为顶部条</li>
+                    <li>模式切换压缩为紧凑开关</li>
+                    <li>批改结果占据主视图</li>
+                    <li>阅卷统计卡片常驻显示</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-bold text-gray-700 mb-1">布局对比</h3>
+                <div class="space-y-2 text-[11px]">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                        <span>旧版：环境检测卡片 ~140px</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                        <span>新版：状态栏 ~40px （节省 100px）</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                        <span>旧版：模式选择卡片 ~150px</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                        <span>新版：模式开关 ~8px （节省 142px）</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-100 pt-3">
+                <h3 class="font-bold text-gray-700 mb-2">新增：阅卷统计卡片</h3>
+                <p class="text-gray-500 leading-relaxed">
+                    在空闲状态时显示今日阅卷统计，包含已批改数量、平均得分率、评分趋势等关键指标。
+                </p>
+            </div>
+
+            <div class="border-t border-gray-100 pt-3">
+                <h3 class="font-bold text-gray-700 mb-2">状态流转</h3>
+                <div class="space-y-2 text-[11px]">
+                    <div class="p-2 bg-gray-50 rounded">
+                        <strong>空闲 →</strong> 显示统计卡片 + 历史
+                    </div>
+                    <div class="p-2 bg-blue-50 rounded">
+                        <strong>扫描中 →</strong> 扫描动画
+                    </div>
+                    <div class="p-2 bg-green-50 rounded">
+                        <strong>评分完成 →</strong> 得分卡片 + 明细
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 状态1：空闲/统计 ==================== -->
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden border border-white/50">
+        <!-- 顶部导航（保持不变） -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 h-[52px]">
+            <div class="flex flex-1 h-full items-end">
+                <button class="flex-1 py-2.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-1.5">✏️ 智能批改</div>
+                </button>
+                <button class="flex-1 py-2.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-1.5">📋 批改记录</div>
+                </button>
+                <button class="flex-1 py-2.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-1.5">📊 数据分析</div>
+                </button>
+            </div>
+            <div class="flex items-center gap-1 pl-2 ml-1 border-l border-gray-100">
+                <button class="p-1.5 rounded-full text-gray-400 hover:bg-gray-100">⚙️</button>
+            </div>
+        </nav>
+
+        <!-- 🆕 紧凑状态栏（合并环境检测 + 模式切换） -->
+        <div class="px-3 py-2 bg-white border-b border-gray-100 flex items-center justify-between gap-2 shrink-0">
+            <!-- 左侧：题号 + 状态指示器组 -->
+            <div class="flex items-center gap-2">
+                <!-- 题号 -->
+                <button class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors">
+                    <span class="text-[10px] text-gray-400">题号</span>
+                    <span class="text-xs font-bold text-blue-600">第21题</span>
+                    <span class="text-[10px] text-gray-300">✎</span>
+                </button>
+                <!-- 🆕 可点击的状态指示器 - 更醒目 -->
+                <div class="flex items-center gap-1">
+                    <button
+                        class="flex items-center gap-1 px-2 py-1 rounded-md bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        title="点击查看试卷定位状态">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-medium text-green-700">试卷</span>
+                    </button>
+                    <button
+                        class="flex items-center gap-1 px-2 py-1 rounded-md bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        title="点击配置评分细则">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-medium text-green-700">细则</span>
+                    </button>
+                    <button
+                        class="flex items-center gap-1 px-2 py-1 rounded-md bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        title="点击检查API连接">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-medium text-green-700">API</span>
+                    </button>
+                </div>
+            </div>
+            <!-- 右侧：模式切换 -->
+            <div class="flex items-center bg-gray-100 rounded-lg p-0.5">
+                <button class="px-3 py-1 text-[11px] font-bold rounded-md bg-white text-blue-600 shadow-sm">辅助</button>
+                <button class="px-3 py-1 text-[11px] font-medium text-gray-500">自动</button>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 flex flex-col gap-3">
+
+            <!-- 🆕 今日阅卷统计卡片 -->
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-4 text-white shadow-lg">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">📊</span>
+                        <span class="text-sm font-bold">今日阅卷统计</span>
+                    </div>
+                    <span class="text-[10px] text-white/50">12-28</span>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="text-center">
+                        <div class="text-2xl font-black">47</div>
+                        <div class="text-[10px] text-white/60">已批改</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-black text-emerald-400">82%</div>
+                        <div class="text-[10px] text-white/60">平均得分率</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-black text-amber-400">8.2</div>
+                        <div class="text-[10px] text-white/60">平均分</div>
+                    </div>
+                </div>
+                <!-- 迷你趋势图 -->
+                <div class="mt-3 pt-3 border-t border-white/10">
+                    <div class="flex items-end gap-1 h-8 justify-center">
+                        <div class="w-3 bg-white/20 rounded-sm" style="height: 40%"></div>
+                        <div class="w-3 bg-white/30 rounded-sm" style="height: 60%"></div>
+                        <div class="w-3 bg-white/40 rounded-sm" style="height: 45%"></div>
+                        <div class="w-3 bg-white/50 rounded-sm" style="height: 80%"></div>
+                        <div class="w-3 bg-emerald-400 rounded-sm" style="height: 70%"></div>
+                        <div class="w-3 bg-emerald-400/80 rounded-sm" style="height: 85%"></div>
+                        <div class="w-3 bg-emerald-400/60 rounded-sm animate-pulse" style="height: 65%"></div>
+                    </div>
+                    <div class="text-[9px] text-white/40 text-center mt-1">最近 7 份得分趋势</div>
+                </div>
+            </div>
+
+            <!-- 🆕 最近批改记录预览 -->
+            <div class="bg-white rounded-xl p-3 shadow-card border border-gray-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-gray-700">最近批改</span>
+                    <button class="text-[10px] text-blue-500 hover:underline">查看全部 →</button>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-[10px] font-bold">12</span>
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">张三</div>
+                                <div class="text-[10px] text-gray-400">10:20</div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-green-600">满分 ⭐</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1.5 px-2 hover:bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-bold">8</span>
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">李四</div>
+                                <div class="text-[10px] text-gray-400">10:18</div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-500">-4分</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1.5 px-2 hover:bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-[10px] font-bold">10</span>
+                            <div>
+                                <div class="text-xs font-medium text-gray-700">王五</div>
+                                <div class="text-[10px] text-gray-400">10:15</div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-500">-2分</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 就绪提示 -->
+            <div class="flex-1 flex flex-col items-center justify-center text-center opacity-60">
+                <div class="text-4xl mb-2">🎯</div>
+                <p class="text-sm font-medium text-gray-600">准备就绪</p>
+                <p class="text-xs text-gray-400 mt-1">点击下方按钮开始批改</p>
+            </div>
+        </main>
+
+        <!-- 底部按钮 -->
+        <footer class="bg-white border-t border-gray-100 p-4 shrink-0">
+            <button
+                class="w-full bg-[#111827] hover:bg-black text-white py-3.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
+                <span>▶</span> 开始智能批改
+            </button>
+            <div class="mt-2 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+                <button class="flex items-center gap-1 hover:text-blue-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 试卷
+                </button>
+                <button class="flex items-center gap-1 hover:text-blue-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 细则
+                </button>
+                <button class="flex items-center gap-1 hover:text-blue-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> API
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ==================== 状态2：评分结果 ==================== -->
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden border border-white/50">
+        <!-- 顶部导航 -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 h-[52px]">
+            <div class="flex flex-1 h-full items-end">
+                <button class="flex-1 py-2.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-1.5">✏️ 智能批改</div>
+                </button>
+                <button class="flex-1 py-2.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-1.5">📋 批改记录</div>
+                </button>
+                <button class="flex-1 py-2.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-1.5">📊 数据分析</div>
+                </button>
+            </div>
+            <div class="flex items-center gap-1 pl-2 ml-1 border-l border-gray-100">
+                <button class="p-1.5 rounded-full text-gray-400 hover:bg-gray-100">⚙️</button>
+            </div>
+        </nav>
+
+        <!-- 紧凑状态栏 -->
+        <div class="px-3 py-2 bg-white border-b border-gray-100 flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] text-gray-400">题号</span>
+                    <span class="text-xs font-bold text-blue-600">第21题</span>
+                </div>
+                <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 border border-green-100">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span class="text-[10px] font-bold text-green-700">评分完成</span>
+                </div>
+            </div>
+            <div class="flex items-center bg-gray-100 rounded-lg p-0.5">
+                <button class="px-3 py-1 text-[11px] font-bold rounded-md bg-white text-blue-600 shadow-sm">辅助</button>
+                <button class="px-3 py-1 text-[11px] font-medium text-gray-500">自动</button>
+            </div>
+        </div>
+
+        <!-- 主内容：得分卡片占满 -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 flex flex-col gap-3">
+            <!-- 大得分卡片 -->
+            <div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden flex-1 flex flex-col">
+                <!-- 得分头部 -->
+                <div class="relative p-5 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 text-white">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl"></div>
+                    <div class="relative flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="bg-white/20 px-2 py-0.5 rounded text-[10px] font-medium">智能阅卷</span>
+                                <span
+                                    class="bg-yellow-400/90 text-yellow-900 px-2 py-0.5 rounded text-[10px] font-bold">⭐
+                                    满分</span>
+                            </div>
+                            <h2 class="font-bold text-xl">张三同学</h2>
+                            <div class="text-white/70 text-xs mt-0.5">2024-12-28 10:20</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-4xl font-black">12</div>
+                            <div class="text-white/70 text-sm">/ 12 分</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 得分明细 -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div class="flex items-start justify-between py-2 border-b border-gray-50">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">+4分</span>
+                                <span class="text-xs font-bold text-gray-800">公式书写</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">公式推导正确，步骤完整。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start justify-between py-2 border-b border-gray-50">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">+4分</span>
+                                <span class="text-xs font-bold text-gray-800">计算过程</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">计算过程清晰准确。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start justify-between py-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">+4分</span>
+                                <span class="text-xs font-bold text-gray-800">最终答案</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">答案正确。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作提示 -->
+            <div
+                class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3 shrink-0">
+                <div class="text-[11px] text-amber-700 min-w-0">
+                    请在平台录入分数 <strong class="text-amber-800">12分</strong>，提交后点击继续 →
+                </div>
+                <button
+                    class="shrink-0 px-4 py-2 rounded-lg bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition-colors shadow-sm">
+                    继续下一份
+                </button>
+            </div>
+        </main>
+
+        <!-- 底部区域 -->
+        <footer class="bg-white border-t border-gray-100 shrink-0">
+            <div class="px-4 py-2.5 flex items-center justify-center gap-6 text-[11px]">
+                <span class="flex items-center gap-1.5 text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span> 试卷
+                </span>
+                <span class="flex items-center gap-1.5 text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span> 细则
+                </span>
+                <span class="flex items-center gap-1.5 text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span> API
+                </span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ==================== 状态3：异常状态（细则未配置） ==================== -->
+    <div
+        class="w-[420px] h-[700px] bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden border border-white/50">
+        <!-- 顶部导航 -->
+        <nav class="flex items-center px-2 bg-white border-b border-gray-100 shrink-0 h-[52px]">
+            <div class="flex flex-1 h-full items-end">
+                <button class="flex-1 py-2.5 text-sm font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30">
+                    <div class="flex items-center justify-center gap-1.5">✏️ 智能批改</div>
+                </button>
+                <button class="flex-1 py-2.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-1.5">📋 批改记录</div>
+                </button>
+                <button class="flex-1 py-2.5 text-sm font-medium text-gray-500 border-b-2 border-transparent">
+                    <div class="flex items-center justify-center gap-1.5">📊 数据分析</div>
+                </button>
+            </div>
+            <div class="flex items-center gap-1 pl-2 ml-1 border-l border-gray-100">
+                <button class="p-1.5 rounded-full text-gray-400 hover:bg-gray-100">⚙️</button>
+            </div>
+        </nav>
+
+        <!-- 🆕 紧凑状态栏 - 异常状态：细则未配置 -->
+        <div class="px-3 py-2 bg-white border-b border-gray-100 flex items-center justify-between gap-2 shrink-0">
+            <!-- 左侧：题号 + 状态指示器组 -->
+            <div class="flex items-center gap-2">
+                <!-- 题号 -->
+                <button class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors">
+                    <span class="text-[10px] text-gray-400">题号</span>
+                    <span class="text-xs font-bold text-blue-600">第21题</span>
+                    <span class="text-[10px] text-gray-300">✎</span>
+                </button>
+                <!-- 🆕 可点击的状态指示器 - 异常状态高亮 -->
+                <div class="flex items-center gap-1">
+                    <button
+                        class="flex items-center gap-1 px-2 py-1 rounded-md bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        title="点击查看试卷定位状态">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-medium text-green-700">试卷</span>
+                    </button>
+                    <!-- 🔴 异常状态：红色高亮，闪烁动画 -->
+                    <button
+                        class="flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 border border-red-300 hover:bg-red-100 transition-colors animate-pulse"
+                        title="⚠️ 未配置评分细则，点击立即配置">
+                        <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                        <span class="text-[10px] font-bold text-red-600">细则 ⚠</span>
+                    </button>
+                    <button
+                        class="flex items-center gap-1 px-2 py-1 rounded-md bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        title="点击检查API连接">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span class="text-[10px] font-medium text-green-700">API</span>
+                    </button>
+                </div>
+            </div>
+            <!-- 右侧：模式切换 -->
+            <div class="flex items-center bg-gray-100 rounded-lg p-0.5">
+                <button class="px-3 py-1 text-[11px] font-bold rounded-md bg-white text-blue-600 shadow-sm">辅助</button>
+                <button class="px-3 py-1 text-[11px] font-medium text-gray-500">自动</button>
+            </div>
+        </div>
+
+        <!-- 🆕 配置提示横幅 - 当有异常时显示 -->
+        <div class="px-3 py-2 bg-red-50 border-b border-red-100 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-[11px] text-red-700">
+                <span class="text-base">⚠️</span>
+                <span>评分细则未配置，无法开始批改</span>
+            </div>
+            <button
+                class="px-3 py-1.5 text-[11px] font-bold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+                立即配置
+            </button>
+        </div>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 flex flex-col gap-3">
+            <!-- 今日阅卷统计卡片 -->
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-4 text-white shadow-lg opacity-50">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">📊</span>
+                        <span class="text-sm font-bold">今日阅卷统计</span>
+                    </div>
+                    <span class="text-[10px] text-white/50">12-28</span>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="text-center">
+                        <div class="text-2xl font-black">0</div>
+                        <div class="text-[10px] text-white/60">已批改</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-black text-gray-400">--</div>
+                        <div class="text-[10px] text-white/60">平均得分率</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-black text-gray-400">--</div>
+                        <div class="text-[10px] text-white/60">平均分</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置引导卡片 -->
+            <div
+                class="bg-white rounded-xl p-4 shadow-card border-2 border-dashed border-red-200 flex-1 flex flex-col items-center justify-center text-center">
+                <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                    <span class="text-3xl">📋</span>
+                </div>
+                <h3 class="text-base font-bold text-gray-800 mb-2">配置评分细则</h3>
+                <p class="text-xs text-gray-500 max-w-[240px] mb-4 leading-relaxed">
+                    在开始批改前，请先上传试卷和参考答案，由 AI 自动生成评分细则，或手动输入评分标准。
+                </p>
+                <button
+                    class="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
+                    上传试卷生成细则
+                </button>
+                <button class="mt-2 text-[11px] text-gray-400 hover:text-blue-500 transition-colors">
+                    或手动输入评分标准 →
+                </button>
+            </div>
+        </main>
+
+        <!-- 底部按钮 - 禁用状态 -->
+        <footer class="bg-white border-t border-gray-100 p-4 shrink-0">
+            <button disabled
+                class="w-full bg-gray-300 text-gray-500 py-3.5 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2">
+                <span>▶</span> 开始智能批改
+            </button>
+            <div class="mt-2 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+                <span class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 试卷
+                </span>
+                <span class="flex items-center gap-1 text-red-500 font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> 细则
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> API
+                </span>
+            </div>
+        </footer>
+    </div>
+
+</body>
+
+</html>

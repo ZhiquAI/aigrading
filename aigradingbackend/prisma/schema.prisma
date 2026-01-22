@@ -21,7 +21,6 @@ model User {
 
   // 关联
   configs Config[]
-  records GradingRecord[]
 }
 
 // 配置表（存储用户的各种配置，如模型设置、评分标准等）
@@ -38,23 +37,25 @@ model Config {
   @@index([userId])
 }
 
-// 批改记录表
+// 批改记录表（基于激活码存储，支持跨设备同步）
 model GradingRecord {
-  id          String   @id @default(cuid())
-  userId      String
-  questionNo  String? // 题号
-  studentName String // 学生姓名
-  examNo      String? // 准考证号
-  score       Float // 得分
-  maxScore    Float // 满分
-  comment     String? // 评语
-  breakdown   String? // 详细得分项（JSON 字符串）
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  activationCode String   // 关联激活码（跨设备同步的核心标识）
+  deviceId       String?  // 来源设备ID（追踪记录来源）
+  questionNo     String?  // 题号
+  questionKey    String?  // 题目唯一KEY（与评分细则关联）
+  studentName    String   // 学生姓名
+  examNo         String?  // 准考证号
+  score          Float    // 得分
+  maxScore       Float    // 满分
+  comment        String?  // 评语
+  breakdown      String?  // 详细得分项（JSON 字符串）
+  createdAt      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
+  @@index([activationCode])
+  @@index([deviceId])
   @@index([questionNo])
+  @@index([questionKey])
 }
 
 // 激活码表
@@ -101,17 +102,19 @@ model UsageRecord {
   @@index([createdAt])
 }
 
-// 评分细则表（基于设备存储）
+// 评分细则表（基于激活码存储，支持跨设备同步）
 model DeviceRubric {
-  id          String   @id @default(cuid())
-  deviceId    String // 设备标识
-  questionKey String // 题目唯一KEY
-  rubric      String // 评分细则内容
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  activationCode String   // 关联激活码（跨设备同步的核心标识）
+  deviceId       String?  // 来源设备ID（追踪创建来源）
+  questionKey    String   // 题目唯一KEY
+  rubric         String   // 评分细则内容（JSON 字符串）
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  @@unique([deviceId, questionKey]) // 同一设备同一题目只能有一份
-  @@index([deviceId])
+  @@unique([activationCode, questionKey]) // 同一激活码同一题目只能有一份
+  @@index([activationCode])
+  @@index([questionKey])
 }
 
 // 激活记录表（追踪所有激活行为）

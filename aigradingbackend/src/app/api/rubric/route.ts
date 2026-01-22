@@ -1,53 +1,69 @@
 /**
- * 评分细则存储 API v2
+ * 评分细则存储 API v3（基于激活码）
  * 
  * GET /api/rubric - 获取评分细则列表或单个
  * POST /api/rubric - 保存评分细则（支持冲突检测）
  * DELETE /api/rubric - 删除评分细则
+ * 
+ * Header: x-activation-code - 激活码（必需，跨设备同步的核心标识）
+ * Header: x-device-id - 设备ID（可选，追踪来源）
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { RubricJSON, RubricListItem, validateRubricJSON, rubricToListItem } from '@/lib/rubric-types';
 
-const prisma = new PrismaClient();
+// 获取激活码
+function getActivationCode(request: NextRequest): string | null {
+    return request.headers.get('x-activation-code');
+}
+
+// 获取设备ID（可选）
+function getDeviceId(request: NextRequest): string | null {
+    return request.headers.get('x-device-id');
+}
 
 /**
  * GET /api/rubric
  * 获取评分细则
- * Query: deviceId (必填), questionKey (可选)
+ * Header: x-activation-code (优先) 或 Query: deviceId (回退)
+ * Query: questionKey (可选)
  * 
  * 不带 questionKey: 返回列表
  * 带 questionKey: 返回单个完整数据
  */
 export async function GET(request: NextRequest) {
     try {
-        const deviceId = request.headers.get('x-device-id') ||
-            new URL(request.url).searchParams.get('deviceId');
-        const questionKey = new URL(request.url).searchParams.get('questionKey');
+        const activationCode = getActivationCode(request);
+        const url = new URL(request.url);
+        const questionKey = url.searchParams.get('questionKey');
+        const deviceId = url.searchParams.get('deviceId') || getDeviceId(request);
 
-        if (!deviceId) {
+        // 优先使用激活码，否则使用设备ID作为临时标识
+        const identifier = activationCode || (deviceId ? `device:${deviceId}` : null);
+
+        if (!identifier) {
             return NextResponse.json({
-                success: false,
-                error: '缺少 deviceId',
-                code: 'INVALID_REQUEST'
-            }, { status: 400 });
+                success: true,
+                rubrics: [],
+                message: '未提供激活码或设备ID'
+            });
         }
 
         // 单个查询
         if (questionKey) {
             const record = await prisma.deviceRubric.findUnique({
                 where: {
-                    deviceId_questionKey: { deviceId, questionKey }
+                    activationCode_questionKey: { activationCode: identifier, questionKey }
                 }
             });
 
             if (!record) {
                 return NextResponse.json({
-                    success: false,
-                    error: '评分细则不存在',
-                    code: 'NOT_FOUND'
-                }, { status: 404 });
+                    success: true,
+                    rubric: null,
+                    message: '评分细则不存在'
+                });
             }
 
             // 解析 JSON
@@ -70,7 +86,7 @@ export async function GET(request: NextRequest) {
 
         // 列表查询
         const records = await prisma.deviceRubric.findMany({
-            where: { deviceId },
+            where: { activationCode: identifier },
             orderBy: { updatedAt: 'desc' }
         });
 
@@ -106,19 +122,21 @@ export async function GET(request: NextRequest) {
  * 保存或更新评分细则
  * 
  * Body: RubricJSON
- * Header: x-device-id
+ * Header: x-activation-code (必填)
+ * Header: x-device-id (可选)
  * 
  * 冲突处理：
  * - 如果服务器有更新版本，返回 409 + 双方数据
  */
 export async function POST(request: NextRequest) {
     try {
-        const deviceId = request.headers.get('x-device-id');
+        const activationCode = getActivationCode(request);
+        const deviceId = getDeviceId(request);
 
-        if (!deviceId) {
+        if (!activationCode) {
             return NextResponse.json({
                 success: false,
-                error: '缺少 x-device-id',
+                error: '缺少激活码',
                 code: 'INVALID_REQUEST'
             }, { status: 400 });
         }
@@ -141,7 +159,7 @@ export async function POST(request: NextRequest) {
         // 检查冲突
         const existing = await prisma.deviceRubric.findUnique({
             where: {
-                deviceId_questionKey: { deviceId, questionKey }
+                activationCode_questionKey: { activationCode, questionKey }
             }
         });
 
@@ -177,19 +195,21 @@ export async function POST(request: NextRequest) {
         // 保存
         await prisma.deviceRubric.upsert({
             where: {
-                deviceId_questionKey: { deviceId, questionKey }
+                activationCode_questionKey: { activationCode, questionKey }
             },
             update: {
-                rubric: JSON.stringify(rubricToSave)
+                rubric: JSON.stringify(rubricToSave),
+                deviceId: deviceId || undefined
             },
             create: {
-                deviceId,
+                activationCode,
+                deviceId: deviceId || null,
                 questionKey,
                 rubric: JSON.stringify(rubricToSave)
             }
         });
 
-        console.log(`[Rubric API] Saved: ${questionKey} (device: ${deviceId.substring(0, 10)}...)`);
+        console.log(`[Rubric API] Saved: ${questionKey} (code: ${activationCode.substring(0, 10)}...)`);
 
         return NextResponse.json({
             success: true,
@@ -210,14 +230,14 @@ export async function POST(request: NextRequest) {
  * DELETE /api/rubric
  * 删除评分细则
  * Query: questionKey (必填)
- * Header: x-device-id
+ * Header: x-activation-code (必填)
  */
 export async function DELETE(request: NextRequest) {
     try {
-        const deviceId = request.headers.get('x-device-id');
+        const activationCode = getActivationCode(request);
         const questionKey = new URL(request.url).searchParams.get('questionKey');
 
-        if (!deviceId || !questionKey) {
+        if (!activationCode || !questionKey) {
             return NextResponse.json({
                 success: false,
                 error: '缺少必填参数',
@@ -228,7 +248,7 @@ export async function DELETE(request: NextRequest) {
         try {
             await prisma.deviceRubric.delete({
                 where: {
-                    deviceId_questionKey: { deviceId, questionKey }
+                    activationCode_questionKey: { activationCode, questionKey }
                 }
             });
 
