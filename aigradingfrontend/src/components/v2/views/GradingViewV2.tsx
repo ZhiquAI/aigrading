@@ -18,7 +18,8 @@ import {
     CheckCircle2,
     Trophy,
     MousePointerClick,
-    Sparkles
+    Sparkles,
+    RefreshCw
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { Tab } from '@/types';
@@ -27,6 +28,37 @@ import { toast } from '@/components/Toast';
 import RubricDrawer from './RubricDrawer';
 import ActivationModal from '@/components/ActivationModal';
 import SuccessCelebration from '@/src/components/v2/SuccessCelebration';
+
+// 印章组件
+const GradeStamp: React.FC<{ score: number; maxScore: number }> = ({ score, maxScore }) => {
+    const percentage = (score / maxScore) * 100;
+
+    let label = '已阅';
+    let colorClass = 'border-red-500/80 text-red-500/80';
+
+    if (percentage >= 90) {
+        label = '优秀';
+        colorClass = 'border-rose-500 text-rose-500';
+    } else if (percentage >= 80) {
+        label = '良好';
+        colorClass = 'border-orange-400 text-orange-400';
+    } else if (percentage < 60) {
+        label = '待改进';
+        colorClass = 'border-slate-400 text-slate-400';
+    } else {
+        label = '及格';
+        colorClass = 'border-amber-500 text-amber-500';
+    }
+
+    return (
+        <div className={`
+            px-3 py-1 border-2 ${colorClass} rounded-sm font-black text-xs uppercase tracking-tighter rotate-[-15deg] opacity-70 scale-150
+            animate-in zoom-in-150 duration-500
+        `}>
+            {label}
+        </div>
+    );
+};
 
 export default function GradingViewV2() {
     const {
@@ -43,14 +75,10 @@ export default function GradingViewV2() {
         setActiveTab,
         autoGradingInterval,
         status,
-        setStatus
+        setStatus,
+        health: globalHealth,
+        setHealth: setGlobalHealth
     } = useAppStore();
-
-    // UI States
-    const [health, setHealth] = useState<{
-        api: boolean | null,
-        pageLink: boolean | null
-    }>({ api: null, pageLink: null });
 
     const [isDetecting, setIsDetecting] = useState(true);
     const [currentScore, setCurrentScore] = useState(8.5);
@@ -63,6 +91,28 @@ export default function GradingViewV2() {
 
     const [isActivationOpen, setIsActivationOpen] = useState(false);
     const [showCelebration, setShowCelebration] = useState(false);
+
+    // Real-time Health Listener
+    useEffect(() => {
+        const handleMessage = (message: any) => {
+            if (message.type === 'REAL_TIME_STATUS') {
+                setGlobalHealth({
+                    answerCard: message.hasAnswerCard,
+                    api: true // Assume API is functional if communication is working
+                });
+            }
+        };
+
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            chrome.runtime.onMessage.addListener(handleMessage);
+        }
+
+        return () => {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.onMessage.removeListener(handleMessage);
+            }
+        };
+    }, [setGlobalHealth]);
 
     // Handle Auto Mode Logic when result appears
     useEffect(() => {
@@ -94,27 +144,44 @@ export default function GradingViewV2() {
         };
     }, [status, gradingMode, isIntervening, autoGradingInterval]);
 
-    // Staggered Health Check Effect
+    // Initial Detection Trigger
     useEffect(() => {
         const init = async () => {
             setIsDetecting(true);
-            setHealth({ api: null, pageLink: null }); // Reset
 
-            // 1. Check Page Link (Mock delay)
-            await new Promise(r => setTimeout(r, 600));
-            setHealth(prev => ({ ...prev, pageLink: true }));
+            // Request immediate scan
+            if (typeof chrome !== 'undefined' && chrome.tabs) {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs[0]?.id) {
+                        chrome.tabs.sendMessage(tabs[0].id, { type: 'HIGHLIGHT_ANSWER_CARD' });
+                    }
+                });
+            }
 
-            // 2. Check API (Mock delay)
-            await new Promise(r => setTimeout(r, 800));
-            setHealth(prev => ({ ...prev, api: true }));
-
-            // 3. Rubric check is instant based on store, but we add a small delay for visual flow
-            await new Promise(r => setTimeout(r, 600));
-
+            // Small delay for visual flow of "detecting"
+            await new Promise(r => setTimeout(r, 1200));
             setIsDetecting(false);
         };
         init();
     }, []);
+
+    const handleRescan = () => {
+        setIsDetecting(true);
+        if (typeof chrome !== 'undefined' && chrome.tabs) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]?.id) {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: 'HIGHLIGHT_ANSWER_CARD' }, (response) => {
+                        if (response?.success) {
+                            toast.success("已重新定位答题卡");
+                        } else {
+                            toast.error("未找到答题卡，请检查页面");
+                        }
+                    });
+                }
+            });
+        }
+        setTimeout(() => setIsDetecting(false), 800);
+    };
 
     // --- Actions ---
 
@@ -173,8 +240,6 @@ export default function GradingViewV2() {
         return () => clearInterval(interval);
     }, [status]);
 
-    // --- Sub-Components ---
-
     /**
      * V4 Design Health Check List
      */
@@ -182,17 +247,18 @@ export default function GradingViewV2() {
         const items = [
             {
                 label: '答题卡定位',
-                status: health.pageLink === null ? 'pending' : (health.pageLink ? 'success' : 'error'),
-                icon: FileQuestion
+                status: globalHealth.answerCard === null ? 'pending' : (globalHealth.answerCard ? 'success' : 'error'),
+                icon: FileQuestion,
+                action: handleRescan
             },
             {
                 label: 'API 连接',
-                status: health.api === null ? 'pending' : (health.api ? 'success' : 'error'),
+                status: globalHealth.api === null ? 'pending' : (globalHealth.api ? 'success' : 'error'),
                 icon: Server
             },
             {
                 label: '评分细则',
-                status: isDetecting && !health.api ? 'pending' : (isRubricConfigured ? 'success' : 'error'), // Wait for API check before showing rubric status
+                status: isDetecting && !globalHealth.api ? 'pending' : (isRubricConfigured ? 'success' : 'error'),
                 icon: FileCheck2
             }
         ] as const;
@@ -219,22 +285,33 @@ export default function GradingViewV2() {
                             `}>
                                 <item.icon className="w-4 h-4" />
                             </div>
-                            <span className={`text-xs font-bold transition-colors duration-300 ${item.status !== 'pending' ? 'text-slate-800' : 'text-slate-500'}`}>
+                            <span className={`text-[10px] font-bold transition-colors duration-300 ${item.status !== 'pending' ? 'text-slate-800' : 'text-slate-500'}`}>
                                 {item.label}
                             </span>
                         </div>
-                        <div className="status-icon">
-                            {item.status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
-                            {item.status === 'success' && (
-                                <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center animate-in zoom-in spin-in-90 duration-300">
-                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                </div>
+                        <div className="flex items-center gap-2">
+                            {item.label === '答题卡定位' && item.status !== 'pending' && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); item.action?.(); }}
+                                    className="p-1 hover:bg-slate-200 rounded-md text-slate-400 hover:text-indigo-500 transition-colors"
+                                    title="重新扫描"
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${isDetecting ? 'animate-spin' : ''}`} />
+                                </button>
                             )}
-                            {item.status === 'error' && (
-                                <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center animate-in zoom-in duration-300">
-                                    <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                </div>
-                            )}
+                            <div className="status-icon">
+                                {item.status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+                                {item.status === 'success' && (
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center animate-in zoom-in spin-in-90 duration-300">
+                                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                    </div>
+                                )}
+                                {item.status === 'error' && (
+                                    <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center animate-in zoom-in duration-300">
+                                        <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -244,7 +321,6 @@ export default function GradingViewV2() {
 
     return (
         <div className="relative h-full flex flex-col overflow-hidden">
-
             {/* PAGE: THINKING (Zen Mode Upgrade) */}
             {status === 'thinking' && (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in fade-in duration-700 relative overflow-hidden">
@@ -311,9 +387,6 @@ export default function GradingViewV2() {
             {/* PAGE: IDLE / SCANNING */}
             {(status === 'idle' || status === 'scanning') && (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in fade-in duration-500 mb-10 relative">
-
-
-
                     {/* The Orb */}
                     <div
                         onClick={isRubricConfigured && !isDetecting ? startGrading : undefined}
@@ -366,7 +439,7 @@ export default function GradingViewV2() {
                     <HealthCheckList />
 
                     {/* Rubric Config Button (If check failed) */}
-                    {!isDetecting && !isRubricConfigured && health.api && (
+                    {!isDetecting && !isRubricConfigured && globalHealth.api && (
                         <button
                             onClick={() => setIsRubricDrawerOpen(true)}
                             className="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in"
@@ -375,11 +448,10 @@ export default function GradingViewV2() {
                             配置评分细则
                         </button>
                     )}
-
                 </div>
             )}
 
-            {/* Trial Lock Overlay (Suggestion 3) */}
+            {/* Trial Lock Overlay */}
             {quota.status === 'expired' && status === 'idle' && (
                 <div className="absolute inset-0 z-40 bg-white/40 backdrop-blur-[8px] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 text-slate-400 shadow-inner">
@@ -403,7 +475,6 @@ export default function GradingViewV2() {
             {status === 'result' && (
                 <div className="flex-1 flex flex-col bg-white animate-in slide-in-from-bottom-4 duration-500 overflow-hidden relative">
                     <div className="flex-1 overflow-y-auto p-4 pb-32 scrollbar-thin">
-
                         {/* Auto Mode Timer Toast */}
                         {gradingMode === 'auto' && autoCountdown !== null && (
                             <div className="mb-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex flex-col gap-3 animate-in slide-in-from-top-2 relative overflow-hidden">
@@ -414,7 +485,7 @@ export default function GradingViewV2() {
                                     </div>
                                     <button
                                         onClick={() => {
-                                            setIsInteracting(true); // Stop countdown by intervening
+                                            setIsInteracting(true);
                                             setAutoCountdown(null);
                                         }}
                                         className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors bg-white px-2 py-1 rounded-lg border border-emerald-100 shadow-sm"
@@ -422,18 +493,12 @@ export default function GradingViewV2() {
                                         取消/调整分数
                                     </button>
                                 </div>
-
-                                {/* Progress Bar */}
                                 <div className="h-1 w-full bg-emerald-100/50 rounded-full overflow-hidden relative z-10">
                                     <div
                                         className="h-full bg-emerald-500 transition-all duration-1000 ease-linear"
-                                        style={{
-                                            width: `${(autoCountdown / (autoGradingInterval / 1000)) * 100}%`
-                                        }}
+                                        style={{ width: `${(autoCountdown / (autoGradingInterval / 1000)) * 100}%` }}
                                     ></div>
                                 </div>
-
-                                {/* Background Sparkle Decoration */}
                                 <Sparkles className="absolute -bottom-2 -right-2 text-emerald-200 opacity-20 rotate-12" size={48} />
                             </div>
                         )}
@@ -442,9 +507,7 @@ export default function GradingViewV2() {
                         <div className="flex items-center justify-center gap-3 mb-4">
                             <div className={`
                                 px-4 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-2 shadow-sm border transition-colors
-                                ${isIntervening
-                                    ? 'bg-amber-50 border-amber-100 text-amber-600'
-                                    : 'bg-emerald-50 border-emerald-100 text-emerald-600'}
+                                ${isIntervening ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}
                             `}>
                                 {isIntervening ? (
                                     <>
@@ -458,18 +521,10 @@ export default function GradingViewV2() {
                                     </>
                                 )}
                             </div>
-
-                            {/* Mode Switcher Shortcut (Enlarged) */}
                             <button
-                                onClick={() => {
-                                    const next = gradingMode === 'assist' ? 'auto' : 'assist';
-                                    setGradingMode(next);
-                                }}
+                                onClick={() => setGradingMode(gradingMode === 'assist' ? 'auto' : 'assist')}
                                 className={`px-4 py-2 rounded-full text-[15px] font-black tracking-widest border transition-all flex items-center gap-2 active:scale-95 shadow-md
-                                    ${gradingMode === 'auto'
-                                        ? 'bg-emerald-500 border-emerald-400 text-white'
-                                        : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
-                                    }`}
+                                    ${gradingMode === 'auto' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'}`}
                             >
                                 {gradingMode === 'auto' ? <Sparkles size={14} /> : <MousePointerClick size={14} />}
                                 {gradingMode === 'auto' ? 'AUTO' : 'ASSIST'}
@@ -481,11 +536,6 @@ export default function GradingViewV2() {
                             relative overflow-hidden mb-6 group rounded-3xl p-6 text-white transition-all duration-500
                             ${quota.remaining < 10 && quota.remaining > 0 ? 'bg-amber-900 ring-2 ring-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'bg-slate-900 shadow-2xl'}
                         `}>
-                            {/* Low Quota Glow Effect */}
-                            {quota.remaining < 10 && quota.remaining > 0 && (
-                                <div className="absolute inset-0 bg-amber-500/5 animate-pulse pointer-events-none"></div>
-                            )}
-
                             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[60px] opacity-30"></div>
                             <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500 rounded-full blur-[50px] opacity-20"></div>
 
@@ -496,31 +546,15 @@ export default function GradingViewV2() {
                                         <span className="text-xl text-slate-500 font-medium">/ 10</span>
                                     </div>
                                 </div>
-
-                                {/* THE STAMP */}
                                 <div className="absolute top-2 right-12 md:top-4 md:right-24 z-20 pointer-events-none select-none">
                                     <GradeStamp score={currentScore} maxScore={10} />
                                 </div>
-
-                                {/* Ring Chart with Stepper */}
                                 <div className="relative flex items-center gap-3">
-                                    {quota.remaining < 10 && quota.remaining > 0 && (
-                                        <div className="absolute -top-10 right-0 flex items-center gap-1 text-[10px] font-black text-amber-400 whitespace-nowrap animate-bounce">
-                                            <Zap size={10} fill="currentColor" />
-                                            能量即将耗尽
-                                        </div>
-                                    )}
                                     <div className="flex flex-col gap-1.5">
-                                        <button
-                                            onClick={() => adjustScore(0.5)}
-                                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/10 transition-all active:scale-90"
-                                        >
+                                        <button onClick={() => adjustScore(0.5)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/10 transition-all active:scale-90">
                                             <Plus className="w-4 h-4" />
                                         </button>
-                                        <button
-                                            onClick={() => adjustScore(-0.5)}
-                                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/10 transition-all active:scale-90"
-                                        >
+                                        <button onClick={() => adjustScore(-0.5)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/10 transition-all active:scale-90">
                                             <Minus className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -533,7 +567,6 @@ export default function GradingViewV2() {
                                     </div>
                                 </div>
                             </div>
-
                             <div className="mt-6 pt-4 border-t border-white/10">
                                 <p className="text-xs text-slate-300 leading-relaxed italic">
                                     <span className="text-indigo-300 font-bold not-italic mr-1">AI 点评:</span>
@@ -560,44 +593,31 @@ export default function GradingViewV2() {
                                             {item.score} / {item.full}
                                         </span>
                                     </div>
-                                    <p className="text-[10px] text-slate-500 leading-relaxed">
-                                        {item.comment}
-                                    </p>
+                                    <p className="text-[10px] text-slate-500 leading-relaxed">{item.comment}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Milestone Card Overlay (Suggestion 2.2) */}
+                    {/* Milestone Card Overlay */}
                     {quota.status === 'expired' && (
                         <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end justify-center animate-in fade-in duration-500">
                             <div className="w-full bg-white rounded-t-[40px] p-8 pb-12 shadow-2xl animate-in slide-in-from-bottom-full duration-700">
                                 <div className="flex flex-col items-center text-center">
                                     <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mb-6 rotate-12 shadow-xl shadow-indigo-100 border border-indigo-100 relative">
                                         <Trophy size={40} className="text-indigo-600 -rotate-12" />
-                                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center font-black text-xs border-2 border-white shadow-lg">
-                                            10
-                                        </div>
+                                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center font-black text-xs border-2 border-white shadow-lg">10</div>
                                     </div>
                                     <h2 className="text-2xl font-black text-slate-800 mb-2">太棒了！</h2>
                                     <p className="text-slate-500 text-sm mb-8 max-w-[280px] leading-relaxed">
                                         您今天已助力 <span className="text-indigo-600 font-black">10</span> 位同学。
                                         节省重复机械工作约 <span className="text-indigo-600 font-black">30 分钟</span> ⌛
                                     </p>
-
                                     <div className="w-full space-y-3">
-                                        <Button
-                                            variant="gradient"
-                                            fullWidth
-                                            className="py-4 rounded-2xl text-base font-black tracking-widest shadow-xl shadow-indigo-200 active:scale-95 transition-all"
-                                            onClick={() => setIsActivationOpen(true)}
-                                        >
+                                        <Button variant="gradient" fullWidth className="py-4 rounded-2xl text-base font-black tracking-widest shadow-xl shadow-indigo-200 active:scale-95 transition-all" onClick={() => setIsActivationOpen(true)}>
                                             立即开启专业版
                                         </Button>
-                                        <button
-                                            onClick={() => setStatus('idle')}
-                                            className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors py-2"
-                                        >
+                                        <button onClick={() => setStatus('idle')} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors py-2">
                                             先回列表看看
                                         </button>
                                     </div>
@@ -609,123 +629,42 @@ export default function GradingViewV2() {
                     {/* Fixed Action Dock */}
                     <div className={`absolute bottom-4 left-4 right-4 z-30 transition-transform duration-500 ${quota.status === 'expired' ? 'translate-y-24' : ''}`}>
                         <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-2 flex items-center gap-2 shadow-2xl shadow-indigo-500/20 border border-white/5">
-                            <button
-                                onClick={() => setStatus('idle')}
-                                className="p-3 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-                                title="放弃本次批改"
-                            >
+                            <button onClick={() => setStatus('idle')} className="p-3 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors" title="放弃本次批改">
                                 <RotateCcw className="w-5 h-5" />
                             </button>
                             <div className="w-[1px] h-6 bg-white/10"></div>
-                            <button
-                                onClick={confirmSubmit}
-                                className={`
-                                        flex-1 font-bold py-3 px-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg
-                                        ${gradingMode === 'auto' && !isIntervening
-                                        ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                        : 'bg-white text-slate-900 hover:bg-slate-100'}
-                                    `}
-                            >
-                                <span className="text-sm">
-                                    {isIntervening
-                                        ? '确认修改并下一份'
-                                        : (gradingMode === 'auto' && autoCountdown !== null ? `自动提交中 (${autoCountdown}s)` : '确认并下一份')}
-                                </span>
+                            <button onClick={confirmSubmit} className={`flex-1 font-bold py-3 px-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg ${gradingMode === 'auto' && !isIntervening ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-white text-slate-900 hover:bg-slate-100'}`}>
+                                <span className="text-sm">{isIntervening ? '确认修改并下一份' : (gradingMode === 'auto' && autoCountdown !== null ? `自动提交中 (${autoCountdown}s)` : '确认并下一份')}</span>
                                 <ArrowRight className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
                 </div>
-            )
-            }
+            )}
 
-            {/* Configuration Drawer */}
-            <RubricDrawer
-                isOpen={isRubricDrawerOpen}
-                onClose={() => setIsRubricDrawerOpen(false)}
-            />
+            <RubricDrawer isOpen={isRubricDrawerOpen} onClose={() => setIsRubricDrawerOpen(false)} />
 
-            {/* Activation Modal (Zero-Jump) */}
-            {
-                isActivationOpen && (
-                    <ActivationModal
-                        onClose={() => setIsActivationOpen(false)}
-                        onSuccess={() => {
-                            setIsActivationOpen(false);
-                            setShowCelebration(true);
-                            // Refresh quota in store
-                            import('@/stores/useAppStore').then(m => m.useAppStore.getState().syncQuota());
-                        }}
-                    />
-                )
-            }
+            {isActivationOpen && (
+                <ActivationModal
+                    onClose={() => setIsActivationOpen(false)}
+                    onSuccess={() => {
+                        setIsActivationOpen(false);
+                        setShowCelebration(true);
+                        import('@/stores/useAppStore').then(m => m.useAppStore.getState().syncQuota());
+                    }}
+                />
+            )}
 
-            {/* Success Celebration Overlay */}
-            {
-                showCelebration && (
-                    <SuccessCelebration onComplete={() => setShowCelebration(false)} />
-                )
-            }
+            {showCelebration && <SuccessCelebration onComplete={() => setShowCelebration(false)} />}
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                @keyframes shimmer-fast {
-                    0% { transform: translateX(-200%); }
-                    100% { transform: translateX(200%); }
-                }
-                .animate-shimmer-fast {
-                    position: relative;
-                    overflow: hidden;
-                }
-                .animate-shimmer-fast::after {
-                    content: "";
-                    position: absolute;
-                    top: 0; left: 0; width: 100%; height: 100%;
-                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-                    animation: shimmer-fast 2s infinite linear;
-                }
-                @keyframes glow {
-                    0% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
-                    50% { box-shadow: 0 0 50px rgba(79, 70, 229, 0.7); }
-                    100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
-                }
-                .animate-outline-glow {
-                    animation: glow 3s infinite ease-in-out;
-                }
+                @keyframes shimmer-fast { 0% { transform: translateX(-200%); } 100% { transform: translateX(200%); } }
+                .animate-shimmer-fast { position: relative; overflow: hidden; }
+                .animate-shimmer-fast::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer-fast 2s infinite linear; }
+                @keyframes glow { 0% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); } 50% { box-shadow: 0 0 50px rgba(79, 70, 229, 0.7); } 100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); } }
+                .animate-outline-glow { animation: glow 3s infinite ease-in-out; }
             `}} />
-        </div >
-    );
-}
-
-// ==================== 辅助组件 Section ====================
-
-// 印章组件
-const GradeStamp: React.FC<{ score: number; maxScore: number }> = ({ score, maxScore }) => {
-    const percentage = (score / maxScore) * 100;
-
-    let label = '已阅';
-    let colorClass = 'border-red-500/80 text-red-500/80';
-
-    if (percentage >= 90) {
-        label = '优秀';
-        colorClass = 'border-rose-500 text-rose-500';
-    } else if (percentage >= 80) {
-        label = '良好';
-        colorClass = 'border-orange-400 text-orange-400';
-    } else if (percentage < 60) {
-        label = '待改进';
-        colorClass = 'border-slate-400 text-slate-400';
-    } else {
-        label = '及格';
-        colorClass = 'border-amber-500 text-amber-500';
-    }
-
-    return (
-        <div className={`
-            px-3 py-1 border-2 ${colorClass} rounded-sm font-black text-xs uppercase tracking-tighter rotate-[-15deg] opacity-70 scale-150
-            animate-in zoom-in-150 duration-500
-        `}>
-            {label}
         </div>
     );
-};
+}

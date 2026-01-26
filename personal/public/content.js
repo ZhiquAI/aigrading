@@ -1933,6 +1933,22 @@ if (window.hasAIContentScriptLoaded) {
   /**
    * 高亮显示元素（用于调试）
    */
+  let __aiHighlightAllowUntil = 0;
+
+  function allowAnswerHighlight(durationMs = 4000) {
+    try {
+      const duration = Math.max(0, durationMs || 0);
+      __aiHighlightAllowUntil = Date.now() + duration;
+    } catch (e) {
+      __aiHighlightAllowUntil = Date.now() + 3000;
+    }
+  }
+
+  function canShowAnswerHighlight() {
+    if (!__aiTaskState?.running) return true;
+    return Date.now() < __aiHighlightAllowUntil;
+  }
+
   /**
    * 高亮显示目标元素（答题卡检测结果展示）
    * @param {Element} el - 要高亮的元素
@@ -2423,8 +2439,9 @@ if (window.hasAIContentScriptLoaded) {
     console.log(`[AI阅卷] 选取 ${selectedCandidates.length} 张答题卡图片用于处理`);
 
     const primaryCandidate = selectedCandidates[0];
-    // 自动阅卷运行时不持续高亮（减少重绘/DOM 操作导致的卡顿）；仅在非运行态或 CHECK_READY 时高亮
-    if (!__aiTaskState?.running && primaryCandidate?.element) {
+    const highlightAllowed = canShowAnswerHighlight();
+    // 自动阅卷运行时不持续高亮，除非检测阶段临时放行
+    if (highlightAllowed && primaryCandidate?.element) {
       highlightElement(primaryCandidate.element, `答题卡 (${primaryCandidate.element.tagName})`, primaryCandidate.document || document, 'error');
     }
 
@@ -2482,9 +2499,10 @@ if (window.hasAIContentScriptLoaded) {
     const candidates = findAnswerImageAcrossContexts(platform);
     // 当侧边栏显示“答卷定位”绿色时，也同步在页面上高亮（便于确认定位是否准确）
     try {
+      allowAnswerHighlight(5000);
       if (candidates && candidates.length > 0) {
         const top = candidates[0];
-        if (top?.element) {
+        if (top?.element && canShowAnswerHighlight()) {
           highlightElement(top.element, `答题卡定位(${platform})`, top.document || document, 'error');
         }
       }
@@ -2814,6 +2832,7 @@ if (window.hasAIContentScriptLoaded) {
     // 1. 请求页面数据（带重试）
     if (request.type === 'REQUEST_PAGE_DATA') {
       console.log("[AI阅卷] 收到数据请求，开始扫描...");
+      allowAnswerHighlight(5000);
 
       // 使用重试机制
       extractDataWithRetry(5, 1500).then(data => { // Increased retries and delay

@@ -24,7 +24,7 @@ if (window.hasAIContentScriptLoaded) {
           detail: detail,
           timestamp: Date.now()
         });
-      } catch (e) {}
+      } catch (e) { }
     }
 
     function handleUrlChange() {
@@ -38,19 +38,19 @@ if (window.hasAIContentScriptLoaded) {
 
     window.addEventListener('popstate', handleUrlChange);
     const originalPushState = history.pushState;
-    history.pushState = function() {
+    history.pushState = function () {
       originalPushState.apply(this, arguments);
       handleUrlChange();
     };
     const originalReplaceState = history.replaceState;
-    history.replaceState = function() {
+    history.replaceState = function () {
       originalReplaceState.apply(this, arguments);
       handleUrlChange();
     };
 
     setInterval(() => {
       handleUrlChange();
-      
+
       // 1. 尝试获取学生姓名 (虽然盲评时可能为空)
       let studentName = '';
       const nameEl = document.querySelector('.student-name, .name-text, #studentName, .stu-name');
@@ -311,9 +311,15 @@ if (window.hasAIContentScriptLoaded) {
       'img[src*="answer"]',
       'img[src*="question"]',
       // 智学网 CDN 图片地址特征
-      'img[src*="zhixue"]',
-      'img[src*="zx"]',
-      'img[src*="paper"]'
+      'img[src*="paper"]',
+      // 新增：针对新版智学网的深度选择器
+      '.marking-area-box img',
+      '.topic-img-container img',
+      '.question-img-box img',
+      '#imgTopic img',
+      '.img_box img',
+      '[id*="img_"] img',
+      '[class*="marking_area"] img'
     ],
     HAOFENSHU: [
       // 好分数回评界面 - yunxiao.com CDN 图片（最高优先级）
@@ -1378,7 +1384,7 @@ if (window.hasAIContentScriptLoaded) {
           }
         }
       }
-    }, 2000); // 每2秒检测一次
+    }, 1500); // 降低频率以减少性能开销
   }
 
   function stopAnswerCardStatusMonitor() {
@@ -1392,7 +1398,6 @@ if (window.hasAIContentScriptLoaded) {
 
   // 页面加载完成后启动监听
   if (document.readyState === 'complete') {
-    setTimeout(startAnswerCardStatusMonitor, 1000);
     // 页面加载完毕后，立即自动高亮答题卡
     setTimeout(() => {
       console.log('[AI阅卷] 页面已加载，执行自动高亮...');
@@ -1400,7 +1405,6 @@ if (window.hasAIContentScriptLoaded) {
     }, 2000);
   } else {
     window.addEventListener('load', () => {
-      setTimeout(startAnswerCardStatusMonitor, 1000);
       // 页面加载完毕后，立即自动高亮答题卡
       setTimeout(() => {
         console.log('[AI阅卷] 页面已加载，执行自动高亮...');
@@ -2018,6 +2022,57 @@ if (window.hasAIContentScriptLoaded) {
   /**
    * 高亮显示元素（用于调试）
    */
+  let __aiHighlightAllowUntil = 0;
+
+  function allowAnswerHighlight(durationMs = 4000) {
+    try {
+      const duration = Math.max(0, durationMs || 0);
+      __aiHighlightAllowUntil = Date.now() + duration;
+    } catch (e) {
+      __aiHighlightAllowUntil = Date.now() + 3000;
+    }
+  }
+
+  /**
+   * 检查当前题目的评分细则是否已设置
+   */
+  async function checkRubricStatus() {
+    try {
+      // 获取当前页面的题目标识
+      const meta = getPageMeta();
+      const rubricKey = `app_rubric_content:${meta.questionKey}`;
+      
+      // 从localStorage读取评分细则
+      let rubricContent = localStorage.getItem(rubricKey) || '';
+      
+      // 如果localStorage中没有，尝试从chrome.storage读取
+      if (!rubricContent && typeof chrome !== 'undefined' && chrome.storage) {
+        try {
+          const result = await new Promise((resolve) => {
+            chrome.storage.local.get([rubricKey], (items) => {
+              resolve(items[rubricKey] || '');
+            });
+          });
+          rubricContent = result;
+        } catch (e) {
+          console.warn('[AI阅卷] chrome.storage.local 读取失败');
+        }
+      }
+      
+      const isConfigured = !!(rubricContent && rubricContent.trim().length > 0);
+      console.log(`[AI阅卷] 评分细则状态: ${isConfigured ? '✅ 已配置' : '❌ 未配置'}`);
+      return isConfigured;
+    } catch (e) {
+      console.error('[AI阅卷] 检查评分细则失败:', e);
+      return false;
+    }
+  }
+
+  function canShowAnswerHighlight() {
+    if (!__aiTaskState?.running) return true;
+    return Date.now() < __aiHighlightAllowUntil;
+  }
+
   /**
    * 高亮显示目标元素（答题卡检测结果展示）
    * @param {Element} el - 要高亮的元素
@@ -2443,6 +2498,9 @@ if (window.hasAIContentScriptLoaded) {
     const platform = detectPlatform();
     console.log(`[AI阅卷] 开始抓取，平台识别: ${platform}`);
 
+    // 检查评分细则是否已配置
+    const isRubricConfigured = await checkRubricStatus();
+
     // 0. 检测是否无待阅试卷（智学网特有）
     if (platform === 'ZHIXUE') {
       const noMoreCheck = checkZhixueNoMorePapers();
@@ -2508,9 +2566,12 @@ if (window.hasAIContentScriptLoaded) {
     console.log(`[AI阅卷] 选取 ${selectedCandidates.length} 张答题卡图片用于处理`);
 
     const primaryCandidate = selectedCandidates[0];
-    // 自动阅卷运行时不持续高亮（减少重绘/DOM 操作导致的卡顿）；仅在非运行态或 CHECK_READY 时高亮
-    if (!__aiTaskState?.running && primaryCandidate?.element) {
-      highlightElement(primaryCandidate.element, `答题卡 (${primaryCandidate.element.tagName})`, primaryCandidate.document || document, 'error');
+    const highlightAllowed = canShowAnswerHighlight();
+    // 根据评分细则状态选择高亮颜色：已配置显示绿色，未配置显示红色
+    const highlightStatus = isRubricConfigured ? 'success' : 'error';
+    // 自动阅卷运行时不持续高亮（减少重绘/DOM 操作导致的卡顿）；仅在非运行态或检测阶段放行
+    if (highlightAllowed && primaryCandidate?.element) {
+      highlightElement(primaryCandidate.element, `答题卡 (${primaryCandidate.element.tagName})`, primaryCandidate.document || document, highlightStatus);
     }
 
     const base64Segments = [];
@@ -2567,9 +2628,10 @@ if (window.hasAIContentScriptLoaded) {
     const candidates = findAnswerImageAcrossContexts(platform);
     // 当侧边栏显示“答卷定位”绿色时，也同步在页面上高亮（便于确认定位是否准确）
     try {
+      allowAnswerHighlight(5000);
       if (candidates && candidates.length > 0) {
         const top = candidates[0];
-        if (top?.element) {
+        if (top?.element && canShowAnswerHighlight()) {
           highlightElement(top.element, `答题卡定位(${platform})`, top.document || document, 'error');
         }
       }
@@ -2648,11 +2710,6 @@ if (window.hasAIContentScriptLoaded) {
     running: false,
     strategy: 'flash',
     processed: 0,
-    waitCount: 0,
-    lastSignature: null,
-    lastError: null,
-    lastResult: null,
-    startedAt: null,
     phase: 'idle',
     lastStepAt: null,
     consecutiveSuccess: 0,   // 连续成功次数（用于动态速度）
@@ -2899,6 +2956,7 @@ if (window.hasAIContentScriptLoaded) {
     // 1. 请求页面数据（带重试）
     if (request.type === 'REQUEST_PAGE_DATA') {
       console.log("[AI阅卷] 收到数据请求，开始扫描...");
+      allowAnswerHighlight(5000);
 
       // 使用重试机制
       extractDataWithRetry(5, 1500).then(data => { // Increased retries and delay
@@ -2927,7 +2985,7 @@ if (window.hasAIContentScriptLoaded) {
     if (request.type === 'SUBMIT_SCORE') {
       console.log('[AI阅卷] 执行确认提交:', request.score);
       ensureAutoSubmitEnabled();
-      tryZhixueKeypad(request.score); 
+      tryZhixueKeypad(request.score);
       sendResponse({ success: true });
       return false;
     }

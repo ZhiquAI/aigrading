@@ -105,6 +105,13 @@ interface AppState {
     // === 全局任务列表 (不持久化) ===
     tasks: AppTask[];
 
+    // === 系统检测状态 ===
+    health: {
+        api: boolean | null;
+        answerCard: boolean | null;
+        lastUpdate: number;
+    };
+
     // === 系统配置 (持久化) ===
     autoGradingInterval: number; // 自动阅卷等待时间 (ms)
 }
@@ -170,6 +177,9 @@ interface AppActions {
     updateTask: (id: string, updates: Partial<AppTask> | ((prev: AppTask) => AppTask)) => void;
     removeTask: (id: string) => void;
 
+    // === 系统检测状态操作 ===
+    setHealth: (health: Partial<AppState['health']>) => void;
+
     // === 系统配置修改 ===
     setAutoGradingInterval: (interval: number) => void;
 }
@@ -208,6 +218,11 @@ const initialState: AppState = {
     },
     headerActions: [],
     tasks: [],
+    health: {
+        api: null,
+        answerCard: null,
+        lastUpdate: 0
+    },
     autoGradingInterval: 3000,
     rubricLibrary: [],
     rubricData: {},
@@ -611,6 +626,11 @@ export const useAppStore = create<AppStore>()(
             })),
             removeTask: (id) => set((state) => ({
                 tasks: state.tasks.filter((t) => t.id !== id)
+            })),
+
+            // === 系统检测状态操作 ===
+            setHealth: (healthUpdates) => set((state) => ({
+                health: { ...state.health, ...healthUpdates, lastUpdate: Date.now() }
             })),
 
             // === 系统配置修改 ===
