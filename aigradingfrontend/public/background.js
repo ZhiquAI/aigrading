@@ -317,6 +317,22 @@ async function callOpenAICompatibleFromBackground(config, prompt, imageBase64) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // 0. 评分细则未配置的提醒消息
+  if (request?.type === 'RUBRIC_REQUIRED') {
+    console.log('[Background] 收到RUBRIC_REQUIRED消息，转发给侧边栏');
+    // 转发给v2侧边栏
+    chrome.runtime.sendMessage({
+      type: 'RUBRIC_REQUIRED',
+      questionKey: request.questionKey,
+      message: request.message
+    }).catch(e => {
+      console.warn('[Background] 转发RUBRIC_REQUIRED失败:', e);
+    });
+    sendResponse({ success: true });
+    return;
+  }
+
+  // 1. 处理GRADE_ANSWER消息
   if (request?.type !== 'GRADE_ANSWER') return;
 
   (async () => {

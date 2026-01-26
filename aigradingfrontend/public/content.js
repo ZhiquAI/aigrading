@@ -2959,8 +2959,29 @@ if (window.hasAIContentScriptLoaded) {
       allowAnswerHighlight(5000);
 
       // 使用重试机制
-      extractDataWithRetry(5, 1500).then(data => { // Increased retries and delay
+      extractDataWithRetry(5, 1500).then(async data => { // Increased retries and delay
         console.log("[AI阅卷] 扫描完成:", data.success ? "成功" : "失败");
+        
+        // 检查评分细则配置状态，附加到响应中
+        if (data.success) {
+          const isRubricConfigured = await checkRubricStatus();
+          data.isRubricConfigured = isRubricConfigured;
+          
+          // 如果评分细则未配置，发送通知给侧边栏
+          if (!isRubricConfigured) {
+            console.log('[AI阅卷] ⚠️ 检测到评分细则未配置，通知侧边栏');
+            try {
+              chrome.runtime.sendMessage({
+                type: 'RUBRIC_REQUIRED',
+                questionKey: data.questionKey,
+                message: '检测到评分细则未设置，请先配置'
+              });
+            } catch (e) {
+              console.warn('[AI阅卷] 发送RUBRIC_REQUIRED消息失败');
+            }
+          }
+        }
+        
         sendResponse(data);
       });
       return true; // Keep channel open for async response

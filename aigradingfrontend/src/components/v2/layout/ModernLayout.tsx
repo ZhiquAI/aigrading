@@ -38,7 +38,8 @@ export default function ModernLayout() {
         addTask,
         removeTask,
         status,
-        quota
+        quota,
+        setIsRubricDrawerOpen
     } = useAppStore();
     const containerRef = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(0);
@@ -47,6 +48,28 @@ export default function ModernLayout() {
     const [showCelebration, setShowCelebration] = useState(false);
 
     // Connection Monitoring
+    // 监听评分细则未配置的消息
+    useEffect(() => {
+        const handleRubricRequired = (request: any) => {
+            if (request?.type === 'RUBRIC_REQUIRED') {
+                console.log('[ModernLayout] 收到RUBRIC_REQUIRED消息，自动打开评分细则设置');
+                setIsRubricDrawerOpen(true);
+                toast.warning('检测到评分细则未设置，请先配置');
+            }
+        };
+
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            chrome.runtime.onMessage.addListener(handleRubricRequired);
+            return () => {
+                try {
+                    chrome.runtime.onMessage.removeListener(handleRubricRequired);
+                } catch (e) {
+                    // 忽略删除监听器的错误
+                }
+            };
+        }
+    }, [setIsRubricDrawerOpen]);
+
     useEffect(() => {
         const handleOnline = () => removeTask('system-offline');
         const handleOffline = () => addTask({
