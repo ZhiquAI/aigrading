@@ -6,7 +6,7 @@
 # 服务器配置
 SERVER_IP="47.242.35.64"
 SERVER_USER="root"
-REMOTE_PATH="/var/www/ai-grading/code/aigradingbackend"
+REMOTE_PATH="/opt/ai-grading/aigradingbackend"
 
 echo "🚀 开始部署后端到 $SERVER_IP..."
 echo "=================================="

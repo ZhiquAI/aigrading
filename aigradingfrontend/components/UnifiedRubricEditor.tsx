@@ -6,6 +6,7 @@ import { toast } from './Toast';
 import RubricFormEditor from './RubricFormEditor';
 import type { RubricJSON } from '../types/rubric';
 import { rubricToMarkdown } from '../utils/rubric-converter';
+import { parseRubricFromCSV, parseRubricFromClipboard } from '../utils/excel-parser';
 
 interface QuestionItem {
     key: string;
@@ -450,6 +451,23 @@ const UnifiedRubricEditor: React.FC<UnifiedRubricEditorProps> = ({
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        if (file.name.endsWith('.csv')) {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const content = event.target?.result as string;
+                    const rubric = parseRubricFromCSV(content, selectedKey?.split(':').pop() || '1');
+                    await processImportedData(rubric);
+                } catch (error) {
+                    toast.error('CSV 解析失败');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
@@ -651,6 +669,21 @@ const UnifiedRubricEditor: React.FC<UnifiedRubricEditorProps> = ({
             return;
         }
 
+        // 尝试作为剪贴板表格解析 (包含 Tab 或 连续空格)
+        if (textImportValue.includes('\t') || /\n.*?\s{2,}/.test(textImportValue)) {
+            try {
+                const rubric = parseRubricFromClipboard(textImportValue, selectedKey?.split(':').pop() || '1');
+                if (rubric.answerPoints.length > 0) {
+                    await processImportedData(rubric);
+                    setTextImportValue('');
+                    setShowTextImport(false);
+                    return;
+                }
+            } catch (e) {
+                console.warn('剪贴板表格解析失败，降级到 AI 生成:', e);
+            }
+        }
+
         setIsProcessing(true);
         try {
             const currentQ = questions.find(q => q.key === selectedKey);
@@ -790,14 +823,14 @@ const UnifiedRubricEditor: React.FC<UnifiedRubricEditorProps> = ({
                                 className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                             >
                                 <FileText size={12} />
-                                JSON 文件
+                                JSON / CSV 文件
                             </button>
                             <button
                                 onClick={() => setShowTextImport(true)}
                                 className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                             >
                                 <Type size={12} />
-                                文本答案
+                                文本答案 / 粘贴表格
                             </button>
                         </div>
                     </div>

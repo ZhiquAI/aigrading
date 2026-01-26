@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         const url = new URL(request.url);
         const questionKey = url.searchParams.get('questionKey');
         const deviceId = url.searchParams.get('deviceId') || getDeviceId(request);
+        const examId = url.searchParams.get('examId');
 
         // 优先使用激活码，否则使用设备ID作为临时标识
         const identifier = activationCode || (deviceId ? `device:${deviceId}` : null);
@@ -86,7 +87,10 @@ export async function GET(request: NextRequest) {
 
         // 列表查询
         const records = await prisma.deviceRubric.findMany({
-            where: { activationCode: identifier },
+            where: {
+                activationCode: identifier,
+                ...(examId ? { examId } : {})
+            },
             orderBy: { updatedAt: 'desc' }
         });
 
@@ -95,7 +99,12 @@ export async function GET(request: NextRequest) {
         for (const record of records) {
             try {
                 const rubric = JSON.parse(record.rubric) as RubricJSON;
-                rubrics.push(rubricToListItem(rubric));
+                const listItem = rubricToListItem(rubric);
+                // 附加数据库中的 examId
+                if (record.examId) {
+                    (listItem as any).examId = record.examId;
+                }
+                rubrics.push(listItem);
             } catch {
                 // 跳过无法解析的旧格式
                 console.log(`[Rubric API] Skipping legacy format: ${record.questionKey}`);
@@ -199,13 +208,15 @@ export async function POST(request: NextRequest) {
             },
             update: {
                 rubric: JSON.stringify(rubricToSave),
-                deviceId: deviceId || undefined
+                deviceId: deviceId || undefined,
+                examId: body.examId || undefined // 从 Body 中获取考试关联
             },
             create: {
                 activationCode,
                 deviceId: deviceId || null,
                 questionKey,
-                rubric: JSON.stringify(rubricToSave)
+                rubric: JSON.stringify(rubricToSave),
+                examId: body.examId || null
             }
         });
 

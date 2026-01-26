@@ -7,54 +7,90 @@
 import { prisma } from '@/lib/prisma';
 import { gradeWithZhipu, GradeRequest } from '@/lib/zhipu';
 import { gradeWithGPT } from '@/lib/gpt';
+import { gradeWithGemini, isGeminiAvailable } from '@/lib/gemini';
 import { apiSuccess, apiError, apiServerError, apiRateLimited, ErrorCode } from '@/lib/api-response';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { createRequestLogger } from '@/lib/logger';
 
-// 获取或创建设备配额
-async function getOrCreateDeviceQuota(deviceId: string) {
-    let quota = await prisma.deviceQuota.findUnique({
+// 获取可用配额信息
+async function getAvailableQuota(deviceId: string, activationCode?: string | null) {
+    // 1. 优先检查激活码配额 (共享账号)
+    if (activationCode) {
+        const code = await prisma.activationCode.findUnique({
+            where: { code: activationCode }
+        });
+        // 允许获取非 active 状态的码，由调用方逻辑决定是否可用
+        if (code) {
+            return {
+                id: code.id,
+                type: 'code',
+                remaining: code.remaining,
+                total: code.quota,
+                used: code.used,
+                status: code.status // 新增状态返回
+            };
+        }
+    }
+
+    // 2. 无码或码无效，回退到设备免费配额
+    let deviceQuota = await prisma.deviceQuota.findUnique({
         where: { deviceId }
     });
 
-    if (!quota) {
-        quota = await prisma.deviceQuota.create({
+    if (!deviceQuota) {
+        deviceQuota = await prisma.deviceQuota.create({
             data: {
                 deviceId,
-                remaining: 300,  // 免费300次
-                total: 300,
+                remaining: 10,
+                total: 10,
                 used: 0
             }
         });
     }
 
-    return quota;
+    return {
+        id: deviceId,
+        type: 'device',
+        remaining: deviceQuota.remaining,
+        total: deviceQuota.total,
+        used: deviceQuota.used,
+        status: 'active'
+    };
 }
 
 // 扣减配额
-async function deductQuota(deviceId: string): Promise<boolean> {
-    const quota = await prisma.deviceQuota.findUnique({
-        where: { deviceId }
-    });
+async function deductQuota(id: string, type: 'code' | 'device') {
+    if (type === 'code') {
+        const updatedCode = await prisma.activationCode.update({
+            where: { id },
+            data: {
+                remaining: { decrement: 1 },
+                used: { increment: 1 }
+            }
+        });
 
-    if (!quota || quota.remaining <= 0) {
-        return false;
+        // 如果是试用码且额度用完，自动标记为过期 (Suggestion 3)
+        if (updatedCode.type === 'trial' && updatedCode.remaining <= 0) {
+            await prisma.activationCode.update({
+                where: { id },
+                data: { status: 'expired' }
+            });
+            console.log(`[Quota] Trial code ${id} marked as EXPIRED.`);
+        }
+    } else {
+        await prisma.deviceQuota.update({
+            where: { deviceId: id },
+            data: {
+                remaining: { decrement: 1 },
+                used: { increment: 1 }
+            }
+        });
     }
 
-    await prisma.deviceQuota.update({
-        where: { deviceId },
-        data: {
-            remaining: { decrement: 1 },
-            used: { increment: 1 }
-        }
-    });
-
-    // 记录使用
+    // 记录使用 (可选设备 ID 用于追踪，此处简化)
     await prisma.usageRecord.create({
-        data: { deviceId }
+        data: { deviceId: id, metadata: JSON.stringify({ quotaType: type }) }
     });
-
-    return true;
 }
 
 /**
@@ -94,11 +130,15 @@ export async function POST(request: Request) {
             return apiError('请提供评分细则');
         }
 
-        // 获取设备配额
-        const deviceQuota = await getOrCreateDeviceQuota(deviceId);
+        // 获取可用配额
+        const quotaInfo = await getAvailableQuota(deviceId, activationCode);
 
-        // 检查配额
-        if (deviceQuota.remaining <= 0) {
+        // 检查配额与状态 (Suggestion 3)
+        if (quotaInfo.status !== 'active') {
+            return apiError(quotaInfo.status === 'expired' ? '配额已耗尽，试用期结束' : '激活码状态异常', 403);
+        }
+
+        if (quotaInfo.remaining <= 0) {
             return apiError('配额已用完，请购买更多配额', 403);
         }
 
@@ -113,61 +153,83 @@ export async function POST(request: Request) {
         // 策略选择
         const validStrategies = ['flash', 'pro', 'reasoning'];
         // @ts-ignore
-        const gradeStrategy = validStrategies.includes(strategy) ? strategy : 'pro';
-        console.log(`[Grade API] Strategy: ${gradeStrategy}, Primary: Zhipu GLM-4.6V`);
+        const gradeStrategy = validStrategies.includes(strategy) ? strategy : 'flash';
 
         let result;
-        let provider: string = 'zhipu';
+        let provider: string = 'unknown';
+        const aiStartTime = Date.now();
 
+        // 优先级：GPTSAPI 中转 (GPT-4o) → 智谱 (GLM-4V) → Gemini 直连
+        // 1. GPTSAPI 中转 (GPT-4o) - 质量优先
         try {
-            // 优先使用智谱 GLM-4.6V（国内直连，速度快）
-            result = await gradeWithZhipu(gradeRequest);
-        } catch (zhipuError) {
-            console.warn(`Zhipu failed, falling back to GPT-4o:`, zhipuError);
-            provider = 'gpt';
+            console.log(`[Grade API] 尝试 GPTSAPI 中转, 策略: ${gradeStrategy}, 模型: gpt-4o`);
+            // @ts-ignore
+            result = await gradeWithGPT(gradeRequest, gradeStrategy);
+            provider = 'gptsapi';
+            console.log(`[Grade API] ✓ GPTSAPI 成功，耗时: ${Date.now() - aiStartTime}ms`);
+        } catch (gptError: any) {
+            console.warn(`[Grade API] GPTSAPI 失败 (${Date.now() - aiStartTime}ms):`, gptError.message);
 
-            // Fallback 到 GPT-4o (通过代理)
+            // 2. 回退到智谱 (国产直连)
             try {
-                // @ts-ignore
-                result = await gradeWithGPT(gradeRequest, gradeStrategy);
-            } catch (gptError) {
-                console.error('All providers failed. GPT error:', gptError);
-                throw zhipuError;
+                console.log('[Grade API] 回退到智谱 GLM-4.6V');
+                result = await gradeWithZhipu(gradeRequest);
+                provider = 'zhipu';
+                console.log(`[Grade API] ✓ 智谱成功，总耗时: ${Date.now() - aiStartTime}ms`);
+            } catch (zhipuError: any) {
+                console.warn(`[Grade API] 智谱失败 (${Date.now() - aiStartTime}ms):`, zhipuError.message);
+
+                // 3. 回退到 Gemini 直连
+                if (isGeminiAvailable()) {
+                    try {
+                        console.log(`[Grade API] 尝试 Gemini 直连, 策略: ${gradeStrategy}`);
+                        // @ts-ignore
+                        result = await gradeWithGemini(gradeRequest, gradeStrategy);
+                        provider = 'gemini-direct';
+                        console.log(`[Grade API] ✓ Gemini 直连成功，耗时: ${Date.now() - aiStartTime}ms`);
+                    } catch (geminiError: any) {
+                        console.error(`[Grade API] Gemini 直连失败 (${Date.now() - aiStartTime}ms):`, geminiError.message);
+                    }
+                }
             }
         }
 
+        // 如果所有服务都失败
+        if (!result) {
+            console.error(`[Grade API] 所有 AI 服务均失败，总耗时: ${Date.now() - aiStartTime}ms`);
+            throw new Error('所有 AI 服务暂时不可用，请稍后重试');
+        }
+
         // 扣减配额
-        await deductQuota(deviceId);
+        await deductQuota(quotaInfo.id, quotaInfo.type as 'code' | 'device');
 
-        // 获取更新后的配额
-        const updatedQuota = await prisma.deviceQuota.findUnique({
-            where: { deviceId }
-        });
+        // 获取更新后的配额信息进行展示
+        const updatedQuota = quotaInfo.type === 'code'
+            ? await prisma.activationCode.findUnique({ where: { id: quotaInfo.id } })
+            : await prisma.deviceQuota.findUnique({ where: { deviceId: quotaInfo.id } });
 
-        // 如果有激活码，自动存储批改记录
+        // 如果有激活码，异步存储批改记录（不阻塞返回响应）
         if (activationCode && result) {
-            try {
-                await prisma.gradingRecord.create({
-                    data: {
-                        activationCode,
-                        deviceId,
-                        questionNo: questionNo || null,
-                        questionKey: questionKey || null,
-                        studentName: studentName || '未知',
-                        examNo: examNo || null,
-                        score: Number(result.score) || 0,
-                        maxScore: Number(result.maxScore) || 0,
-                        comment: result.comment || null,
-                        breakdown: result.breakdown
-                            ? (typeof result.breakdown === 'string' ? result.breakdown : JSON.stringify(result.breakdown))
-                            : null
-                    }
-                });
+            prisma.gradingRecord.create({
+                data: {
+                    activationCode,
+                    deviceId,
+                    questionNo: questionNo || null,
+                    questionKey: questionKey || null,
+                    studentName: studentName || '未知',
+                    examNo: examNo || null,
+                    score: Number(result.score) || 0,
+                    maxScore: Number(result.maxScore) || 0,
+                    comment: result.comment || null,
+                    breakdown: result.breakdown
+                        ? (typeof result.breakdown === 'string' ? result.breakdown : JSON.stringify(result.breakdown))
+                        : null
+                }
+            }).then(() => {
                 console.log(`[Grade API] Record saved for ${activationCode.substring(0, 10)}...`);
-            } catch (recordError) {
-                // 存储失败不影响批改结果返回
+            }).catch(recordError => {
                 console.warn('[Grade API] Failed to save record:', recordError);
-            }
+            });
         }
 
         return apiSuccess({
@@ -201,18 +263,14 @@ export async function GET(request: Request) {
         if (!deviceId) {
             return apiError('缺少设备标识');
         }
-
-        const deviceQuota = await getOrCreateDeviceQuota(deviceId);
-
-        // 检查是否有付费激活
-        const paidActivations = await prisma.activationCode.count({
-            where: { usedBy: deviceId }
-        });
+        const activationCode = request.headers.get('x-activation-code');
+        const quotaInfo = await getAvailableQuota(deviceId, activationCode);
 
         return apiSuccess({
-            isPaid: paidActivations > 0,
-            quota: deviceQuota.remaining,
-            totalUsed: deviceQuota.used
+            isPaid: quotaInfo.type === 'code',
+            quota: quotaInfo.remaining,
+            totalUsed: quotaInfo.used,
+            status: quotaInfo.status
         });
 
     } catch (error) {

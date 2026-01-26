@@ -7,14 +7,36 @@ import {
     Title,
     Tooltip,
     Legend,
-    ArcElement
+    ArcElement,
+    PointElement,
+    LineElement,
+    Filler,
+    ChartEvent,
+    ActiveElement
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-import { BarChart3, PieChart as PieChartIcon, TrendingUp, Download, CheckCircle2, AlertCircle, X, Sparkles, FileSpreadsheet, FileText, ChevronDown, BookOpen } from 'lucide-react';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { 
+    BarChart3, 
+    PieChart as PieChartIcon, 
+    TrendingUp, 
+    Download, 
+    CheckCircle2, 
+    AlertCircle, 
+    X, 
+    Sparkles, 
+    FileSpreadsheet, 
+    FileText, 
+    ChevronDown, 
+    BookOpen,
+    BrainCircuit,
+    Award,
+    ChevronRight,
+    Users
+} from 'lucide-react';
 import { generateGradingInsight } from '../services/geminiService';
 import { toast } from './Toast';
 
-// 注册 Chart.js 组件
+// 按需注册 Chart.js 组件以优化体积
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -22,10 +44,11 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    ArcElement
+    ArcElement,
+    PointElement,
+    LineElement,
+    Filler
 );
-
-
 
 interface HistoryRecord {
     id: string;
@@ -50,6 +73,8 @@ interface KnowledgePoint {
     name: string;
     scoreRate: number;
     count: number;
+    avgScore: number;
+    maxScore: number;
 }
 
 const AnalysisView: React.FC = () => {
@@ -57,6 +82,11 @@ const AnalysisView: React.FC = () => {
     const [history, setHistory] = useState<HistoryRecord[]>([]);
     const [selectedQuestion, setSelectedQuestion] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
+    
+    // 图表交互状态
+    const [filterCategory, setFilterCategory] = useState<{name: string, color: string, min: number, max: number} | null>(null);
+    const [showStudentList, setShowStudentList] = useState(false);
+
     const [stats, setStats] = useState<{
         avgScore: number;
         passRate: number;
@@ -64,8 +94,9 @@ const AnalysisView: React.FC = () => {
         scoreRate: number;
         count: number;
         maxScore: number;
-        distribution: { name: string; value: number; color: string }[];
+        distribution: { name: string; value: number; color: string; minRate: number; maxRate: number }[];
         knowledgePoints: KnowledgePoint[];
+        trend: { label: string; score: number }[];
     } | null>(null);
 
     // 加载历史记录
@@ -101,9 +132,8 @@ const AnalysisView: React.FC = () => {
                 }
             }
         });
-        // 按题号数字排序，并过滤掉第1题
         return Array.from(questionMap.values())
-            .filter(q => q.key !== '1') // 排除第1题
+            .filter(q => q.key !== '1')
             .sort((a, b) => {
                 const numA = parseInt(a.key);
                 const numB = parseInt(b.key);
@@ -118,7 +148,6 @@ const AnalysisView: React.FC = () => {
         const allList = await loadHistory();
         setHistory(allList);
 
-        // 根据题目筛选
         let list = allList;
         if (questionFilter) {
             list = allList.filter(item => {
@@ -139,7 +168,6 @@ const AnalysisView: React.FC = () => {
         const avgScore = totalScore / count;
         const maxScore = Number(list[0]?.maxScore || 10);
 
-        // 计算各项比率
         const passThreshold = maxScore * 0.6;
         const excellentThreshold = maxScore * 0.9;
         const passCount = list.filter(s => Number(s.score || 0) >= passThreshold).length;
@@ -159,18 +187,18 @@ const AnalysisView: React.FC = () => {
         });
 
         const distribution = [
-            { name: '待加油', value: buckets[0], color: '#ef4444' },
-            { name: '及格', value: buckets[1], color: '#f97316' },
-            { name: '良好', value: buckets[2], color: '#3b82f6' },
-            { name: '优秀', value: buckets[3], color: '#22c55e' },
+            { name: '需努力', value: buckets[0], color: '#f87171', minRate: 0, maxRate: 0.6 },
+            { name: '及格', value: buckets[1], color: '#fb923c', minRate: 0.6, maxRate: 0.75 },
+            { name: '良好', value: buckets[2], color: '#60a5fa', minRate: 0.75, maxRate: 0.9 },
+            { name: '优秀', value: buckets[3], color: '#4ade80', minRate: 0.9, maxRate: 1.01 }, // 1.01 to include 100%
         ];
 
-        // 知识点分析（从 breakdown 提取）
+        // 知识点分析
         const knowledgeMap = new Map<string, { total: number; earned: number; count: number }>();
         list.forEach(item => {
             if (item.breakdown && Array.isArray(item.breakdown)) {
                 item.breakdown.forEach(bp => {
-                    const name = bp.label || '未知知识点';
+                    const name = bp.label || '其他';
                     const existing = knowledgeMap.get(name);
                     const earned = Number(bp.score || 0);
                     const total = Number(bp.max || 0);
@@ -189,10 +217,21 @@ const AnalysisView: React.FC = () => {
             .map(([name, data]) => ({
                 name,
                 scoreRate: data.total > 0 ? (data.earned / data.total) : 0,
-                count: data.count
+                count: data.count,
+                avgScore: data.earned / data.count,
+                maxScore: data.total / data.count
             }))
-            .sort((a, b) => a.scoreRate - b.scoreRate) // 低分在前，便于发现问题
-            .slice(0, 5); // 只显示前5个
+            .sort((a, b) => a.scoreRate - b.scoreRate)
+            .slice(0, 5); // 取前5个
+
+        // 简单的趋势 (最近 20 条)
+        const trend = list
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .slice(-20)
+            .map(item => ({
+                label: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                score: item.score
+            }));
 
         setStats({
             avgScore,
@@ -202,12 +241,21 @@ const AnalysisView: React.FC = () => {
             count,
             maxScore,
             distribution,
-            knowledgePoints
+            knowledgePoints,
+            trend
         });
 
         // 生成 AI 洞察
-        const aiText = await generateGradingInsight(avgScore, passRate);
-        setInsight(aiText);
+        if (count > 0) {
+            // 使用 setTimeout 避免阻塞渲染
+            setTimeout(async () => {
+                const aiText = await generateGradingInsight(avgScore, passRate);
+                setInsight(aiText);
+            }, 500);
+        } else {
+            setInsight("暂无足够数据生成分析。");
+        }
+        
         setIsLoading(false);
     };
 
@@ -215,68 +263,36 @@ const AnalysisView: React.FC = () => {
         calculateStats();
     }, []);
 
-    // 导出 CSV
-    const exportCSV = async () => {
-        const allList = await loadHistory();
-        const list = selectedQuestion
-            ? allList.filter((item: HistoryRecord) => {
+    // 筛选学生列表
+    const filteredStudents = useMemo(() => {
+        if (!stats || !filterCategory) return [];
+        
+        // 获取当前筛选范围的学生
+        let list = history;
+        if (selectedQuestion) {
+            list = list.filter(item => {
                 const qNo = item.questionNo || item.questionKey?.split(':').pop() || '';
                 return qNo === selectedQuestion;
-            })
-            : allList;
-
-        if (!list.length) {
-            toast.warning('暂无可导出的记录');
-            return;
+            });
         }
+        
+        return list.filter(s => {
+            const max = s.maxScore || stats.maxScore;
+            const ratio = s.score / Math.max(1, max);
+            return ratio >= filterCategory.min && ratio < filterCategory.max;
+        }).sort((a, b) => b.score - a.score);
+    }, [history, selectedQuestion, filterCategory, stats]);
 
-        const headers = ['时间', '题目', '得分', '满分', '得分率', '评语', '得分点明细'];
-        const rows = list.map((h: HistoryRecord) => {
-            const ts = Number(h.timestamp);
-            const time = Number.isFinite(ts) && ts > 0 ? new Date(ts).toLocaleString('zh-CN', { hour12: false }) : '';
-            const score = Number(h.score || 0);
-            const maxScore = Number(h.maxScore || 0);
-            const rate = maxScore > 0 ? ((score / maxScore) * 100).toFixed(1) + '%' : '-';
 
-            let breakdownStr = '-';
-            if (h.breakdown && Array.isArray(h.breakdown)) {
-                breakdownStr = h.breakdown.map(b => `${b.label}:${b.score}/${b.max}`).join('; ');
-            }
-
-            return [
-                time,
-                h.questionNo || h.questionKey?.split(':').pop() || '-',
-                score,
-                maxScore,
-                rate,
-                (h.comment || '').replace(/[\n\r,]/g, ' '),
-                breakdownStr
-            ];
-        });
-
-        const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const questionLabel = selectedQuestion ? `第${selectedQuestion}题` : '全部';
-        a.download = `考情分析_${questionLabel}_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    // 导出 JSON
-    const exportJSON = async () => {
-        const allList = await loadHistory();
+    // 导出功能
+    const handleExport = (type: 'csv' | 'json') => {
+        if (!stats) return;
         const list = selectedQuestion
-            ? allList.filter((item: HistoryRecord) => {
+            ? history.filter(item => {
                 const qNo = item.questionNo || item.questionKey?.split(':').pop() || '';
                 return qNo === selectedQuestion;
             })
-            : allList;
+            : history;
 
         if (!list.length) {
             toast.warning('暂无可导出的记录');
@@ -284,223 +300,389 @@ const AnalysisView: React.FC = () => {
         }
 
         const questionLabel = selectedQuestion ? `第${selectedQuestion}题` : '全部';
-        const exportData = {
-            version: '2.0',
-            exportTime: new Date().toISOString(),
-            question: questionLabel,
-            stats: stats,
-            records: list
-        };
+        const dateStr = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
+        const filename = `考情分析_${questionLabel}_${dateStr}`;
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        if (type === 'csv') {
+            const headers = ['时间', '题目', '得分', '满分', '得分率', '评语', '得分点明细'];
+            const rows = list.map(h => {
+                const time = new Date(h.timestamp).toLocaleString();
+                const rate = h.maxScore > 0 ? ((h.score / h.maxScore) * 100).toFixed(1) + '%' : '-';
+                const breakdownStr = h.breakdown?.map(b => `${b.label}:${b.score}/${b.max}`).join('; ') || '-';
+                return [time, h.questionNo || '-', h.score, h.maxScore, rate, (h.comment || '').replace(/[\n\r]/g, ' '), breakdownStr];
+            });
+            const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
+            downloadFile(blob, `${filename}.csv`);
+        } else {
+            const exportData = { version: '2.0', exportTime: new Date().toISOString(), question: questionLabel, stats, records: list };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            downloadFile(blob, `${filename}.json`);
+        }
+    };
+
+    const downloadFile = (blob: Blob, name: string) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `考情分析_${questionLabel}_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.json`;
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
 
-    // Chart.js 配置
-    const chartData = useMemo(() => {
-        if (!stats) return null;
-        return {
-            labels: stats.distribution.map(d => d.name),
-            datasets: [{
-                label: '人数',
-                data: stats.distribution.map(d => d.value),
-                backgroundColor: stats.distribution.map(d => d.color),
-                borderRadius: 6,
-                barThickness: 40
-            }]
-        };
-    }, [stats]);
+    // Chart Options
+    const doughnutData = useMemo(() => ({
+        labels: stats?.distribution.map(d => d.name) || [],
+        datasets: [{
+            data: stats?.distribution.map(d => d.value) || [],
+            backgroundColor: stats?.distribution.map(d => d.color) || [],
+            borderWidth: 0,
+            hoverOffset: 8
+        }]
+    }), [stats]);
 
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (context: { parsed: { y: number } }) => `${context.parsed.y} 人`
-                }
-            }
-        },
-        scales: {
-            y: { display: false, beginAtZero: true },
-            x: {
-                grid: { display: false },
-                ticks: { font: { size: 11 } }
+    const handleChartClick = (event: ChartEvent, elements: ActiveElement[]) => {
+        if (elements.length > 0 && stats) {
+            const index = elements[0].index;
+            const category = stats.distribution[index];
+            if (category.value > 0) {
+                setFilterCategory({
+                    name: category.name,
+                    color: category.color,
+                    min: category.minRate,
+                    max: category.maxRate
+                });
+                setShowStudentList(true);
             }
         }
     };
 
-    // 获取得分率颜色
-    const getScoreRateColor = (rate: number) => {
-        if (rate >= 0.85) return 'bg-green-500';
-        if (rate >= 0.7) return 'bg-blue-500';
-        if (rate >= 0.6) return 'bg-orange-500';
-        return 'bg-red-500';
-    };
+    const barData = useMemo(() => ({
+        labels: stats?.knowledgePoints.map(k => k.name.length > 6 ? k.name.substring(0, 5) + '...' : k.name) || [],
+        datasets: [{
+            label: '得分率',
+            data: stats?.knowledgePoints.map(k => k.scoreRate * 100) || [],
+            backgroundColor: (ctx: any) => {
+                const val = ctx.raw as number;
+                if (val < 60) return '#f87171'; // red
+                if (val < 80) return '#fb923c'; // orange
+                return '#60a5fa'; // blue
+            },
+            borderRadius: 8,
+            barThickness: 16,
+        }]
+    }), [stats]);
 
-    const getScoreRateTextColor = (rate: number) => {
-        if (rate >= 0.85) return 'text-green-600';
-        if (rate >= 0.7) return 'text-blue-600';
-        if (rate >= 0.6) return 'text-orange-600';
-        return 'text-red-600';
-    };
+    const lineData = useMemo(() => ({
+        labels: stats?.trend.map(t => t.label) || [],
+        datasets: [{
+            label: '得分趋势',
+            data: stats?.trend.map(t => t.score) || [],
+            borderColor: '#6366f1', // indigo
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 2,
+            pointHoverRadius: 4
+        }]
+    }), [stats]);
 
-    // 空状态
     if (!stats && !isLoading) {
         return (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-500">
-                <div className="flex flex-col items-center">
-                    <PieChartIcon className="w-16 h-16 text-gray-200 mb-4" strokeWidth={1.5} />
-                    <p className="text-sm font-medium">暂无阅卷数据</p>
-                    <p className="text-xs mt-1 text-gray-400">请先在「智能批改」页面进行阅卷</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500">
+                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <PieChartIcon className="w-10 h-10 text-gray-300" />
                 </div>
+                <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300">暂无数据分析</h3>
+                <p className="text-xs mt-2 text-gray-400">请先进行阅卷以生成分析报告</p>
             </div>
         );
     }
 
     return (
-        <div className="absolute inset-0 flex flex-col bg-gray-50/50 dark:bg-gray-900/50">
-            {/* 筛选栏 */}
-            <div className="px-4 py-2.5 bg-white border-b border-gray-100 flex items-center gap-3 shrink-0">
-                {/* 题目切换 - 横向滚动 */}
-                <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="absolute inset-0 flex flex-col bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            {/* Header / Filter Bar */}
+            <div className="px-5 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between shrink-0 z-10 sticky top-0">
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar mask-right pr-4">
                     <button
-                        onClick={() => {
-                            setSelectedQuestion('');
-                            calculateStats('');
-                        }}
-                        className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${selectedQuestion === ''
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
+                        onClick={() => { setSelectedQuestion(''); calculateStats(''); }}
+                        className={`shrink-0 px-4 py-1.5 text-xs font-bold rounded-full transition-all shadow-sm ${selectedQuestion === ''
+                            ? 'bg-slate-800 text-white shadow-slate-300 dark:shadow-none'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                        }`}
                     >
-                        全部
+                        全部题目
                     </button>
-                    {uniqueQuestions.slice(0, 6).map(q => (
+                    {uniqueQuestions.slice(0, 8).map(q => (
                         <button
                             key={q.key}
-                            onClick={() => {
-                                setSelectedQuestion(q.key);
-                                calculateStats(q.key);
-                            }}
-                            className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${selectedQuestion === q.key
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
+                            onClick={() => { setSelectedQuestion(q.key); calculateStats(q.key); }}
+                            className={`shrink-0 px-4 py-1.5 text-xs font-bold rounded-full transition-all shadow-sm ${selectedQuestion === q.key
+                                ? 'bg-indigo-600 text-white shadow-indigo-200'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                            }`}
                         >
                             第{q.key}题
                         </button>
                     ))}
                 </div>
-
-                {/* 导出按钮 */}
-                <ExportDropdown onExportCSV={exportCSV} onExportJSON={exportJSON} />
+                <ExportDropdown onExportCSV={() => handleExport('csv')} onExportJSON={() => handleExport('json')} />
             </div>
 
-            {/* 内容区域 */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin">
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="flex flex-col items-center justify-center py-24 space-y-4">
+                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                        <p className="text-xs font-medium text-indigo-500 animate-pulse">正在分析数据...</p>
                     </div>
                 ) : stats && (
-                    <>
-                        {/* 题目标题 */}
-                        <div className="bg-gray-100 rounded-xl p-4">
-                            <h2 className="text-lg font-bold text-gray-800">
-                                {selectedQuestion ? `第${selectedQuestion}题 深度分析` : '整体考情分析'}
-                            </h2>
-                            <p className="text-xs text-gray-500 mt-1">
-                                共批改 {stats.count} 份答卷 · 满分 {stats.maxScore} 分
-                            </p>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        
+                        {/* 1. Overview Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <StatCard 
+                                label="平均分" 
+                                value={stats.avgScore.toFixed(1)} 
+                                subValue={`/ ${stats.maxScore}`} 
+                                icon={TrendingUp} 
+                                color="indigo"
+                            />
+                            <StatCard 
+                                label="及格率" 
+                                value={`${stats.passRate.toFixed(0)}%`} 
+                                icon={CheckCircle2} 
+                                color={stats.passRate >= 60 ? 'emerald' : 'orange'}
+                            />
+                             <StatCard 
+                                label="优秀率" 
+                                value={`${stats.excellentRate.toFixed(0)}%`} 
+                                icon={Award} 
+                                color={stats.excellentRate >= 20 ? 'violet' : 'slate'}
+                            />
+                            <StatCard 
+                                label="已阅卷" 
+                                value={stats.count.toString()} 
+                                icon={FileText} 
+                                color="blue"
+                            />
                         </div>
 
-                        {/* 核心指标 */}
-                        <div className="grid grid-cols-4 gap-2">
-                            <MetricCard label="平均分" value={stats.avgScore.toFixed(1)} color="text-gray-800" />
-                            <MetricCard
-                                label="及格率"
-                                value={`${stats.passRate.toFixed(0)}%`}
-                                color={stats.passRate >= 60 ? "text-green-600" : "text-red-600"}
-                            />
-                            <MetricCard
-                                label="优秀率"
-                                value={`${stats.excellentRate.toFixed(0)}%`}
-                                color={stats.excellentRate >= 20 ? "text-emerald-600" : "text-orange-600"}
-                            />
-                            <MetricCard
-                                label="得分率"
-                                value={stats.scoreRate.toFixed(2)}
-                                color="text-blue-600"
-                            />
-                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* 2. Score Distribution (Doughnut) */}
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                        <PieChartIcon className="w-4 h-4 text-indigo-500" />
+                                        成绩分布
+                                    </h3>
+                                    <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">点击图表查看详情</span>
+                                </div>
+                                <div className="h-48 relative flex items-center justify-center">
+                                    <Doughnut 
+                                        data={doughnutData} 
+                                        options={{
+                                            cutout: '70%',
+                                            onClick: handleChartClick,
+                                            plugins: { 
+                                                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } },
+                                                tooltip: {
+                                                    callbacks: {
+                                                        label: (ctx) => ` ${ctx.formattedValue}人 (${Math.round((ctx.raw as number / stats.count) * 100)}%)`
+                                                    }
+                                                }
+                                            }
+                                        }} 
+                                    />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        <span className="text-xs text-slate-400 font-medium">总人数</span>
+                                        <span className="text-2xl font-black text-slate-800 dark:text-white">{stats.count}</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                        {/* 知识点分析 */}
-                        {stats.knowledgePoints.length > 0 && (
-                            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                    <BookOpen className="w-4 h-4 text-blue-600" />
-                                    知识点分析
-                                </h3>
+                            {/* 3. Knowledge Points (Bar) */}
+                            <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                        <BookOpen className="w-4 h-4 text-blue-500" />
+                                        薄弱知识点分析
+                                    </h3>
+                                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold">得分率后5名</span>
+                                </div>
                                 <div className="space-y-3">
                                     {stats.knowledgePoints.map((kp, idx) => (
                                         <div key={idx} className="space-y-1">
                                             <div className="flex items-center justify-between text-xs">
-                                                <span className="text-gray-700 truncate max-w-[180px]">{kp.name}</span>
-                                                <span className={`font-medium ${getScoreRateTextColor(kp.scoreRate)}`}>
-                                                    {(kp.scoreRate * 100).toFixed(0)}%
-                                                </span>
+                                                <span className="text-slate-700 dark:text-slate-300 font-medium truncate w-32">{kp.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-slate-400 text-[10px]">{kp.avgScore.toFixed(1)}/{kp.maxScore.toFixed(0)}分</span>
+                                                    <span className={`font-bold w-8 text-right ${
+                                                        kp.scoreRate < 0.6 ? 'text-red-500' : 
+                                                        kp.scoreRate < 0.8 ? 'text-orange-500' : 'text-blue-500'
+                                                    }`}>
+                                                        {(kp.scoreRate * 100).toFixed(0)}%
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full ${getScoreRateColor(kp.scoreRate)} rounded-full transition-all duration-500`}
+                                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                <div 
+                                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                                                        kp.scoreRate < 0.6 ? 'bg-red-400' : 
+                                                        kp.scoreRate < 0.8 ? 'bg-orange-400' : 'bg-blue-400'
+                                                    }`}
                                                     style={{ width: `${kp.scoreRate * 100}%` }}
-                                                />
+                                                ></div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* 4. Trend Chart (Line) - Only show if enough data */}
+                        {stats.trend.length > 5 && (
+                             <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                                        批改趋势
+                                    </h3>
+                                </div>
+                                <div className="h-40 w-full">
+                                    <Line 
+                                        data={lineData} 
+                                        options={{
+                                            responsive: true,
+                                            maintainAspectRatio: false,
+                                            plugins: { legend: { display: false } },
+                                            scales: {
+                                                x: { grid: { display: false }, ticks: { display: false } },
+                                                y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+                                            }
+                                        }} 
+                                    />
+                                </div>
+                             </div>
                         )}
 
-                        {/* 成绩分布图 */}
-                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                            <h3 className="text-sm font-bold text-gray-800 mb-3">📊 成绩分布</h3>
-                            <div style={{ height: '160px' }}>
-                                {chartData && <Bar data={chartData} options={chartOptions} />}
+                         {/* 5. AI Insight (Moved to Bottom) */}
+                         <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg shadow-indigo-500/20 group">
+                            <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
+                                <BrainCircuit className="w-32 h-32" />
+                            </div>
+                            <div className="relative z-10">
+                                <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                                    AI 教学建议
+                                </h3>
+                                <div className="text-sm text-indigo-50 leading-relaxed font-medium whitespace-pre-wrap opacity-90">
+                                    {insight}
+                                </div>
                             </div>
                         </div>
-
-                        {/* AI 教学建议 */}
-                        <div className="bg-white rounded-xl p-4 border-l-4 border-emerald-500 shadow-sm">
-                            <h3 className="text-sm font-bold text-emerald-700 mb-2 flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" />
-                                AI 教学建议
-                            </h3>
-                            <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
-                                {insight}
-                            </p>
-                        </div>
-                    </>
+                    </div>
                 )}
+            </div>
+
+            {/* Student List Modal (Drawer) */}
+            {showStudentList && filterCategory && (
+                <div className="absolute inset-0 z-50 flex flex-col bg-white dark:bg-slate-900 animate-in slide-in-from-bottom duration-300">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowStudentList(false)}
+                                className="p-2 -ml-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+                            >
+                                <ChevronDown className="w-5 h-5 text-slate-500" />
+                            </button>
+                            <div>
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: filterCategory.color }}></span>
+                                    {filterCategory.name}名单
+                                </h3>
+                                <p className="text-xs text-slate-500">共 {filteredStudents.length} 人</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setShowStudentList(false)}
+                            className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-3 py-1.5 rounded-lg"
+                        >
+                            关闭
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-2">
+                        {filteredStudents.length > 0 ? (
+                            <div className="space-y-2">
+                                {filteredStudents.map((student, idx) => (
+                                    <div key={student.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500">
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-800 dark:text-white text-sm">
+                                                    {student.name || '考生'}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400">
+                                                    {new Date(student.timestamp).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-black text-lg text-slate-800 dark:text-white">
+                                                {student.score}
+                                                <span className="text-xs text-slate-400 font-normal">/{student.maxScore}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                                <Users className="w-8 h-8 mb-2 opacity-50" />
+                                <p className="text-xs">该区间暂无学生</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Components
+
+const StatCard = ({ label, value, subValue, icon: Icon, color = 'blue' }: any) => {
+    const colorMap: any = {
+        indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+        emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+        orange: 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+        blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+        violet: 'bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400',
+        slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    };
+
+    return (
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-28 group hover:shadow-md transition-all">
+            <div className="flex justify-between items-start">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+                <div className={`p-1.5 rounded-lg ${colorMap[color]} group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-4 h-4" />
+                </div>
+            </div>
+            <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{value}</span>
+                {subValue && <span className="text-xs text-slate-400 font-bold">{subValue}</span>}
             </div>
         </div>
     );
 };
 
-// 导出下拉菜单组件
-const ExportDropdown = ({ onExportCSV, onExportJSON }: {
-    onExportCSV: () => void;
-    onExportJSON: () => void;
-}) => {
+const ExportDropdown = ({ onExportCSV, onExportJSON }: { onExportCSV: () => void; onExportJSON: () => void; }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -518,40 +700,33 @@ const ExportDropdown = ({ onExportCSV, onExportJSON }: {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
             >
                 <Download className="w-3.5 h-3.5" />
-                导出
+                <span>导出数据</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-                <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+                <div className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                     <button
                         onClick={() => { onExportCSV(); setIsOpen(false); }}
-                        className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                     >
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                        导出 CSV
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                        导出 CSV 表格
                     </button>
+                    <div className="h-[1px] bg-slate-100 dark:bg-slate-700 mx-2"></div>
                     <button
                         onClick={() => { onExportJSON(); setIsOpen(false); }}
-                        className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                     >
-                        <FileText className="w-3.5 h-3.5 text-blue-600" />
-                        导出 JSON
+                        <FileText className="w-3.5 h-3.5 text-blue-500" />
+                        导出 JSON 数据
                     </button>
                 </div>
             )}
         </div>
     );
 };
-
-// 指标卡片组件
-const MetricCard = ({ label, value, color }: { label: string; value: string; color: string }) => (
-    <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm text-center">
-        <div className="text-[10px] text-gray-500 mb-0.5">{label}</div>
-        <div className={`text-xl font-bold ${color}`}>{value}</div>
-    </div>
-);
 
 export default AnalysisView;

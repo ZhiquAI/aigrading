@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Grading v5.1 - Practical Error Handling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Noto Sans SC"', 'sans-serif'],
+                    },
+                    animation: {
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'pulse-glow': 'pulse-glow 2s infinite',
+                    },
+                    keyframes: {
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        },
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.05)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* 光球状态 */
+        .core-inactive { filter: grayscale(100%) opacity(0.5); transform: scale(0.9); cursor: not-allowed; }
+        .core-error { filter: grayscale(0%); background: #ef4444 !important; box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.5); cursor: not-allowed; }
+        .core-active { filter: grayscale(0%) opacity(1); transform: scale(1); cursor: pointer; animation: pulse-glow 3s infinite ease-in-out; }
+        
+        .mode-slider {
+            position: absolute; height: calc(100% - 4px); width: calc(50% - 2px);
+            background: white; border-radius: 999px; top: 2px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            left: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-200 h-screen w-screen flex items-center justify-center font-sans">
+
+    <!-- Control Panel (For Demo) -->
+    <div class="fixed top-4 left-4 bg-white p-4 rounded-xl shadow-lg z-[100] space-y-2 border border-slate-100">
+        <h3 class="text-xs font-bold uppercase text-slate-400 mb-2">模拟故障场景 (v5.1)</h3>
+        <button onclick="simulateError('card')" class="block w-full text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded text-left transition-colors">🔴 模拟: 答题卡未定位</button>
+        <button onclick="simulateError('api')" class="block w-full text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded text-left transition-colors">🔴 模拟: 云服务中断</button>
+        <button onclick="simulateError('rubric')" class="block w-full text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded text-left transition-colors">🔴 模拟: 细则缺失</button>
+        <button onclick="simulateSuccess()" class="block w-full text-xs bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-100 px-3 py-2 rounded mt-2 transition-colors">🟢 模拟: 全部修复</button>
+    </div>
+
+    <div class="w-[400px] h-[700px] bg-slate-50 rounded-[40px] shadow-2xl overflow-hidden relative border border-white flex flex-col">
+        
+        <!-- Header -->
+        <header class="pt-6 px-6 pb-2 shrink-0 z-50">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <span class="font-extrabold text-slate-800 tracking-tight">AI Grader v5.1</span>
+                </div>
+            </div>
+            <!-- Mode Switcher (Visual Only) -->
+            <div class="relative w-full h-11 bg-slate-200/60 rounded-full p-1 flex items-center">
+                <div class="mode-slider"></div>
+                <div class="relative z-10 flex-1 flex items-center justify-center gap-2 text-blue-600 font-black text-[11px] uppercase tracking-wider">辅助模式</div>
+                <div class="relative z-10 flex-1 flex items-center justify-center gap-2 text-slate-400 font-black text-[11px] uppercase tracking-wider">自动模式</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 relative overflow-hidden px-6 pt-4">
+            
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center -mt-10">
+                
+                <!-- AI Core Orb -->
+                <div id="ai-core" class="core-inactive w-40 h-40 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-200 mb-8 transition-all duration-500 relative">
+                    <svg id="core-icon-normal" class="w-16 h-16 text-white transition-opacity duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                    <svg id="core-icon-error" class="absolute w-16 h-16 text-white opacity-0 transition-opacity duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+
+                <h2 id="status-title" class="text-xl font-black text-slate-400 transition-colors duration-300">系统自检中...</h2>
+                <p id="status-desc" class="text-xs text-slate-400 mt-2 font-medium mb-8 h-4">正在连接阅卷环境</p>
+
+                <!-- Check List Panel -->
+                <div class="w-full bg-white rounded-2xl p-2 shadow-sm border border-slate-100 space-y-2">
+                    
+                    <!-- Item 1: Card (答题卡) -->
+                    <div id="check-card" class="group flex flex-col p-3 rounded-xl bg-slate-50 border border-transparent transition-all duration-300">
+                        <div class="flex items-center justify-between w-full">
+                            <div class="flex items-center gap-3">
+                                <div class="icon-box w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                </div>
+                                <div class="text-left">
+                                    <span class="label-text text-xs font-bold text-slate-500 block">答题卡定位</span>
+                                    <span class="error-msg text-[10px] text-red-500 font-medium hidden">定位失败，未发现答题卡</span>
+                                </div>
+                            </div>
+                            <div class="status-action">
+                                <div class="waiting-dot w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                <!-- Fix Button: Refresh Page -->
+                                <button class="fix-btn hidden flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 text-[10px] font-bold rounded-lg shadow-sm hover:bg-red-50 active:scale-95 transition-all">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    刷新页面
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 2: API (云服务) -->
+                    <div id="check-api" class="group flex flex-col p-3 rounded-xl bg-slate-50 border border-transparent transition-all duration-300">
+                        <div class="flex items-center justify-between w-full">
+                            <div class="flex items-center gap-3">
+                                <div class="icon-box w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                </div>
+                                <div class="text-left">
+                                    <span class="label-text text-xs font-bold text-slate-500 block">云端连接</span>
+                                    <span class="error-msg text-[10px] text-red-500 font-medium hidden">云服务连接中断</span>
+                                </div>
+                            </div>
+                            <div class="status-action">
+                                <div class="waiting-dot w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                <!-- Fix Button: Retry -->
+                                <button class="fix-btn hidden flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 text-[10px] font-bold rounded-lg shadow-sm hover:bg-red-50 active:scale-95 transition-all">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    重试连接
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 3: Rubric (细则) -->
+                    <div id="check-rubric" class="group flex flex-col p-3 rounded-xl bg-slate-50 border border-transparent transition-all duration-300">
+                        <div class="flex items-center justify-between w-full">
+                            <div class="flex items-center gap-3">
+                                <div class="icon-box w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                </div>
+                                <div class="text-left">
+                                    <span class="label-text text-xs font-bold text-slate-500 block">评分细则</span>
+                                    <span class="error-msg text-[10px] text-red-500 font-medium hidden">当前题目未配置细则</span>
+                                </div>
+                            </div>
+                            <div class="status-action">
+                                <div class="waiting-dot w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                <!-- Fix Button: Import -->
+                                <button class="fix-btn hidden flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 text-[10px] font-bold rounded-lg shadow-sm hover:bg-red-50 active:scale-95 transition-all">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                    导入细则
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // State
+        const state = {
+            card: 'waiting',
+            api: 'waiting',
+            rubric: 'waiting'
+        };
+
+        const aiCore = document.getElementById('ai-core');
+        const statusTitle = document.getElementById('status-title');
+        const statusDesc = document.getElementById('status-desc');
+
+        function updateUI(id, status) {
+            const el = document.getElementById(`check-${id}`);
+            const iconBox = el.querySelector('.icon-box');
+            const label = el.querySelector('.label-text');
+            const errorMsg = el.querySelector('.error-msg');
+            const waitingDot = el.querySelector('.waiting-dot');
+            const fixBtn = el.querySelector('.fix-btn');
+
+            // Reset classes
+            el.className = 'group flex flex-col p-3 rounded-xl transition-all duration-300 border';
+            iconBox.className = 'icon-box w-8 h-8 rounded-lg flex items-center justify-center border shadow-sm transition-colors';
+            
+            if (status === 'success') {
+                el.classList.add('bg-white', 'border-transparent');
+                iconBox.classList.add('bg-emerald-50', 'text-emerald-600', 'border-emerald-100');
+                label.classList.remove('text-slate-500');
+                label.classList.add('text-slate-800');
+                errorMsg.classList.add('hidden');
+                fixBtn.classList.add('hidden');
+                
+                // Success Icon
+                waitingDot.parentNode.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center animate-check-bounce">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                `;
+            } else if (status === 'error') {
+                el.classList.add('bg-red-50', 'border-red-100');
+                iconBox.classList.add('bg-white', 'text-red-500', 'border-red-100');
+                label.classList.remove('text-slate-500');
+                label.classList.add('text-red-700');
+                errorMsg.classList.remove('hidden');
+                
+                // Show Fix Button
+                waitingDot.classList.add('hidden');
+                fixBtn.classList.remove('hidden');
+            } else {
+                // Waiting
+                el.classList.add('bg-slate-50', 'border-transparent');
+                iconBox.classList.add('bg-white', 'text-slate-400', 'border-slate-100');
+            }
+            
+            updateCoreStatus();
+        }
+
+        function updateCoreStatus() {
+            const allSuccess = Object.values(state).every(s => s === 'success');
+            const hasError = Object.values(state).some(s => s === 'error');
+
+            if (hasError) {
+                aiCore.className = 'core-error w-40 h-40 rounded-full flex items-center justify-center shadow-2xl mb-8 transition-all duration-500 relative animate-shake';
+                document.getElementById('core-icon-normal').style.opacity = '0';
+                document.getElementById('core-icon-error').style.opacity = '1';
+                statusTitle.innerText = "自检未通过";
+                statusTitle.className = "text-xl font-black text-red-500 transition-colors duration-300";
+                statusDesc.innerText = "请解决下方问题后继续";
+                statusDesc.className = "text-xs text-red-400 mt-2 font-medium mb-8 h-4";
+            } else if (allSuccess) {
+                aiCore.className = 'core-active w-40 h-40 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-200 mb-8 transition-all duration-500 relative';
+                document.getElementById('core-icon-normal').style.opacity = '1';
+                document.getElementById('core-icon-error').style.opacity = '0';
+                statusTitle.innerText = "准备就绪";
+                statusTitle.className = "text-xl font-black text-slate-800 transition-colors duration-300";
+                statusDesc.innerText = "点击光球开始";
+                statusDesc.className = "text-xs text-indigo-500 mt-2 font-medium mb-8 h-4";
+            } else {
+                aiCore.className = 'core-inactive w-40 h-40 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-200 mb-8 transition-all duration-500 relative';
+                document.getElementById('core-icon-normal').style.opacity = '1';
+                document.getElementById('core-icon-error').style.opacity = '0';
+                statusTitle.innerText = "系统自检中...";
+                statusTitle.className = "text-xl font-black text-slate-400 transition-colors duration-300";
+                statusDesc.className = "text-xs text-slate-400 mt-2 font-medium mb-8 h-4";
+            }
+        }
+
+        // Demo Triggers
+        function simulateError(type) {
+            state[type] = 'error';
+            updateUI(type, 'error');
+        }
+
+        function simulateSuccess() {
+            state.card = 'success';
+            state.api = 'success';
+            state.rubric = 'success';
+            updateUI('card', 'success');
+            updateUI('api', 'success');
+            updateUI('rubric', 'success');
+        }
+    </script>
+</body>
+</html>

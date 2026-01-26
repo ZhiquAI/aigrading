@@ -160,6 +160,31 @@ const RubricDrawer: React.FC<RubricDrawerProps> = ({ isOpen, onClose, onSave, in
           if (data.rubric && typeof data.rubric === 'string') {
             setRubricText(data.rubric);
             setStatus('done');
+
+            // 功能2：尝试从细则内容解析 questionId
+            try {
+              const rubricData = JSON.parse(data.rubric);
+              if (rubricData.questionId && onQuestionNoChange) {
+                // questionId 格式为 "22" 或 "22-2"，提取主题号
+                const questionNo = String(rubricData.questionId).split('-')[0];
+                onQuestionNoChange(questionNo);
+                toast.success(`已自动识别题号：第 ${questionNo} 题`);
+              }
+            } catch {
+              // 细则内容不是 JSON 格式，忽略
+            }
+
+            setShowSuccessToast(true);
+            setTimeout(() => setShowSuccessToast(false), 3000);
+          } else if (data.questionId) {
+            // 直接是 v2 格式的细则 JSON（而非包装格式）
+            setRubricText(content);
+            setStatus('done');
+            if (onQuestionNoChange) {
+              const questionNo = String(data.questionId).split('-')[0];
+              onQuestionNoChange(questionNo);
+              toast.success(`已自动识别题号：第 ${questionNo} 题`);
+            }
             setShowSuccessToast(true);
             setTimeout(() => setShowSuccessToast(false), 3000);
           } else {

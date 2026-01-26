@@ -13,7 +13,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   if (url.origin.includes('zhixue.com') || url.origin.includes('haofenshu.com')) {
     await chrome.sidePanel.setOptions({
       tabId,
-      path: 'index.html',
+      path: 'v2.html',
       enabled: true
     });
   }

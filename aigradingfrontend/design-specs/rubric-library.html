@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分细则管理 - Sidepanel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* 模拟移动端触摸反馈 */
+        .touch-card:active { transform: scale(0.98); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased h-screen flex flex-col max-w-[450px] mx-auto bg-white shadow-xl overflow-hidden">
+
+    <!-- 1. 顶部导航 -->
+    <header class="h-14 flex items-center justify-between px-4 border-b border-gray-100 shrink-0 bg-white z-10">
+        <div class="flex items-center gap-2">
+            <button class="p-2 -ml-2 hover:bg-gray-100 rounded-full text-gray-500">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <h1 class="text-base font-bold text-gray-800">评分细则库</h1>
+            <span class="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full">12</span>
+        </div>
+        <div class="flex gap-2">
+            <button class="text-blue-600 text-xs font-bold hover:bg-blue-50 px-2 py-1 rounded">导入</button>
+            <button class="text-gray-400 hover:text-gray-600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        </div>
+    </header>
+
+    <!-- 2. 快捷模板区 (Quick Start) -->
+    <div class="p-4 bg-gray-50/50 border-b border-gray-100 shrink-0">
+        <h3 class="text-[10px] font-bold text-gray-400 uppercase mb-2">新建 / 套用模板</h3>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            <button class="flex-shrink-0 flex flex-col justify-between w-24 h-20 p-2 bg-white border border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:text-blue-600 transition-colors group">
+                <span class="text-xs font-medium text-gray-500 group-hover:text-blue-600">+ 空白</span>
+                <span class="text-[10px] text-gray-300">自定义</span>
+            </button>
+            <button class="flex-shrink-0 flex flex-col justify-between w-24 h-20 p-2 bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-100 rounded-xl hover:border-orange-300 transition-colors">
+                <span class="text-xs font-bold text-orange-800">材料分析</span>
+                <div class="flex items-end justify-between">
+                    <span class="text-[10px] text-orange-600/70">6分/3点</span>
+                    <span class="text-orange-400">⚡</span>
+                </div>
+            </button>
+            <button class="flex-shrink-0 flex flex-col justify-between w-24 h-20 p-2 bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-100 rounded-xl hover:border-purple-300 transition-colors">
+                <span class="text-xs font-bold text-purple-800">小作文</span>
+                <div class="flex items-end justify-between">
+                    <span class="text-[10px] text-purple-600/70">12分/分层</span>
+                    <span class="text-purple-400">📝</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. 细则列表 (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
+        
+        <!-- 卡片 1: 复杂题 (已配置) -->
+        <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm touch-card relative overflow-hidden group">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="bg-blue-600 text-white text-xs font-bold px-1.5 rounded">18-1</span>
+                    <h3 class="text-sm font-bold text-gray-800">工业革命背景</h3>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="text-xs font-bold text-gray-900">4分</span>
+                    <span class="text-[10px] text-gray-400 bg-gray-100 px-1 rounded">2点</span>
+                </div>
+            </div>
+            
+            <!-- 标签预览 -->
+            <div class="flex flex-wrap gap-1.5 mb-2">
+                <span class="px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] rounded border border-green-100">瓦特</span>
+                <span class="px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] rounded border border-green-100">蒸汽机</span>
+                <span class="px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] rounded border border-green-100">工厂制度</span>
+            </div>
+
+            <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                <div class="flex items-center gap-1 text-[10px] text-gray-400">
+                    <span>严格匹配</span>
+                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                    <span>JSON v2.0</span>
+                </div>
+                <div class="flex gap-3">
+                    <button class="text-gray-400 hover:text-blue-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="text-gray-400 hover:text-red-500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                </div>
+            </div>
+            <!-- 左侧状态条 -->
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+        </div>
+
+        <!-- 卡片 2: 草稿状态 -->
+        <div class="bg-white p-3 rounded-xl border border-dashed border-gray-300 shadow-sm opacity-80 hover:opacity-100 touch-card relative">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="bg-gray-200 text-gray-500 text-xs font-bold px-1.5 rounded">18-2</span>
+                    <h3 class="text-sm font-medium text-gray-500 italic">未命名题目...</h3>
+                </div>
+                <span class="bg-yellow-100 text-yellow-700 text-[10px] px-1.5 py-0.5 rounded-full font-medium">Draft</span>
+            </div>
+            <p class="text-xs text-gray-400 mb-2">暂无评分点，点击开始配置</p>
+            <div class="flex justify-end">
+                 <button class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">开始配置</button>
+            </div>
+        </div>
+
+        <!-- 卡片 3: 论述题 -->
+        <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm touch-card relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="bg-purple-600 text-white text-xs font-bold px-1.5 rounded">19</span>
+                    <h3 class="text-sm font-bold text-gray-800">全球化与文化自信</h3>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="text-xs font-bold text-gray-900">12分</span>
+                    <span class="text-[10px] text-gray-400 bg-gray-100 px-1 rounded">分层</span>
+                </div>
+            </div>
+            <div class="text-[10px] text-gray-500 line-clamp-2 bg-gray-50 p-1.5 rounded mb-2">
+                观点明确(2分)；论述充分(8分)，史实需包含丝绸之路、大运河；总结升华(2分)。
+            </div>
+             <div class="flex items-center justify-between mt-1 pt-1 border-t border-gray-50">
+                <div class="flex items-center gap-1 text-[10px] text-purple-600">
+                    <span class="bg-purple-50 px-1 rounded">思维链推理</span>
+                </div>
+                 <div class="flex gap-3">
+                    <button class="text-gray-400 hover:text-blue-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                </div>
+            </div>
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
+        </div>
+
+    </div>
+
+    <!-- 4. 底部 AI 栏 -->
+    <div class="p-3 bg-white border-t border-gray-100 z-10">
+        <button class="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="text-sm font-bold">上传试题图片自动生成</span>
+        </button>
+    </div>
+
+</body>
+</html>

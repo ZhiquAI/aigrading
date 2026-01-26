@@ -13,7 +13,7 @@ import { generateRulesPrompt, getCurrentSubject } from './config-service';
 const BACKEND_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 function getDeviceId(): string {
-    return localStorage.getItem('app_device_id') || 'unknown';
+    return localStorage.getItem('device_id') || 'unknown';
 }
 
 // ==================== JSON 格式提示词 ====================
@@ -46,9 +46,14 @@ export function getRubricSystemPrompt(): string {
 - ❌ "第(1)题为半开放题" 
 - ❌ "第(2)题为开放题"
 
-## 题型识别与评分策略(非常重要)
+## 题型识别与内容背景提取策略(非常重要)
 
-请根据参考答案的特征自动判断题型并设置评分策略:
+请采取“精准结构还原”策略，确保图片中的每一行或每一个逻辑块都被精确提取，不得遗漏：
+
+1. **表格精准对齐**：若为表格，仔细识别列，确保“问题词”与“内容”对应。
+2. **文本标签识别**：若为文本格式（非表格），识别冒号前的标签（如“根本原因:”、“性质:”) 作为 questionSegment。
+3. **问题词补完**：如果缺失标签或问题词，根据内容推断其所属类型（如：根本原因、特点、性质、意义等），并填入 questionSegment。
+4. **内容完整性**：长文本答案必须完整保留，不得大幅简化。
 
 【填空题/客观题】特征:答案唯一、简短、精确
 - scoringStrategy.strictMode = true
@@ -99,6 +104,7 @@ export function getRubricSystemPrompt(): string {
   "answerPoints": [
     {
       "id": "1-1",
+      "questionSegment": "题目中的核心提问词，如'根本原因'、'特点'等。若图中未明确写出，请根据内容推断补齐。",
       "content": "具体答案内容",
       "keywords": ["关键词1", "关键词2"],
       "requiredKeywords": ["必选关键词"],
@@ -113,8 +119,10 @@ export function getRubricSystemPrompt(): string {
 
 ## 字段说明
 
-- **questionId**: 格式为 "题号-小题号"，如 "18-2"、"19-1"
-- **title**: 题目类型，如 "影响分析"、"举措分析"、"原因探究"
+- **questionId**: 题目 ID,由上下文提供(如 "115"、"18")
+- **answerPoints[].id**: 标识符,**必须以 questionId 开头**,格式为 "题目ID-序号",如 "115-1"、"115-2"
+- **answerPoints[].questionSegment**: ⚠️重点:问题词/题干片段,如 "根本原因"、"性质"、"特点"、"意义"。必须从题目或答案中精准提取,以便对齐。
+- **title**: 题目类型,如 "影响分析"、"举措分析"、"原因探究"
 - **scoringStrategy.type**: 
   - "pick_n": 任选 N 个得分点（如"任答3点得满分"）
   - "all": 必须答全所有得分点
@@ -138,6 +146,17 @@ export function getRubricSystemPrompt(): string {
     - ✗ "半开放题" → ✓ 改用"材料分析题(按关键词评分)"或"要点题(按点给分)"
     - ✗ "开放题" → ✓ 改用"开放性题目(言之有理即可)"或"主观题(合理即可)"
     - ✓ 推荐术语:"客观题"、"材料分析题"、"开放性题目"、"观点论述题"
+
+## 文本标签模式示例 (非常重要)
+若输入为非表格、带冒号标签的文本（如本次图片的格式），必须按以下规则映射：
+输入: "(1)根本原因:斯图亚特王朝统治阻碍资本主义发展。(1分) 【注意:若未提到资本主义扣0.5分】"
+输出 JSON:
+- questionId: "1-1"
+- questionSegment: "根本原因" (⚠️ 严禁留空！必须提取冒号前的关键词)
+- content: "斯图亚特王朝统治阻碍资本主义发展" (⚠️ 严禁包含“根本原因:”前缀)
+- score: 1
+- deductionRules: "若未提到资本主义扣0.5分"
+- keywords: ["斯图亚特王朝", "统治", "资本主义"]
 
 ## 示例输出（包含不同题型）
 
@@ -214,7 +233,7 @@ export async function generateRubricFromImages(
     if (useProxy) {
         // 后端代理模式：调用 localhost:3000
         try {
-            const response = await fetch(`${BACKEND_URL} /api/ai / rubric / generate`, {
+            const response = await fetch(`${BACKEND_URL}/api/ai/rubric`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -305,7 +324,7 @@ export async function generateRubricFromText(
     if (useProxy) {
         // 后端代理模式
         try {
-            const response = await fetch(`${BACKEND_URL} /api/ai / rubric / generate`, {
+            const response = await fetch(`${BACKEND_URL}/api/ai/rubric`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -379,7 +398,7 @@ export async function refineRubric(
     if (useProxy) {
         // 后端代理模式
         try {
-            const response = await fetch(`${BACKEND_URL} /api/ai / rubric / refine`, {
+            const response = await fetch(`${BACKEND_URL}/api/ai/rubric/refine`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

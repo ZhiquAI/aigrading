@@ -163,7 +163,9 @@ export function getRubricSystemPrompt(): string {
 
 ## 字段说明
 
-- **questionId**: 格式为 "题号-小题号",如 "18-2"、"19-1"
+- **questionId**: 题目 ID,由上下文提供(如 "115"、"18")
+- **answerPoints[].id**: 标识符,**必须以 questionId 开头**,格式为 "题目ID-序号",如 "115-1"、"115-2"
+- **answerPoints[].questionSegment**: ⚠️重点:问题词/题干片段,如 "根本原因"、"性质"、"特点"、"意义"。必须从题目或答案中精准提取,不可为空。
 - **title**: 题目类型,如 "影响分析"、"举措分析"、"原因探究"
 - **scoringStrategy.type**: 
   - "pick_n": 任选 N 个得分点(如"任答3点得满分")

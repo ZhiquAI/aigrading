@@ -11,6 +11,7 @@ import ActivationView from './ActivationView';
 import { isProxyMode, setProxyMode } from '../services/proxyService';
 import { getAppConfig, saveAppConfig, PROVIDER_DEFAULTS, MODEL_SUGGESTIONS } from '../services/config-service';
 import { ModelProviderType } from '../types';
+import { useAppStore } from '../stores/useAppStore';
 
 // @ts-ignore - Vite 环境变量
 const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
@@ -205,6 +206,27 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             window.open(`${API_BASE_URL}/pay`, '_blank');
           }}
         />
+
+        {/* === EXPERIMENTAL: Switch to V2 === */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 rounded-xl shadow-lg mb-4">
+          <div className="flex items-center justify-between">
+            <div className="text-white">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-300" />
+                体验新版界面 (V14 Beta)
+              </h3>
+              <p className="text-xs text-indigo-100 mt-1">全新设计，更流畅的阅卷体验</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              onClick={() => useAppStore.getState().setShowV2(true)}
+            >
+              立即切换
+            </Button>
+          </div>
+        </div>
 
         {/* === 1. API 配置 === */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">

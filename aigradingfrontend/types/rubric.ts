@@ -38,6 +38,8 @@ export interface ScoringStrategy {
 export interface AnswerPoint {
     /** 唯一标识，如 "1-1", "2-3" */
     id: string;
+    /** 问题词 / 题干片段，如 "根本原因", "性质", "意义" */
+    questionSegment?: string;
     /** 标准答案内容 */
     content: string;
     /** 关键词列表（支持组合，如 "体育+赛事" 表示需同时包含） */
@@ -133,6 +135,7 @@ export function createEmptyRubric(questionId: string): RubricJSON {
 export function createEmptyAnswerPoint(id: string): AnswerPoint {
     return {
         id,
+        questionSegment: '',
         content: '',
         keywords: [],
         score: 2,

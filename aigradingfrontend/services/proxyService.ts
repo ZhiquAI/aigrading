@@ -12,7 +12,7 @@ import { StudentResult } from '../types';
 const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
 
 // 获取设备 ID（用于限制使用次数）
-function getDeviceId(): string {
+export function getDeviceId(): string {
     let deviceId = localStorage.getItem('device_id');
     if (!deviceId) {
         deviceId = 'device_' + Math.random().toString(36).substring(2, 15);
@@ -21,11 +21,19 @@ function getDeviceId(): string {
     return deviceId;
 }
 
-// 代理模式配置（默认使用前端直连模式）
+// 代理模式配置
+// 生产环境（配置了后端 API 地址）默认使用代理模式
+// 开发环境默认使用前端直连模式
 export function isProxyMode(): boolean {
     const saved = localStorage.getItem('proxy_mode');
-    // 默认值为 false（前端直连模式）
-    return saved === 'true';
+    if (saved !== null) {
+        return saved === 'true';
+    }
+    // 如果没有手动设置，根据环境变量决定默认值
+    // 有 VITE_API_BASE_URL 配置时，默认使用代理模式
+    // @ts-ignore - Vite 环境变量
+    const hasBackendUrl = !!import.meta.env?.VITE_API_BASE_URL;
+    return hasBackendUrl;
 }
 
 export function setProxyMode(enabled: boolean): void {
@@ -38,6 +46,7 @@ export interface UsageInfo {
     todayUsage: number;
     dailyLimit: number;
     remaining: number;  // -1 表示无限
+    status: string;
 }
 
 export async function getUsageInfo(): Promise<UsageInfo> {
@@ -60,7 +69,8 @@ export async function getUsageInfo(): Promise<UsageInfo> {
             isActivated: data.isPaid || false,
             remaining: data.isPaid ? -1 : (data.quota || 300),
             todayUsage: data.totalUsed || 0,
-            dailyLimit: data.isPaid ? -1 : 300
+            dailyLimit: data.isPaid ? -1 : 300,
+            status: data.status || 'active'
         };
     } catch (error) {
         console.error('[Proxy] Failed to get usage info:', error);
@@ -68,7 +78,8 @@ export async function getUsageInfo(): Promise<UsageInfo> {
             isActivated: false,
             todayUsage: 0,
             dailyLimit: 300,
-            remaining: 300
+            remaining: 300,
+            status: 'active'
         };
     }
 }
@@ -76,6 +87,132 @@ export async function getUsageInfo(): Promise<UsageInfo> {
 // 获取激活码
 function getActivationCode(): string | null {
     return localStorage.getItem('activation_code');
+}
+
+/**
+ * 图片压缩配置
+ */
+interface ImageCompressionOptions {
+    maxWidth?: number;      // 最大宽度，默认 1200px
+    quality?: number;       // JPEG 质量，默认 0.75
+    grayscale?: boolean;    // 是否转灰度，默认 true（答卷通常是黑白的）
+}
+
+/**
+ * 压缩 Base64 图片以加速上传和 AI 处理
+ * - 缩小尺寸：将图片宽度限制在 maxWidth 以内
+ * - 灰度化：答卷通常是黑白的，去除颜色可减少约2/3数据量
+ * - JPEG 压缩：使用 0.75 质量可减少约50%数据量
+ * 
+ * 预计可将图片体积减少 70-90%，从而提速 3-5 倍
+ */
+async function compressImageBase64(
+    base64: string,
+    options: ImageCompressionOptions = {}
+): Promise<string> {
+    const {
+        maxWidth = 1200,
+        quality = 0.75,
+        grayscale = true
+    } = options;
+
+    return new Promise((resolve, reject) => {
+        try {
+            // 解析 Base64 数据
+            let imageData = base64;
+            let mimeType = 'image/png';
+
+            if (base64.startsWith('data:')) {
+                const parts = base64.split(',');
+                if (parts.length === 2) {
+                    const mimeMatch = parts[0].match(/data:([^;]+)/);
+                    if (mimeMatch) {
+                        mimeType = mimeMatch[1];
+                    }
+                    imageData = parts[1];
+                }
+            }
+
+            // 创建图片对象
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    // 计算新尺寸
+                    let newWidth = img.width;
+                    let newHeight = img.height;
+
+                    if (newWidth > maxWidth) {
+                        const ratio = maxWidth / newWidth;
+                        newWidth = maxWidth;
+                        newHeight = Math.round(img.height * ratio);
+                    }
+
+                    // 创建 Canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    const ctx = canvas.getContext('2d');
+
+                    if (!ctx) {
+                        console.warn('[ImageCompress] Canvas context not available, using original');
+                        resolve(base64);
+                        return;
+                    }
+
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                    // 灰度化处理
+                    if (grayscale) {
+                        const imageDataObj = ctx.getImageData(0, 0, newWidth, newHeight);
+                        const data = imageDataObj.data;
+
+                        for (let i = 0; i < data.length; i += 4) {
+                            // 使用亮度公式转换为灰度
+                            const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                            data[i] = gray;     // R
+                            data[i + 1] = gray; // G
+                            data[i + 2] = gray; // B
+                            // Alpha 保持不变
+                        }
+
+                        ctx.putImageData(imageDataObj, 0, 0);
+                    }
+
+                    // 导出为 JPEG（压缩率更高）
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+
+                    // 记录压缩效果
+                    const originalSize = Math.round(base64.length * 0.75 / 1024); // 估算原始大小 KB
+                    const compressedSize = Math.round(compressedBase64.length * 0.75 / 1024);
+                    const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
+
+                    console.log(`[ImageCompress] ${img.width}x${img.height} -> ${newWidth}x${newHeight}, ` +
+                        `${originalSize}KB -> ${compressedSize}KB (${compressionRatio}% 压缩率)`);
+
+                    resolve(compressedBase64);
+                } catch (err) {
+                    console.warn('[ImageCompress] Processing error, using original:', err);
+                    resolve(base64);
+                }
+            };
+
+            img.onerror = () => {
+                console.warn('[ImageCompress] Image load error, using original');
+                resolve(base64);
+            };
+
+            // 加载图片
+            if (!base64.startsWith('data:')) {
+                img.src = `data:${mimeType};base64,${imageData}`;
+            } else {
+                img.src = base64;
+            }
+        } catch (err) {
+            console.warn('[ImageCompress] Compression error, using original:', err);
+            resolve(base64);
+        }
+    });
 }
 
 // 通过后端代理批改学生答案
@@ -92,6 +229,7 @@ export interface ProxyGradeResult {
     }[];
     remaining: number;
     isActivated: boolean;
+    status?: string;
 }
 
 export async function gradeWithProxy(
@@ -129,11 +267,18 @@ export async function gradeWithProxy(
     }
 
     try {
+        // 压缩图片以加速上传和 AI 处理
+        const compressedImage = await compressImageBase64(imageBase64, {
+            maxWidth: 1000,   // 限制宽度为 1000px (平衡清晰度和速度)
+            quality: 0.6,    // JPEG 质量 60% (进一步减小体积)
+            grayscale: true  // 转灰度（答卷通常是黑白的）
+        });
+
         const response = await fetch(`${API_BASE_URL}/api/ai/grade`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                imageBase64,
+                imageBase64: compressedImage,
                 rubric: rubricToSend,
                 studentName,
                 questionNo,
@@ -220,8 +365,13 @@ export async function verifyActivationCode(code: string): Promise<{
 // 查询激活状态
 export async function checkActivationStatus(): Promise<{
     activated: boolean;
+    code?: string;
     type?: string;
+    quota?: number;
+    maxQuota?: number;
+    used?: number;
     expiresAt?: string;
+    status?: string;
 }> {
     const deviceId = getDeviceId();
 
@@ -231,10 +381,16 @@ export async function checkActivationStatus(): Promise<{
         });
 
         const data = await response.json();
+        const resData = data.data || {};
         return {
-            activated: data.data?.activated || false,
-            type: data.data?.type,
-            expiresAt: data.data?.expiresAt
+            activated: resData.isPaid || false,
+            code: resData.code,
+            type: resData.type,
+            quota: resData.quota,
+            maxQuota: resData.maxQuota,
+            used: resData.used,
+            expiresAt: resData.expiresAt,
+            status: resData.status
         };
     } catch (error) {
         return { activated: false };
@@ -328,18 +484,128 @@ export async function standardizeRubricWithProxy(
     }
 }
 
+// ==================== 考试汇总管理 ====================
+
+export interface Exam {
+    id: string;
+    name: string;
+    date: string | null;
+    subject: string | null;
+    grade: string | null;
+    description: string | null;
+    updatedAt: string;
+}
+
+/**
+ * 获取所有考试列表
+ */
+export async function getExams(): Promise<Exam[]> {
+    const activationCode = getActivationCode();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/exams`, {
+            method: 'GET',
+            headers: {
+                'x-activation-code': activationCode || ''
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            return data.exams;
+        }
+        return [];
+    } catch (error) {
+        console.error('[Proxy] getExams error:', error);
+        return [];
+    }
+}
+
+/**
+ * 创建新考试
+ */
+export async function createExam(params: Partial<Exam>): Promise<Exam | null> {
+    const activationCode = getActivationCode();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/exams`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-activation-code': activationCode || ''
+            },
+            body: JSON.stringify(params)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            return data.exam;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Proxy] createExam error:', error);
+        return null;
+    }
+}
+
+/**
+ * 更新考试信息
+ */
+export async function updateExam(id: string, params: Partial<Exam>): Promise<Exam | null> {
+    const activationCode = getActivationCode();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/exams/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-activation-code': activationCode || ''
+            },
+            body: JSON.stringify(params)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            return data.exam;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Proxy] updateExam error:', error);
+        return null;
+    }
+}
+
+/**
+ * 删除考试
+ */
+export async function deleteExam(id: string): Promise<boolean> {
+    const activationCode = getActivationCode();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/exams/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'x-activation-code': activationCode || ''
+            }
+        });
+
+        const data = await response.json();
+        return data.success;
+    } catch (error) {
+        console.error('[Proxy] deleteExam error:', error);
+        return false;
+    }
+}
+
 // ==================== 评分细则同步 ====================
 
 export interface RubricRecord {
     questionKey: string;
     rubric: string;
     updatedAt: string;
+    examId?: string | null;
 }
 
 /**
  * 保存评分细则到后端服务器
  */
-export async function saveRubricToServer(questionKey: string, rubric: string): Promise<boolean> {
+export async function saveRubricToServer(questionKey: string, rubric: string, examId?: string | null): Promise<boolean> {
     if (!questionKey || !rubric?.trim()) {
         console.warn('[Proxy] saveRubricToServer: 参数无效');
         return false;
@@ -349,12 +615,14 @@ export async function saveRubricToServer(questionKey: string, rubric: string): P
         const response = await fetch(`${API_BASE_URL}/api/rubric`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-activation-code': getActivationCode() || '',
+                'x-device-id': getDeviceId()
             },
             body: JSON.stringify({
-                deviceId: getDeviceId(),
                 questionKey,
-                rubric
+                rubric,
+                examId
             })
         });
 
@@ -381,15 +649,23 @@ export async function loadRubricFromServer(questionKey: string): Promise<string 
 
     try {
         const response = await fetch(
-            `${API_BASE_URL}/api/rubric?deviceId=${encodeURIComponent(getDeviceId())}&questionKey=${encodeURIComponent(questionKey)}`,
-            { method: 'GET' }
+            `${API_BASE_URL}/api/rubric?questionKey=${encodeURIComponent(questionKey)}`,
+            {
+                method: 'GET',
+                headers: {
+                    'x-activation-code': getActivationCode() || '',
+                    'x-device-id': getDeviceId()
+                }
+            }
         );
 
         const data = await response.json();
 
-        if (data.success && data.data?.rubric) {
+        if (data.success && data.rubric) {
             console.log('[Proxy] 从服务器加载评分细则:', questionKey);
-            return data.data.rubric;
+            // 后端返回的是 RubricJSON 对象，这里可能需要转回字符串或直接返回
+            // 为兼容旧版，如果返回的是对象，我们转为字符串
+            return typeof data.rubric === 'string' ? data.rubric : JSON.stringify(data.rubric);
         }
 
         return null;
@@ -402,18 +678,29 @@ export async function loadRubricFromServer(questionKey: string): Promise<string 
 /**
  * 从后端服务器加载所有评分细则
  */
-export async function loadAllRubricsFromServer(): Promise<RubricRecord[]> {
+export async function loadAllRubricsFromServer(examId?: string): Promise<RubricRecord[]> {
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/api/rubric?deviceId=${encodeURIComponent(getDeviceId())}`,
-            { method: 'GET' }
-        );
+        let url = `${API_BASE_URL}/api/rubric`;
+        if (examId) url += `?examId=${encodeURIComponent(examId)}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'x-activation-code': getActivationCode() || '',
+                'x-device-id': getDeviceId()
+            }
+        });
 
         const data = await response.json();
 
-        if (data.success && Array.isArray(data.data)) {
-            console.log('[Proxy] 从服务器加载所有评分细则:', data.data.length, '条');
-            return data.data;
+        if (data.success && Array.isArray(data.rubrics)) {
+            console.log('[Proxy] 从服务器加载评分细则列表:', data.rubrics.length, '条');
+            return data.rubrics.map((r: any) => ({
+                questionKey: r.questionId,
+                rubric: '', // 列表不返回详情
+                updatedAt: r.updatedAt,
+                examId: r.examId
+            }));
         }
 
         return [];

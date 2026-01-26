@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis V2 Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 flex justify-center min-h-screen">
+
+    <!-- Simulation of the SidePanel Container (Width ~400px) -->
+    <div class="w-[400px] bg-white shadow-2xl min-h-screen relative flex flex-col">
+
+        <!-- Header / Filter -->
+        <div class="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100 px-5 py-4">
+            <div class="flex items-center justify-between mb-3">
+                <h1 class="text-lg font-bold flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i>
+                    考情分析
+                </h1>
+                <button class="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Question Pills -->
+            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button
+                    class="shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-white shadow-lg shadow-slate-200">
+                    全部
+                </button>
+                <button
+                    class="shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+                    第15题
+                </button>
+                <button
+                    class="shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+                    第16题
+                </button>
+                <button
+                    class="shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+                    第17题
+                </button>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-6">
+
+            <!-- 2. Core Metrics (Grid) -->
+            <div class="grid grid-cols-3 gap-2">
+                <!-- Avg Score -->
+                <div
+                    class="p-3 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col justify-between h-24">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">平均分</span>
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5 text-indigo-500"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-0.5">
+                            <span class="text-2xl font-black text-slate-800 tracking-tight">7.8</span>
+                            <span class="text-[10px] text-slate-400 font-bold">/10</span>
+                        </div>
+                        <div
+                            class="text-[10px] text-emerald-500 font-bold flex items-center gap-0.5 transform scale-90 origin-left">
+                            <i data-lucide="arrow-up" class="w-2.5 h-2.5"></i>
+                            +1.2%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pass Rate -->
+                <div
+                    class="p-3 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col justify-between h-24">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">及格率</span>
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-black text-slate-800 tracking-tight">85<span
+                                class="text-xs">%</span></span>
+                        <div class="text-[10px] text-slate-400 font-bold mt-0.5">42人</div>
+                    </div>
+                </div>
+
+                <!-- Excellent Rate -->
+                <div
+                    class="p-3 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col justify-between h-24">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">优秀率</span>
+                        <i data-lucide="award" class="w-3.5 h-3.5 text-violet-500"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-black text-slate-800 tracking-tight">24<span
+                                class="text-xs">%</span></span>
+                        <div class="text-[10px] text-slate-400 font-bold mt-0.5">12人</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Score Distribution -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-slate-400"></i>
+                        成绩分布
+                    </h3>
+                    <span class="text-[10px] text-slate-400 bg-slate-50 px-2 py-1 rounded-full">总计 50人</span>
+                </div>
+
+                <!-- Distribution Bars -->
+                <div class="h-4 w-full flex rounded-full overflow-hidden bg-slate-50 gap-[2px]">
+                    <div class="bg-violet-400 h-full w-[24%]" title="优秀"></div>
+                    <div class="bg-blue-400 h-full w-[46%]" title="良好"></div>
+                    <div class="bg-orange-400 h-full w-[20%]" title="及格"></div>
+                    <div class="bg-red-400 h-full w-[10%]" title="不及格"></div>
+                </div>
+
+                <!-- Legend -->
+                <div class="grid grid-cols-4 gap-2 mt-4">
+                    <div class="flex flex-col items-center p-2 rounded-lg bg-violet-50/50">
+                        <div class="text-[10px] text-violet-400 mb-0.5 font-bold">优秀</div>
+                        <div class="font-black text-slate-700 text-sm">24%</div>
+                        <div class="text-[10px] text-slate-400">12人</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 rounded-lg bg-blue-50/50">
+                        <div class="text-[10px] text-blue-400 mb-0.5 font-bold">良好</div>
+                        <div class="font-black text-slate-700 text-sm">46%</div>
+                        <div class="text-[10px] text-slate-400">23人</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 rounded-lg bg-orange-50/50">
+                        <div class="text-[10px] text-orange-400 mb-0.5 font-bold">及格</div>
+                        <div class="font-black text-slate-700 text-sm">20%</div>
+                        <div class="text-[10px] text-slate-400">10人</div>
+                    </div>
+                    <div class="flex flex-col items-center p-2 rounded-lg bg-red-50/50">
+                        <div class="text-[10px] text-red-400 mb-0.5 font-bold">需努力</div>
+                        <div class="font-black text-slate-700 text-sm">10%</div>
+                        <div class="text-[10px] text-slate-400">5人</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Weakness Analysis -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-slate-400"></i>
+                        高频失分点 (Top 3)
+                    </h3>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Item 1 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="font-medium text-slate-700">君主立宪制的本质</span>
+                            <span class="font-bold text-red-500">仅 42% 得分</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-red-400 rounded-full" style="width: 42%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="font-medium text-slate-700">权利法案的内容</span>
+                            <span class="font-bold text-orange-500">58% 得分</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-400 rounded-full" style="width: 58%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="font-medium text-slate-700">革命的历史意义</span>
+                            <span class="font-bold text-blue-500">75% 得分</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-400 rounded-full" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Insight Card (Moved to Bottom) -->
+            <div
+                class="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-xl shadow-indigo-200">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <i data-lucide="sparkles" class="w-24 h-24"></i>
+                </div>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-yellow-300 animate-pulse"></i>
+                        <h3 class="text-xs font-bold text-indigo-100 uppercase tracking-wider">AI 教学诊断</h3>
+                    </div>
+                    <p class="text-sm font-medium leading-relaxed opacity-95">
+                        <span class="font-bold border-b border-indigo-400/50">基础分掌握良好</span>，但在<span
+                            class="bg-white/20 px-1 rounded mx-1">综合分析题</span>上失分较多。建议加强对"光荣革命"历史影响的对比训练。
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center pb-6">
+                <p class="text-[10px] text-slate-300 font-medium">Generated by AI Grading Assistant V2</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

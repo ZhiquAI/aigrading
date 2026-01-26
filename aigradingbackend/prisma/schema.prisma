@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // 用户表
@@ -64,6 +64,8 @@ model ActivationCode {
   code       String    @unique // 激活码：ZY-XXXX-XXXX
   type       String // trial, basic, standard, pro
   quota      Int // 配额数量：300, 1000, 2000, 3000
+  remaining  Int       @default(0) // 剩余配额 (用于跨设备共享)
+  used       Int       @default(0) // 已使用配额
   reusable   Boolean   @default(false) // 是否可重复使用（试用码false，付费码true）
   maxDevices Int       @default(1) // 最大绑定设备数
   status     String    @default("active") // 状态：active, disabled
@@ -76,6 +78,7 @@ model ActivationCode {
   @@index([code])
   @@index([status])
   @@index([batchId])
+  @@index([usedBy])
 }
 
 // 设备配额表（追踪设备的剩余配额）
@@ -108,6 +111,7 @@ model DeviceRubric {
   activationCode String   // 关联激活码（跨设备同步的核心标识）
   deviceId       String?  // 来源设备ID（追踪创建来源）
   questionKey    String   // 题目唯一KEY
+  examId         String?  // 所属考试ID
   rubric         String   // 评分细则内容（JSON 字符串）
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -115,6 +119,22 @@ model DeviceRubric {
   @@unique([activationCode, questionKey]) // 同一激活码同一题目只能有一份
   @@index([activationCode])
   @@index([questionKey])
+  @@index([examId])
+}
+
+// 考试汇总管理表 (基于激活码存储)
+model Exam {
+  id             String   @id @default(cuid())
+  activationCode String   // 关联激活码
+  name           String   // 考试名称
+  date           DateTime? // 考试时间
+  subject        String?  // 学科
+  grade          String?  // 年级
+  description    String?  // 备注
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([activationCode])
 }
 
 // 激活记录表（追踪所有激活行为）

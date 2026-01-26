@@ -63,6 +63,15 @@ const AnswerPointRow: React.FC<AnswerPointRowProps> = ({
                     placeholder="1-1"
                 />
 
+                {/* 问题词 */}
+                <input
+                    type="text"
+                    value={point.questionSegment || ''}
+                    onChange={(e) => updateField('questionSegment', e.target.value)}
+                    className="w-24 px-2 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="问题词"
+                />
+
                 {/* 答案内容 */}
                 <input
                     type="text"

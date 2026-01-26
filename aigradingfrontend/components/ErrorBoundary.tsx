@@ -46,50 +46,79 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         this.setState({ hasError: false, error: undefined, errorInfo: undefined });
     };
 
+    handleForceReload = () => {
+        // 清除持久化状态并强制刷新页面
+        if (confirm('是否进行强制刷新？这可能会由于清除缓存而解决某些持久化错误。')) {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.reload();
+        }
+    };
+
     render() {
         if (this.state.hasError) {
-            // 如果提供了自定义fallback,使用它
             if (this.props.fallback) {
                 return this.props.fallback;
             }
 
-            // 默认错误UI
             return (
-                <div className="flex items-center justify-center min-h-[200px] p-6 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800">
-                    <div className="text-center max-w-md">
-                        <div className="flex justify-center mb-4">
-                            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                                <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                <div className="flex flex-col items-center justify-center h-full min-h-[300px] p-8 bg-slate-50/50 backdrop-blur-sm selection:bg-red-100">
+                    <div className="w-full max-w-sm bg-white rounded-3xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-8 text-center animate-in zoom-in-95 duration-300">
+                        {/* Error Icon */}
+                        <div className="flex justify-center mb-6">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-red-500 blur-2xl opacity-20 animate-pulse"></div>
+                                <div className="relative w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center border border-red-100">
+                                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                                </div>
                             </div>
                         </div>
 
-                        <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-2">
-                            组件加载失败
+                        {/* Text */}
+                        <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">
+                            糟糕，出错了
                         </h3>
-
-                        <p className="text-sm text-red-700 dark:text-red-300 mb-1">
-                            {this.state.error?.message || '未知错误'}
+                        <p className="text-sm text-slate-500 leading-relaxed mb-8">
+                            应用程序遇到了预期之外的错误。请尝试刷新以解决问题。
                         </p>
 
-                        {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-                            <details className="mt-4 text-left">
-                                <summary className="cursor-pointer text-xs text-red-600 dark:text-red-400 hover:underline">
-                                    查看错误详情
+                        {/* Technical Details (Collapsible) */}
+                        <div className="text-left mb-8">
+                            <details className="group">
+                                <summary className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">
+                                    错误诊断信息
                                 </summary>
-                                <pre className="mt-2 p-3 bg-red-50 dark:bg-red-950 rounded text-[10px] text-red-800 dark:text-red-200 overflow-x-auto font-mono">
-                                    {this.state.errorInfo.componentStack}
-                                </pre>
+                                <div className="mt-4 p-4 bg-slate-900 rounded-xl text-[10px] text-red-400 font-mono overflow-auto max-h-40 leading-normal border border-slate-800 shadow-inner">
+                                    <div className="font-bold mb-1">Error: {this.state.error?.message}</div>
+                                    <div className="opacity-60 whitespace-pre-wrap">
+                                        {this.state.errorInfo?.componentStack}
+                                    </div>
+                                </div>
                             </details>
-                        )}
+                        </div>
 
-                        <button
-                            onClick={this.handleReset}
-                            className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors active:scale-95"
-                        >
-                            <RefreshCcw className="w-4 h-4" />
-                            重新加载
-                        </button>
+                        {/* Actions */}
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={this.handleReset}
+                                className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all active:scale-95 shadow-lg shadow-slate-200"
+                            >
+                                <RefreshCcw className="w-4 h-4" />
+                                尝试恢复并重新加载
+                            </button>
+
+                            <button
+                                onClick={this.handleForceReload}
+                                className="w-full h-10 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                                强制刷新 (清除缓存)
+                            </button>
+                        </div>
                     </div>
+
+                    <p className="mt-8 text-[11px] font-bold text-slate-300 tracking-widest uppercase">
+                        AI Grading Assistant • System Recovery
+                    </p>
                 </div>
             );
         }

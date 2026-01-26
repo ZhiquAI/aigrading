@@ -7,11 +7,13 @@ import {
 } from 'lucide-react';
 import { assessStudentAnswer, generateRubricFromImages, GradingStrategy, getAppConfig } from '../services/geminiService';
 import { gradeStudentAnswerStream } from '../services/grading-stream';
+import { isProxyMode, gradeWithProxy } from '../services/proxyService';
 import { useTheme } from '../hooks/useTheme';
 import AutoRubricModal from './AutoRubricModal';
 import { StatusIndicator } from './ui/StatusIndicator';
 import { toast } from './Toast';
 import { Button } from './ui';
+import RubricLibrary from './RubricLibrary';
 
 // @ts-ignore - Vite 环境变量
 const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
@@ -20,8 +22,8 @@ const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://l
 
 // --- Interfaces ---
 export enum GradingMode {
-    Manual = 'manual', // 辅助模式
-    Auto = 'auto'      // 自动模式
+    Assist = 'assist', // 辅助模式：批改后填分，等待用户确认后提交
+    Auto = 'auto'      // 自动模式：批改后自动填分并提交
 }
 
 interface PageContext {
@@ -100,7 +102,7 @@ const GradingView: React.FC<GradingViewProps> = ({
     // State
     const [status, setStatus] = useState<StatusType>('idle');
     const [result, setResult] = useState<StudentResult | null>(null);
-    const [mode, setMode] = useState<GradingMode>(GradingMode.Manual);
+    const [mode, setMode] = useState<GradingMode>(GradingMode.Assist);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [waitCount, setWaitCount] = useState(0);
     const [autoCount, setAutoCount] = useState(0);
@@ -212,12 +214,47 @@ const GradingView: React.FC<GradingViewProps> = ({
                     setPageContext(prev => ({ ...prev, ...message.context }));
                     setHealth(h => ({ ...h, pageLink: true }));
 
-                    // Question Key logic
-                    if (message.context.questionKey && message.context.questionKey !== detectedQuestionKey) {
+                    // Question Key logic - 优化：先按题号匹配已配置的细则
+                    const pageQuestionNo = message.context.questionNo;
+                    const pageQuestionKey = message.context.questionKey;
+
+                    // 检测题号是否变化（用于自动清空并重新匹配）
+                    const previousQuestionNo = pageContext?.questionNo;
+                    const questionNoChanged = pageQuestionNo && previousQuestionNo && pageQuestionNo !== previousQuestionNo;
+
+                    if (questionNoChanged) {
+                        console.log('[GradingView] 检测到题号变化:', previousQuestionNo, '->', pageQuestionNo);
+                        // 清空手动选择的题号，允许重新自动匹配
+                        setManualQuestionNo('');
+                        // 清空当前细则
+                        setDetectedQuestionKey(null);
+                        if (onQuestionKeyChange) onQuestionKeyChange(null);
+                        toast.info(`已切换到第 ${pageQuestionNo} 题`);
+                    }
+
+                    // 功能1：题号自动匹配细则
+                    if (pageQuestionNo && (!manualQuestionNo || questionNoChanged)) {
+                        const matchedRubric = configuredQuestions.find(
+                            q => q.questionNo === pageQuestionNo
+                        );
+                        if (matchedRubric && (matchedRubric.key !== detectedQuestionKey || questionNoChanged)) {
+                            console.log('[GradingView] 自动匹配到细则:', matchedRubric.key);
+                            setDetectedQuestionKey(matchedRubric.key);
+                            setManualQuestionNo(matchedRubric.questionNo);
+                            if (onQuestionKeyChange) onQuestionKeyChange(matchedRubric.key);
+                            toast.success(`已自动匹配第 ${matchedRubric.questionNo} 题细则`);
+                        } else if (!matchedRubric && questionNoChanged) {
+                            // 无匹配细则，提示用户
+                            toast.warning(`第 ${pageQuestionNo} 题暂无评分细则，请配置`);
+                        }
+                    }
+
+                    // 原有逻辑：如果没有匹配到细则，使用页面的 questionKey
+                    if (pageQuestionKey && pageQuestionKey !== detectedQuestionKey) {
                         // Only update if not manually overridden recently
                         if (!manualQuestionNo) {
-                            setDetectedQuestionKey(message.context.questionKey);
-                            if (onQuestionKeyChange) onQuestionKeyChange(message.context.questionKey);
+                            setDetectedQuestionKey(pageQuestionKey);
+                            if (onQuestionKeyChange) onQuestionKeyChange(pageQuestionKey);
                         }
                     }
                 }
@@ -409,9 +446,9 @@ const GradingView: React.FC<GradingViewProps> = ({
 
         if (!opts.bypassLoopGuard) {
             if (mode === GradingMode.Auto && !isAutoRunningRef.current) return;
-            if (mode === GradingMode.Manual && !isAssistLoopingRef.current) return;
+            if (mode === GradingMode.Assist && !isAssistLoopingRef.current) return;
             // Assist mode pause check
-            if (mode === GradingMode.Manual && assistAwaitingConfirmRef.current) return;
+            if (mode === GradingMode.Assist && assistAwaitingConfirmRef.current) return;
         }
 
         // Set status to scanning (force if forceStatusReset is true)
@@ -445,7 +482,7 @@ const GradingView: React.FC<GradingViewProps> = ({
                     return;
                 }
 
-                if (mode === GradingMode.Auto || mode === GradingMode.Manual) {
+                if (mode === GradingMode.Auto || mode === GradingMode.Assist) {
                     // Retry logic for loop modes
                     setWaitCount(c => c + 1);
                     setTimeout(() => scanPage(opts), 1000);
@@ -501,7 +538,7 @@ const GradingView: React.FC<GradingViewProps> = ({
             console.log('[GradingView] 评分标准检查 - isRubricConfigured:', isRubricConfigured, ', currentRubric长度:', currentRubric?.length || 0);
             if (!isRubricConfigured || !currentRubric) {
                 // If no rubric, try auto-generate? (Only in manual mode interactions, not auto-loop)
-                if (mode === GradingMode.Manual && !isAssistLoopingRef.current && !isGeneratingRubric && !showAutoRubricModal) {
+                if (mode === GradingMode.Assist && !isAssistLoopingRef.current && !isGeneratingRubric && !showAutoRubricModal) {
                     // Prompt for auto-rubric
                     setShowAutoRubricModal(true);
                     generateAutoRubric(ctx);
@@ -523,7 +560,7 @@ const GradingView: React.FC<GradingViewProps> = ({
             if (mode === GradingMode.Auto) {
                 startAutoGrading(ctx, currentRubric);
             } else {
-                startManualGrading(ctx, currentRubric);
+                startAssistGrading(ctx, currentRubric);
             }
         });
     };
@@ -540,6 +577,96 @@ const GradingView: React.FC<GradingViewProps> = ({
         }
     };
 
+    /**
+     * 通用批改执行函数
+     * 职责：调用 AI 批改并返回标准化结果（含性能监控）
+     * @returns StudentResult 或抛出异常
+     */
+    const executeGrading = async (
+        ctx: PageContext,
+        rubric: string,
+        options?: { showStreamingText?: boolean }
+    ): Promise<StudentResult> => {
+        const startTime = performance.now();
+        let result;
+
+        // 检查是否使用代理模式（通过后端 API 批改）
+        if (isProxyMode()) {
+            console.log('[GradingView] 使用代理模式批改');
+            if (options?.showStreamingText) {
+                setStreamingText('正在通过云端 AI 批改…');
+            }
+            result = await gradeWithProxy(
+                ctx.answerImageBase64 || '',
+                rubric,
+                ctx.studentName,
+                manualQuestionNo || ctx.questionNo,
+                gradingStrategy === 'flash' ? 'flash' : gradingStrategy === 'reasoning' ? 'reasoning' : 'pro',
+                { questionKey: ctx.questionKey, examNo: ctx.examNo }
+            );
+        } else {
+            // 前端直连模式（需要 API Key）
+            console.log('[GradingView] 使用前端直连模式批改');
+            if (options?.showStreamingText) {
+                result = await gradeStudentAnswerStream(
+                    ctx.answerImageBase64 || '',
+                    rubric,
+                    (chunk) => setStreamingText(prev => prev + chunk)
+                );
+            } else {
+                result = await assessStudentAnswer(ctx.answerImageBase64 || '', rubric, gradingStrategy);
+            }
+        }
+
+        // 性能监控：记录耗时
+        const elapsedMs = Math.round(performance.now() - startTime);
+        console.log(`[GradingView] ⏱️ 批改耗时: ${elapsedMs}ms (${(elapsedMs / 1000).toFixed(1)}s)`);
+
+        // 标准化结果
+        const normalizedBreakdown = normalizeBreakdown(result.breakdown as any, result.maxScore);
+        return {
+            id: Date.now().toString(),
+            name: ctx.studentName || '考生',
+            score: result.score,
+            maxScore: result.maxScore,
+            comment: result.comment || '',
+            breakdown: normalizedBreakdown
+        };
+    };
+
+    /**
+     * 统一错误处理函数
+     * 职责：解析错误类型，设置对应的错误信息，触发相关回调
+     */
+    const handleGradingError = (e: any, context: { stopOnError?: () => void } = {}) => {
+        console.error('[GradingView] 批改错误:', e);
+
+        // 额度不足错误
+        if (e?.code === 'QUOTA_INSUFFICIENT' || e?.message?.includes('额度不足')) {
+            setErrorMsg('额度不足，请激活充值后继续批改');
+            onShowActivation?.();
+        }
+        // 超时错误
+        else if (e?.message?.includes('超时') || e?.name === 'AbortError') {
+            setErrorMsg('批改超时，请检查网络后重试');
+        }
+        // API Key 未配置
+        else if (e?.message?.includes('API Key')) {
+            setErrorMsg('请先配置 API Key 或使用云端批改');
+        }
+        // 通用错误
+        else {
+            setErrorMsg(e?.message || '阅卷失败，请重试');
+        }
+
+        setStatus('error');
+        context.stopOnError?.();
+    };
+
+    /**
+     * 自动模式批改入口
+     * 职责：批改 → 自动填分提交 → 继续下一份
+     */
     const startAutoGrading = async (ctx: PageContext, rubric: string) => {
         // 激活拦截检查
         if (checkActivationRequired()) {
@@ -548,44 +675,31 @@ const GradingView: React.FC<GradingViewProps> = ({
             return;
         }
 
-        // Stub for Auto Grading (similar logic to Manual but assumes no UI confirmation)
         setStatus('grading');
         try {
-            const result = await assessStudentAnswer(ctx.answerImageBase64 || '', rubric, gradingStrategy);
-            // Process Result...
-            const normalizedBreakdown = normalizeBreakdown(result.breakdown as any, result.maxScore);
-            const finalResult: StudentResult = {
-                id: Date.now().toString(),
-                name: ctx.studentName || '未知考生',
-                score: result.score,
-                maxScore: result.maxScore,
-                comment: result.comment || '',
-                breakdown: normalizedBreakdown
-            };
+            const finalResult = await executeGrading(ctx, rubric);
 
             setResult(finalResult);
             lastGradedSignatureRef.current = getAnswerSignature(ctx.answerImageBase64);
 
-            // Auto Submit Logic
+            // 自动模式：填分并提交
             fillScore(finalResult.score, true, finalResult);
 
             setAutoCount(c => c + 1);
-            setStatus('review'); // Briefly show result
+            setStatus('review');
 
-            // Loop
-            setTimeout(() => {
-                scanPage();
-            }, 1500); // Delay before next
+            // 延迟后继续下一份
+            setTimeout(() => scanPage(), 1500);
         } catch (e: any) {
-            console.error('[startAutoGrading] Error:', e);
-            const errorMessage = e?.message || '自动阅卷出错';
-            setErrorMsg(errorMessage);
-            setStatus('error');
-            stopAuto();
+            handleGradingError(e, { stopOnError: stopAuto });
         }
     };
 
-    const startManualGrading = async (ctx: PageContext, rubric: string) => {
+    /**
+     * 辅助模式批改入口
+     * 职责：批改 → 填分（不提交） → 等待用户确认
+     */
+    const startAssistGrading = async (ctx: PageContext, rubric: string) => {
         // 激活拦截检查
         if (checkActivationRequired()) {
             onShowActivation?.();
@@ -593,52 +707,22 @@ const GradingView: React.FC<GradingViewProps> = ({
         }
 
         setStatus('grading');
-        setStreamingText('');  // 清空流式文本
+        setStreamingText('');
         try {
-            const result = await gradeStudentAnswerStream(
-                ctx.answerImageBase64 || '',
-                rubric,
-                (chunk) => {
-                    // 实时更新流式文本
-                    setStreamingText(prev => prev + chunk);
-                }
-            );
-
-            const normalizedBreakdown = normalizeBreakdown(result.breakdown as any, result.maxScore);
-            const finalResult: StudentResult = {
-                id: Date.now().toString(),
-                name: ctx.studentName || '考生',
-                score: result.score,
-                maxScore: result.maxScore,
-                comment: result.comment || '',
-                breakdown: normalizedBreakdown
-            };
+            const finalResult = await executeGrading(ctx, rubric, { showStreamingText: true });
 
             setResult(finalResult);
             lastGradedSignatureRef.current = getAnswerSignature(ctx.answerImageBase64);
-
             setStatus('review');
 
+            // 辅助模式：填分但不提交，等待用户确认
             if (isAssistLoopingRef.current) {
-                // Assist Mode: Fill but don't submit, wait for confirm
                 fillScore(finalResult.score, false, finalResult);
                 setAssistAwaitingConfirm(true);
                 assistAwaitingConfirmRef.current = true;
             }
-
         } catch (e: any) {
-            console.error('[startManualGrading] Error:', e);
-
-            // 检查是否为额度不足错误
-            if (e?.code === 'QUOTA_INSUFFICIENT' || e?.message?.includes('额度不足')) {
-                setErrorMsg('额度不足，请激活充值后继续批改');
-                onShowActivation?.();
-            } else {
-                const errorMessage = e?.message || '阅卷失败，请重试';
-                setErrorMsg(errorMessage);
-            }
-
-            setStatus('error');
+            handleGradingError(e);
         }
     };
 
@@ -707,7 +791,7 @@ const GradingView: React.FC<GradingViewProps> = ({
 
     const startAssist = () => {
         if (!isRubricConfigured) return toast.warning("请先配置评分标准");
-        setMode(GradingMode.Manual); // 确保设置为辅助模式
+        setMode(GradingMode.Assist); // 确保设置为辅助模式
         setIsAssistLooping(true);
         isAssistLoopingRef.current = true;
         assistAwaitingConfirmRef.current = false;
@@ -726,11 +810,27 @@ const GradingView: React.FC<GradingViewProps> = ({
     };
 
     const handleNextAssist = () => {
-        setAssistAwaitingConfirm(false);
-        assistAwaitingConfirmRef.current = false;
-        setStatus('scanning');
-        setResult(null);
-        scanPage({ bypassLoopGuard: true });
+        // 1. 发送确认提交指令给网页 (补全关键的一脚)
+        if (typeof chrome !== 'undefined' && chrome.tabs && result) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+                if (tabs[0]?.id) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        type: 'SUBMIT_SCORE',
+                        score: result.score
+                    });
+                }
+            });
+        }
+
+        // 2. 稍微延迟重置状态，等待网页跳转
+        setTimeout(() => {
+            setAssistAwaitingConfirm(false);
+            isAssistLoopingRef.current = true;
+            assistAwaitingConfirmRef.current = false;
+            setStatus('scanning');
+            setResult(null);
+            scanPage({ bypassLoopGuard: true });
+        }, 500);
     };
 
 
@@ -743,41 +843,45 @@ const GradingView: React.FC<GradingViewProps> = ({
     return (
         <div className="flex flex-col h-full bg-gray-50/50 dark:bg-gray-900/50 relative font-sans">
 
-            {/* --- Top Bar: Minimalist --- */}
-            <div className="px-4 py-3 pb-0 flex items-center justify-between z-20 shrink-0">
-
-                {/* Status Badge */}
+            {/* --- Top Bar: Refined --- */}
+            <div className="px-4 py-3 pb-2 flex items-center justify-between z-20 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-50 dark:border-gray-800">
+                {/* Mode Switch (Sub-toolbar style) */}
                 <div className="flex items-center gap-2">
-                    <div className={`
-                flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm backdrop-blur-md transition-all
-                ${isRunning
-                            ? 'bg-blue-50/80 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300'
-                            : (status === 'error' ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white/80 border-gray-200 text-gray-600 dark:bg-gray-800/80 dark:border-gray-700 dark:text-gray-300')
-                        }
-             `}>
-                        <div className={`w-2 h-2 rounded-full ${status === 'scanning' || status === 'grading' ? 'bg-blue-500 animate-pulse' :
-                            (status === 'error' ? 'bg-red-500' :
-                                (!isRubricConfigured ? 'bg-amber-500' : 'bg-green-500'))
-                            }`} />
-                        <span className="text-xs font-bold">
-                            {status === 'scanning' ? '扫描中' :
-                                status === 'grading' ? 'AI评分中' :
-                                    status === 'error' ? '异常' :
-                                        (!isRubricConfigured ? '待配置' :
-                                            (isRunning ? '运行中' : '就绪'))}
-                        </span>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">模式</div>
+                    <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 cursor-pointer shadow-inner">
+                        <button
+                            onClick={() => setMode(GradingMode.Assist)}
+                            disabled={isRunning}
+                            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${mode === GradingMode.Assist
+                                ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                }
+ ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            辅助
+                        </button>
+                        <button
+                            onClick={() => setMode(GradingMode.Auto)}
+                            disabled={isRunning}
+                            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${mode === GradingMode.Auto
+                                ? 'bg-white dark:bg-gray-700 shadow-sm text-emerald-600'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                }
+ ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            自动
+                        </button>
                     </div>
                 </div>
 
-                {/* Settings / Config Status & Question Selector */}
+                {/* Question Selector Trigger */}
                 <div className="flex items-center gap-2">
-                    {/* Question Selector Trigger */}
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setShowQuestionDropdown(!showQuestionDropdown)}
                         icon={<ChevronDown className="w-3 h-3" />}
-                        className="rounded-full"
+                        className="rounded-lg h-8 px-2.5 text-xs font-medium border-gray-200 dark:border-gray-700"
                     >
                         第 {manualQuestionNo || pageContext?.questionNo || '?'} 题
                     </Button>
@@ -833,7 +937,26 @@ const GradingView: React.FC<GradingViewProps> = ({
                 {status !== 'review' && (
                     <div className="h-full flex flex-col items-center justify-center animate-fade-in">
                         {status === 'idle' && waitCount === 0 && (
-                            <div className="text-center space-y-4 max-w-[280px]">
+                            <div className="text-center space-y-4 max-w-[320px]">
+                                {/* 评分细则库 - 在 API 和页面正常时始终显示 */}
+                                {health.api && health.pageLink && (
+                                    <RubricLibrary
+                                        selectedKey={detectedQuestionKey}
+                                        onSelect={(key) => {
+                                            const parts = key.split(':');
+                                            const questionNo = parts[parts.length - 1] || '?';
+                                            setManualQuestionNo(questionNo);
+                                            setDetectedQuestionKey(key);
+                                            if (onQuestionKeyChange) onQuestionKeyChange(key);
+                                        }}
+                                        onNew={onOpenRubric}
+                                        onImport={onOpenRubric}
+                                        onEdit={onOpenRubric}
+                                        defaultExpanded={!isRubricConfigured}
+                                        className="mb-4 text-left"
+                                    />
+                                )}
+
                                 {/* 完全就绪状态 */}
                                 {health.api && health.pageLink && isRubricConfigured ? (
                                     <>
@@ -856,14 +979,14 @@ const GradingView: React.FC<GradingViewProps> = ({
                                             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl">
                                                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                                                     <Loader className="w-5 h-5 shrink-0 animate-spin" />
-                                                    <p className="text-sm">答题卡正在加载中...</p>
+                                                    <p className="text-sm">答题卡正在加载中…</p>
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="w-20 h-20 mx-auto bg-gradient-to-tr from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center mb-6 shadow-float">
-                                            <Zap className="w-10 h-10 text-green-600 dark:text-green-400" />
+                                        <div className="w-16 h-16 mx-auto bg-gradient-to-tr from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center mb-4 shadow-float">
+                                            <Zap className="w-8 h-8 text-green-600 dark:text-green-400" />
                                         </div>
-                                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">准备就绪</h2>
+                                        <h2 className="text-base font-bold text-gray-900 dark:text-white">准备就绪</h2>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                                             点击下方按钮开始阅卷
                                         </p>
@@ -1074,7 +1197,7 @@ const GradingView: React.FC<GradingViewProps> = ({
                 {status === 'review' && result && (
                     <div className="animate-slide-up pb-8 space-y-4">
                         {/* Assist Mode Confirmation Hint */}
-                        {mode === GradingMode.Manual && assistAwaitingConfirm && (
+                        {mode === GradingMode.Assist && assistAwaitingConfirm && (
                             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-3 rounded-xl flex items-center justify-between gap-2 shadow-sm animate-pulse-subtle">
                                 <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-xs font-medium">
                                     <Pause className="w-4 h-4 fill-current" />
@@ -1187,9 +1310,9 @@ const GradingView: React.FC<GradingViewProps> = ({
                     {/* Mode Switch (Small) */}
                     <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl shrink-0">
                         <button
-                            onClick={() => setMode(GradingMode.Manual)}
+                            onClick={() => setMode(GradingMode.Assist)}
                             title="辅助模式 (人工确认)"
-                            className={`p-2 rounded-lg transition-all ${mode === GradingMode.Manual ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`p-2 rounded-lg transition-all ${mode === GradingMode.Assist ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
                         >
                             <MousePointerClick className="w-5 h-5" />
                         </button>
@@ -1204,7 +1327,7 @@ const GradingView: React.FC<GradingViewProps> = ({
 
                     {/* Main Action Button */}
                     {isRunning ? (
-                        mode === GradingMode.Manual && assistAwaitingConfirm ? (
+                        mode === GradingMode.Assist && assistAwaitingConfirm ? (
                             <>
                                 {/* 辅助模式：等待确认状态 - 显示停止和继续两个按钮 */}
                                 <button
@@ -1251,17 +1374,7 @@ const GradingView: React.FC<GradingViewProps> = ({
                         </button>
                     )}
 
-                    {/* 设置按钮 */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onOpenSettings}
-                        icon={<SettingsIcon className="w-5 h-5" />}
-                        className="shrink-0 w-12 h-12 rounded-xl"
-                        title="打开设置"
-                    >
-                        <span className="sr-only">设置</span>
-                    </Button>
+
                 </div>
             </div>
 

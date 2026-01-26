@@ -8,6 +8,81 @@ if (window.hasAIContentScriptLoaded) {
 
   console.log('[AI阅卷] Content Script 已加载');
 
+  // ==========================================
+  // 0.1 路由监听与状态重置逻辑 (解决"卡住"问题)
+  // ==========================================
+  (function initRouteListener() {
+    let lastUrl = window.location.href;
+    let lastFingerprint = null;
+
+    function emitResetSignal(reason, detail = null) {
+      console.log(`[AI阅卷] 🔄 触发重置信号: ${reason}`, detail);
+      try {
+        chrome.runtime.sendMessage({
+          type: 'RESET_STATE',
+          reason: reason,
+          detail: detail,
+          timestamp: Date.now()
+        });
+      } catch (e) {}
+    }
+
+    function handleUrlChange() {
+      if (window.location.href !== lastUrl) {
+        const oldUrl = lastUrl;
+        lastUrl = window.location.href;
+        console.log('[AI阅卷] 🌐 URL 变化检测:', oldUrl, '->', lastUrl);
+        emitResetSignal('url_changed', { from: oldUrl, to: lastUrl });
+      }
+    }
+
+    window.addEventListener('popstate', handleUrlChange);
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+      originalPushState.apply(this, arguments);
+      handleUrlChange();
+    };
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function() {
+      originalReplaceState.apply(this, arguments);
+      handleUrlChange();
+    };
+
+    setInterval(() => {
+      handleUrlChange();
+      
+      // 1. 尝试获取学生姓名 (虽然盲评时可能为空)
+      let studentName = '';
+      const nameEl = document.querySelector('.student-name, .name-text, #studentName, .stu-name');
+      if (nameEl) studentName = (nameEl.innerText || '').trim();
+
+      // 2. 获取题号 (通过之前实现的策略)
+      const qNo = getQuestionNoFromDom() || 'unknown';
+
+      // 3. 抓取已评量数字 (盲评模式下的核心"人头"标识)
+      // 匹配 "已评量: 43/50" 中的 43
+      let progress = '';
+      const progressEl = document.body.innerText.match(/(?:已评量|已评).*?(\d+)\s*\/\s*\d+/);
+      if (progressEl) progress = progressEl[1];
+
+      // 4. 抓取当前图片的特征 (防止极端情况)
+      let imgId = '';
+      const mainImg = document.querySelector('div[name="topicImg"] img, .answer-sheet img, .paper-img img');
+      if (mainImg) imgId = mainImg.src.slice(-30); // 取 URL 后 30 位
+
+      // 构建复合指纹
+      const currentFingerprint = `${studentName}|${qNo}|${progress}|${imgId}`;
+
+      if (lastFingerprint && currentFingerprint !== lastFingerprint) {
+        console.log('[AI阅卷] 复合指纹变化，强制重置:', {
+          qNo, progress, hasName: !!studentName
+        });
+        emitResetSignal('environment_changed');
+      }
+      lastFingerprint = currentFingerprint;
+    }, 1200);
+  })();
+
 
   // ==========================================
   // 0.2 页面元信息：题目/试卷标识 (用于"一题一标准"与多 Tab 并行)
@@ -2830,12 +2905,21 @@ if (window.hasAIContentScriptLoaded) {
       return false;
     }
 
-    // 3. 填充通过 (带重试)
+    // 3. 填充分数 (带重试)
     if (request.type === 'FILL_SCORE') {
       fillScoreWithRetry(request.score, request.platform, 3, 500, request.options || {}).then(result => {
         sendResponse(result);
       });
       return true; // Keep channel open for async response
+    }
+
+    // 3.1 确认提交 (用于辅助模式确认)
+    if (request.type === 'SUBMIT_SCORE') {
+      console.log('[AI阅卷] 执行确认提交:', request.score);
+      ensureAutoSubmitEnabled();
+      tryZhixueKeypad(request.score); 
+      sendResponse({ success: true });
+      return false;
     }
 
     // 4. Ping

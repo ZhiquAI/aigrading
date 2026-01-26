@@ -29,6 +29,7 @@ export interface ScoringStrategy {
  */
 export interface AnswerPoint {
     id: string;                   // 得分点编号，如 "1-1", "2-1"
+    questionSegment?: string;     // 问题词 / 题干片段，如 "根本原因"
     content: string;              // 标准答案内容
     keywords: string[];           // 关键词列表（支持组合，如 "词1+词2"）
     requiredKeywords?: string[];  // 必须包含的关键词（缺少则扣分）
@@ -167,8 +168,9 @@ export function validateRubricJSON(data: unknown): { valid: boolean; errors: str
             allowAlternative: Boolean(strategy.allowAlternative),
             strictMode: strategy.strictMode !== false, // 默认 true
         },
-        answerPoints: (obj.answerPoints as AnswerPoint[]).map((p, i) => ({
+        answerPoints: (obj.answerPoints as any[]).map((p, i) => ({
             id: p.id || `${obj.questionId}-${i + 1}`,
+            questionSegment: p.questionSegment || p.segment || p.questionWord || '', // Support multiple AI aliases
             content: p.content,
             keywords: Array.isArray(p.keywords) ? p.keywords : [],
             requiredKeywords: Array.isArray(p.requiredKeywords) ? p.requiredKeywords : undefined,
