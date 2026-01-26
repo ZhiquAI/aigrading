@@ -1393,9 +1393,19 @@ if (window.hasAIContentScriptLoaded) {
   // 页面加载完成后启动监听
   if (document.readyState === 'complete') {
     setTimeout(startAnswerCardStatusMonitor, 1000);
+    // 页面加载完毕后，立即自动高亮答题卡
+    setTimeout(() => {
+      console.log('[AI阅卷] 页面已加载，执行自动高亮...');
+      scrapeData().catch(err => console.error('[AI阅卷] 自动高亮失败:', err));
+    }, 2000);
   } else {
     window.addEventListener('load', () => {
       setTimeout(startAnswerCardStatusMonitor, 1000);
+      // 页面加载完毕后，立即自动高亮答题卡
+      setTimeout(() => {
+        console.log('[AI阅卷] 页面已加载，执行自动高亮...');
+        scrapeData().catch(err => console.error('[AI阅卷] 自动高亮失败:', err));
+      }, 2000);
     });
   }
 
