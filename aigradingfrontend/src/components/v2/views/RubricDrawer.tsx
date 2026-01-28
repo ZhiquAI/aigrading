@@ -76,7 +76,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
         // console.log('[RubricDrawer] addQuestionToLibrary type:', typeof addQuestionToLibrary);
     }, []);
 
-    const [viewStack, setViewStack] = useState<('library' | 'detail' | 'point_editor' | 'question_settings')[]>(['library']);
+    const [viewStack, setViewStack] = useState<('library' | 'detail' | 'point_editor' | 'question_settings' | 'editor')[]>(['library']);
     const currentView = viewStack[viewStack.length - 1];
 
     const [isVisible, setIsVisible] = useState(false);
@@ -136,7 +136,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
     }, [currentView, currentQuestionKey, rubricData, rubricLibrary]);
 
     // --- Navigation ---
-    const pushView = (view: 'library' | 'detail' | 'point_editor' | 'question_settings') => setViewStack(p => [...p, view]);
+    const pushView = (view: 'library' | 'detail' | 'point_editor' | 'question_settings' | 'editor') => setViewStack(p => [...p, view]);
     const popView = () => setViewStack(p => p.length > 1 ? p.slice(0, p.length - 1) : p);
 
     const handleSelectQuestion = (id: string) => {
@@ -180,7 +180,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                     examId: activeExamId
                 });
 
-                pushView('question_settings');
+                pushView('editor');
             } catch (e: any) {
                 console.error('[RubricDrawer] Error creating question:', e);
                 // Show exact error message to user
@@ -188,8 +188,8 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
             }
         } else {
             selectQuestion(id);
-            // Even for existing ones, let's go to settings first as requested
-            pushView('question_settings');
+            // 直接进入合并的 editor 视图
+            pushView('editor');
         }
     };
 

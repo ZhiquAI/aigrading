@@ -46,7 +46,10 @@ export default function QuotaUsagePage() {
     const [filterType, setFilterType] = useState('all');
     const [searchCode, setSearchCode] = useState('');
 
+    // 加载图表统计数据
     useEffect(() => {
+        if (viewMode === 'table') return; // 表格模式不加载图表数据
+
         const fetchStats = async () => {
             setLoading(true);
             try {
@@ -66,7 +69,51 @@ export default function QuotaUsagePage() {
             }
         };
         fetchStats();
-    }, [days]);
+    }, [days, viewMode]);
+
+    // 加载表格数据
+    useEffect(() => {
+        if (viewMode === 'chart') return; // 图表模式不加载表格数据
+
+        const fetchTableData = async () => {
+            setTableLoading(true);
+            try {
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    limit: '50',
+                    sortBy,
+                    sortOrder,
+                    ...(filterType !== 'all' && { filterType }),
+                    ...(searchCode && { search: searchCode })
+                });
+
+                const res = await fetch(`/api/admin/quota/by-code?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    setTableData(result.data);
+                }
+            } catch (error) {
+                console.error('Fetch table data error:', error);
+            } finally {
+                setTableLoading(false);
+            }
+        };
+        fetchTableData();
+    }, [page, sortBy, sortOrder, filterType, searchCode, viewMode]);
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('desc');
+        }
+        setPage(1);
+    };
 
     if (loading) {
         return <div className="p-8 animate-pulse space-y-8">
@@ -77,6 +124,213 @@ export default function QuotaUsagePage() {
             <div className="h-96 bg-gray-50 rounded-2xl" />
         </div>;
     }
+
+    // 表格视图渲染
+    if (viewMode === 'table') {
+        return (
+            <div className="space-y-6">
+                {/* 标题栏 */}
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">激活码用量统计</h1>
+                        <p className="text-gray-500 text-sm mt-1">按激活码查看详细使用情况</p>
+                    </div>
+                    <div className="flex gap-3">
+                        {/* 视图切换 */}
+                        <div className="flex bg-white border border-gray-200 rounded-lg p-1">
+                            <button
+                                onClick={() => setViewMode('chart')}
+                                className={`px-4 py-2 text-xs font-medium rounded-md transition-colors ${viewMode === 'chart' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                图表视图
+                            </button>
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`px-4 py-2 text-xs font-medium rounded-md transition-colors ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                表格视图
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 筛选栏 */}
+                <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-wrap gap-4 items-center">
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-gray-400" />
+                        <select
+                            value={filterType}
+                            onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+                            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="all">全部类型</option>
+                            <option value="trial">试用码</option>
+                            <option value="basic">基础码</option>
+                            <option value="standard">标准码</option>
+                            <option value="pro">专业码</option>
+                            <option value="permanent">永久码</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 max-w-md">
+                        <Search className="w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="搜索激活码..."
+                            value={searchCode}
+                            onChange={(e) => { setSearchCode(e.target.value); setPage(1); }}
+                            className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                </div>
+
+                {/* 数据表格 */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    {[
+                                        { key: 'code', label: '激活码' },
+                                        { key: 'type', label: '类型' },
+                                        { key: 'quota', label: '总配额' },
+                                        { key: 'used', label: '已使用' },
+                                        { key: 'remaining', label: '剩余' },
+                                        { key: 'usageRate', label: '使用率' },
+                                        { key: 'gradingCount', label: '批改数' },
+                                        { key: 'rubricCount', label: '细则数' },
+                                        { key: 'status', label: '状态' },
+                                        { key: 'createdAt', label: '创建时间' },
+                                    ].map((col) => (
+                                        <th
+                                            key={col.key}
+                                            onClick={() => ['code', 'type', 'quota', 'used', 'remaining', 'gradingCount', 'rubricCount', 'createdAt'].includes(col.key) ? handleSort(col.key) : null}
+                                            className={`px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${['code', 'type', 'quota', 'used', 'remaining', 'gradingCount', 'rubricCount', 'createdAt'].includes(col.key) ? 'cursor-pointer hover:bg-gray-100' : ''
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                {col.label}
+                                                {sortBy === col.key && (
+                                                    sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                                )}
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {tableLoading ? (
+                                    Array.from({ length: 10 }).map((_, i) => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td colSpan={10} className="px-4 py-3">
+                                                <div className="h-8 bg-gray-100 rounded" />
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : tableData?.list?.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={10} className="px-4 py-12 text-center text-gray-500">
+                                            暂无数据
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    tableData?.list?.map((code: any) => (
+                                        <tr key={code.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 text-sm font-mono font-medium text-indigo-600">
+                                                {code.code}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(code.type)}`}>
+                                                    {code.type.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                                {code.quota.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                {code.used.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                {code.remaining.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full ${parseFloat(code.usageRate) > 80 ? 'bg-red-500' : parseFloat(code.usageRate) > 50 ? 'bg-yellow-500' : 'bg-green-500'
+                                                                }`}
+                                                            style={{ width: `${code.usageRate}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-gray-600">{code.usageRate}%</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                {code.gradingCount?.toLocaleString() || 0}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                {code.rubricCount?.toLocaleString() || 0}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${code.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                    {code.status === 'active' ? '激活' : '禁用'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-500">
+                                                {new Date(code.createdAt).toLocaleDateString('zh-CN')}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* 分页 */}
+                    {tableData?.pagination && (
+                        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                共 {tableData.pagination.total} 条记录
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    上一页
+                                </button>
+                                <span className="px-3 py-1.5 text-sm text-gray-600">
+                                    第 {page} / {tableData.pagination.totalPages} 页
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => p + 1)}
+                                    disabled={page >= tableData.pagination.totalPages}
+                                    className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    下一页
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // 类型颜色辅助函数
+    const getTypeColor = (type: string) => {
+        const colors: Record<string, string> = {
+            trial: 'bg-purple-100 text-purple-700',
+            basic: 'bg-blue-100 text-blue-700',
+            standard: 'bg-green-100 text-green-700',
+            pro: 'bg-orange-100 text-orange-700',
+            permanent: 'bg-red-100 text-red-700',
+        };
+        return colors[type] || 'bg-gray-100 text-gray-700';
+    };
 
     // 趋势图数据 (消耗 vs 发放)
     const trendData = {
