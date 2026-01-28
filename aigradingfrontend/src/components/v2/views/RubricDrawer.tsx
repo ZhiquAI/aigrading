@@ -134,6 +134,15 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                     anchorKeywords: libraryItem.keywords || [],
                     examId: (libraryItem as any)?.examId || activeExamId
                 });
+            } else {
+                // 新建题目时 libraryItem 可能还未更新，使用 currentQuestionKey 初始化
+                setActiveConfig(prev => ({
+                    ...prev,
+                    id: currentQuestionKey,
+                    questionNo: prev.questionNo || currentQuestionKey.replace('manual:', ''),
+                    alias: prev.alias || '新题目',
+                    examId: prev.examId || activeExamId
+                }));
             }
         }
     }, [currentView, currentQuestionKey, rubricData, rubricLibrary]);
