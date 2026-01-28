@@ -76,7 +76,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
         // console.log('[RubricDrawer] addQuestionToLibrary type:', typeof addQuestionToLibrary);
     }, []);
 
-    const [viewStack, setViewStack] = useState<('library' | 'detail' | 'question_settings' | 'editor')[]>(['library']);
+    const [viewStack, setViewStack] = useState<('library' | 'editor')[]>(['library']);
     const currentView = viewStack[viewStack.length - 1];
 
     const [isVisible, setIsVisible] = useState(false);
@@ -109,7 +109,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
     }, [isOpen]);
 
     useEffect(() => {
-        if (currentView === 'detail' && currentQuestionKey) {
+        if (currentView === 'editor' && currentQuestionKey) {
             // Defensive access
             const data = (rubricData || {})[currentQuestionKey];
             const libraryItem = (rubricLibrary || []).find(i => i && i.id === currentQuestionKey);
@@ -139,7 +139,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
     }, [currentView, currentQuestionKey, rubricData, rubricLibrary]);
 
     // --- Navigation ---
-    const pushView = (view: 'library' | 'detail' | 'question_settings' | 'editor') => setViewStack(p => [...p, view]);
+    const pushView = (view: 'library' | 'editor') => setViewStack(p => [...p, view]);
     const popView = () => setViewStack(p => p.length > 1 ? p.slice(0, p.length - 1) : p);
 
     const handleSelectQuestion = (id: string) => {
@@ -481,205 +481,179 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                     </div>
                 </div>
 
-                {/* --- VIEW 2: DETAIL (TABLE) --- */}
-                <div className={`absolute inset-0 top-6 flex flex-col bg-white transition-transform duration-300 ${currentView === 'detail' ? 'translate-x-0' : currentView === 'library' ? 'translate-x-full' : '-translate-x-1/3 opacity-0 pointer-events-none'}`}>
+                {/* --- VIEW 2: EDITOR (Unified - Table + Settings) --- */}
+                <div className={`absolute inset-0 top-6 flex flex-col bg-white transition-transform duration-300 ${currentView === 'editor' ? 'translate-x-0' : currentView === 'library' ? 'translate-x-full' : '-translate-x-1/3 opacity-0 pointer-events-none'}`}>
                     <header className="h-14 border-b border-slate-100 flex items-center justify-between px-4 shrink-0 bg-white">
                         <div className="flex items-center gap-2">
                             <button className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg" onClick={popView}><ChevronLeft className="w-5 h-5" /></button>
                             <div className="flex flex-col">
                                 <span className="text-xs font-bold text-slate-800">{activeConfig.questionNo} - {activeConfig.alias}</span>
-                                <span className="text-[10px] text-slate-400">表格视图</span>
+                                <span className="text-[10px] text-slate-400">评分细则编辑</span>
                             </div>
                         </div>
                         <button onClick={handleSaveRubric} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg">保存</button>
                     </header>
 
-                    <div className="flex-1 overflow-y-auto p-4 scrollbar-thin pb-24">
-
-                        {/* AI Assistant Section (Compressed) */}
-                        <div className="bg-gradient-to-br from-indigo-50 to-white p-3 rounded-xl border border-indigo-100 shadow-sm mb-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                    <div className="flex-1 overflow-y-auto scrollbar-thin">
+                        {/* Basic Settings Section - Collapsible */}
+                        <div className="bg-slate-50 border-b border-slate-200">
+                            <div className="p-4 space-y-4">
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">题号</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border border-slate-200 rounded-lg p-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                            value={activeConfig.questionNo || ''}
+                                            onChange={e => setActiveConfig({ ...activeConfig, questionNo: e.target.value })}
+                                            placeholder="如: 15"
+                                        />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold text-slate-800 uppercase tracking-tighter">AI 智能辅助</p>
-                                        <p className="text-[9px] text-slate-400">基于图片自动生成评分明细</p>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">题目名称</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border border-slate-200 rounded-lg p-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                            value={activeConfig.alias || ''}
+                                            onChange={e => setActiveConfig({ ...activeConfig, alias: e.target.value })}
+                                            placeholder="如: 资产阶级革命综合题"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">所属考试</label>
+                                        <select
+                                            className="w-full border border-slate-200 rounded-lg p-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                            value={activeConfig.examId || ''}
+                                            onChange={e => setActiveConfig({ ...activeConfig, examId: e.target.value || null })}
+                                        >
+                                            <option value="">未关联考试</option>
+                                            {exams.map(exam => (
+                                                <option key={exam.id} value={exam.id}>
+                                                    {exam.name}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {!uploadedImage ? (
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative">
-                                                <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageUpload} />
+                            </div>
+                        </div>
+
+                        <div className="p-4 pb-24">
+                            {/* AI Assistant Section (Compressed) */}
+                            <div className="bg-gradient-to-br from-indigo-50 to-white p-3 rounded-xl border border-indigo-100 shadow-sm mb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                                            <Sparkles className="w-3.5 h-3.5 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-800 uppercase tracking-tighter">AI 智能辅助</p>
+                                            <p className="text-[9px] text-slate-400">基于图片自动生成评分明细</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {!uploadedImage ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative">
+                                                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageUpload} />
+                                                    <button
+                                                        className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                                    >
+                                                        <ImageIcon className="w-3 h-3" /> 图片导入
+                                                    </button>
+                                                </div>
                                                 <button
-                                                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                                    onClick={() => setShowTextImport(true)}
+                                                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm"
                                                 >
-                                                    <ImageIcon className="w-3 h-3" /> 图片导入
+                                                    <Type className="w-3 h-3 text-indigo-600" /> 文本/粘贴
                                                 </button>
                                             </div>
-                                            <button
-                                                onClick={() => setShowTextImport(true)}
-                                                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm"
-                                            >
-                                                <Type className="w-3 h-3 text-indigo-600" /> 文本/粘贴
-                                            </button>
-                                        </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative w-8 h-8 rounded border border-indigo-200 overflow-hidden group">
+                                                    <img src={uploadedImage} className="w-full h-full object-cover" />
+                                                    <button onClick={() => setUploadedImage(null)} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                        <X className="w-3 h-3 text-white" />
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    onClick={handleAIGen}
+                                                    disabled={isGenerating}
+                                                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                                >
+                                                    {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                                                    {isGenerating ? '生成中...' : '重新生成'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Table Header */}
+                            <div className="flex items-center justify-between mb-2 px-1">
+                                <h3 className="text-xs font-bold text-slate-500 uppercase">评分细则表 ({activeConfig.points.length})</h3>
+                                <button onClick={handleAddPoint} className="text-xs font-bold text-indigo-600 flex items-center gap-1 hover:bg-indigo-50 px-2 py-1 rounded"><PlusCircle className="w-3.5 h-3.5" /> 新增行</button>
+                            </div>
+
+                            {/* The Table - Refactored for Horizontal Scroll & Flexibility */}
+                            <div className="border border-slate-200 rounded-xl overflow-x-auto shadow-sm bg-white scrollbar-thin">
+                                <div className="min-w-[800px]">
+                                    <div className="flex bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 h-9 items-center">
+                                        <div className="w-[80px] text-center border-r border-slate-100 flex-shrink-0">题号</div>
+                                        <div className="w-[100px] px-3 border-r border-slate-100 flex-shrink-0">问题词</div>
+                                        <div className="w-[50px] text-center border-r border-slate-100 flex-shrink-0">分值</div>
+                                        <div className="flex-1 min-w-[300px] px-3 border-r border-slate-100">参考答案</div>
+                                        <div className="w-[150px] px-3 border-r border-slate-100 flex-shrink-0">核心关键词</div>
+                                        <div className="w-[150px] px-3 border-r border-slate-100 text-amber-600 flex-shrink-0">扣分原则</div>
+                                        <div className="w-[60px] text-center flex-shrink-0">操作</div>
+                                    </div>
+
+                                    {activeConfig.points.length === 0 ? (
+                                        <div className="p-8 text-center text-xs text-slate-400">暂无数据，请上传图片生成或手动添加</div>
                                     ) : (
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative w-8 h-8 rounded border border-indigo-200 overflow-hidden group">
-                                                <img src={uploadedImage} className="w-full h-full object-cover" />
-                                                <button onClick={() => setUploadedImage(null)} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <X className="w-3 h-3 text-white" />
-                                                </button>
-                                            </div>
-                                            <button
-                                                onClick={handleAIGen}
-                                                disabled={isGenerating}
-                                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                        (activeConfig.points || []).map((point, idx) => (
+                                            <div
+                                                key={point.id}
+                                                className={`flex text-xs border-b border-slate-100 last:border-0 hover:bg-indigo-50/30 transition-colors group cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
+                                                onClick={() => handleEditPoint(point)}
                                             >
-                                                {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                                {isGenerating ? '生成中...' : '重新生成'}
-                                            </button>
-                                        </div>
+                                                <div className="w-[80px] flex items-center justify-center border-r border-slate-100 py-3 px-1 font-mono text-[9px] text-slate-400 leading-tight text-center flex-shrink-0 overflow-hidden">
+                                                    {point.id}
+                                                </div>
+                                                <div className="w-[100px] flex items-center px-3 border-r border-slate-100 py-3 font-bold text-indigo-700 bg-indigo-50/20 text-[10px] flex-shrink-0 truncate" title={point.questionSegment}>
+                                                    {point.questionSegment || '-'}
+                                                </div>
+                                                <div className="w-[50px] flex items-center justify-center border-r border-slate-100 py-3 font-bold text-slate-700 flex-shrink-0">
+                                                    {point.score}
+                                                </div>
+                                                <div className="flex-1 min-w-[300px] px-3 py-3 border-r border-slate-100 text-slate-600 leading-normal text-[11px]">
+                                                    {point.content || '无描述'}
+                                                </div>
+                                                <div className="w-[150px] px-3 py-3 border-r border-slate-100 flex flex-wrap gap-1 content-start flex-shrink-0">
+                                                    {point.keywords.map(k => (
+                                                        <span key={k} className="text-[9px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded leading-none">{k}</span>
+                                                    ))}
+                                                    {point.keywords.length === 0 && <span className="text-[10px] text-slate-300 italic">无</span>}
+                                                </div>
+                                                <div className="w-[150px] px-3 py-3 border-r border-slate-100 text-[10px] text-amber-600 leading-tight italic flex-shrink-0 whitespace-normal break-words">
+                                                    {point.deductionRules || '-'}
+                                                </div>
+                                                <div className="w-[60px] flex items-center justify-center flex-shrink-0">
+                                                    <button
+                                                        onClick={(e) => handleDeletePoint(e, point.id)}
+                                                        className="p-1.5 text-slate-300 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
                                     )}
                                 </div>
                             </div>
                         </div>
-
-                        {/* Table Header */}
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase">评分细则表 ({activeConfig.points.length})</h3>
-                            <button onClick={handleAddPoint} className="text-xs font-bold text-indigo-600 flex items-center gap-1 hover:bg-indigo-50 px-2 py-1 rounded"><PlusCircle className="w-3.5 h-3.5" /> 新增行</button>
-                        </div>
-
-                        {/* The Table - Refactored for Horizontal Scroll & Flexibility */}
-                        <div className="border border-slate-200 rounded-xl overflow-x-auto shadow-sm bg-white scrollbar-thin">
-                            <div className="min-w-[800px]">
-                                <div className="flex bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 h-9 items-center">
-                                    <div className="w-[80px] text-center border-r border-slate-100 flex-shrink-0">题号</div>
-                                    <div className="w-[100px] px-3 border-r border-slate-100 flex-shrink-0">问题词</div>
-                                    <div className="w-[50px] text-center border-r border-slate-100 flex-shrink-0">分值</div>
-                                    <div className="flex-1 min-w-[300px] px-3 border-r border-slate-100">参考答案</div>
-                                    <div className="w-[150px] px-3 border-r border-slate-100 flex-shrink-0">核心关键词</div>
-                                    <div className="w-[150px] px-3 border-r border-slate-100 text-amber-600 flex-shrink-0">扣分原则</div>
-                                    <div className="w-[60px] text-center flex-shrink-0">操作</div>
-                                </div>
-
-                                {activeConfig.points.length === 0 ? (
-                                    <div className="p-8 text-center text-xs text-slate-400">暂无数据，请上传图片生成或手动添加</div>
-                                ) : (
-                                    (activeConfig.points || []).map((point, idx) => (
-                                        <div
-                                            key={point.id}
-                                            className={`flex text-xs border-b border-slate-100 last:border-0 hover:bg-indigo-50/30 transition-colors group cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
-                                            onClick={() => handleEditPoint(point)}
-                                        >
-                                            <div className="w-[80px] flex items-center justify-center border-r border-slate-100 py-3 px-1 font-mono text-[9px] text-slate-400 leading-tight text-center flex-shrink-0 overflow-hidden">
-                                                {point.id}
-                                            </div>
-                                            <div className="w-[100px] flex items-center px-3 border-r border-slate-100 py-3 font-bold text-indigo-700 bg-indigo-50/20 text-[10px] flex-shrink-0 truncate" title={point.questionSegment}>
-                                                {point.questionSegment || '-'}
-                                            </div>
-                                            <div className="w-[50px] flex items-center justify-center border-r border-slate-100 py-3 font-bold text-slate-700 flex-shrink-0">
-                                                {point.score}
-                                            </div>
-                                            <div className="flex-1 min-w-[300px] px-3 py-3 border-r border-slate-100 text-slate-600 leading-normal text-[11px]">
-                                                {point.content || '无描述'}
-                                            </div>
-                                            <div className="w-[150px] px-3 py-3 border-r border-slate-100 flex flex-wrap gap-1 content-start flex-shrink-0">
-                                                {point.keywords.map(k => (
-                                                    <span key={k} className="text-[9px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded leading-none">{k}</span>
-                                                ))}
-                                                {point.keywords.length === 0 && <span className="text-[10px] text-slate-300 italic">无</span>}
-                                            </div>
-                                            <div className="w-[150px] px-3 py-3 border-r border-slate-100 text-[10px] text-amber-600 leading-tight italic flex-shrink-0 whitespace-normal break-words">
-                                                {point.deductionRules || '-'}
-                                            </div>
-                                            <div className="w-[60px] flex items-center justify-center flex-shrink-0">
-                                                <button
-                                                    onClick={(e) => handleDeletePoint(e, point.id)}
-                                                    className="p-1.5 text-slate-300 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- VIEW 4: QUESTION SETTINGS --- */}
-                <div className={`absolute inset-0 top-6 flex flex-col bg-slate-50 transition-transform duration-300 ${currentView === 'question_settings' ? 'translate-x-0' : currentView === 'library' ? 'translate-x-full' : '-translate-x-full opacity-0 pointer-events-none'}`}>
-                    <header className="h-14 border-b border-slate-100 flex items-center justify-between px-4 shrink-0 bg-white">
-                        <div className="flex items-center gap-2">
-                            <button className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg" onClick={popView}><ChevronLeft className="w-5 h-5" /></button>
-                            <h2 className="font-bold text-slate-800 text-sm">题目基础设置</h2>
-                        </div>
-                        <button onClick={() => pushView('detail')} className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-1">下一步 <ChevronRight className="w-3.5 h-3.5" /></button>
-                    </header>
-                    <div className="p-5 space-y-6 overflow-y-auto flex-1">
-                        <section className="space-y-4">
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">身份信息</h3>
-                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">题号 (Question ID)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                                        value={activeConfig.questionNo || ''}
-                                        onChange={e => setActiveConfig({ ...activeConfig, questionNo: e.target.value })}
-                                        placeholder="如: 15"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">题目名称 / 别名</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                                        value={activeConfig.alias || ''}
-                                        onChange={e => setActiveConfig({ ...activeConfig, alias: e.target.value })}
-                                        placeholder="如: 资产阶级革命综合题"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">所属考试汇总</label>
-                                    <select
-                                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                                        value={activeConfig.examId || ''}
-                                        onChange={e => setActiveConfig({ ...activeConfig, examId: e.target.value || null })}
-                                    >
-                                        <option value="">未关联考试 (离散题目)</option>
-                                        {exams.map(exam => (
-                                            <option key={exam.id} value={exam.id}>
-                                                {exam.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="text-[10px] text-slate-400 mt-1.5 px-1">关联考试后，该题目将出现在对应的考试文件夹中。</p>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section className="space-y-4">
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">阅卷偏好 (生成参考)</h3>
-                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><Sparkles className="w-4 h-4" /></div>
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-700">自动评分策略</p>
-                                            <p className="text-[10px] text-slate-400">设置 AI 识别时的默认宽松度</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">推荐</div>
-                                </div>
-                            </div>
-                        </section>
                     </div>
                 </div>
 
