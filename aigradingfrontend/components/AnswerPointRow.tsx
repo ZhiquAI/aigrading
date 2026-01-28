@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Trash2, GripVertical, Plus, X } from 'lucide-react';
-import type { AnswerPoint } from '../types/rubric';
+import type { AnswerPoint } from '@/types/rubric';
 
 interface AnswerPointRowProps {
     point: AnswerPoint;

@@ -164,7 +164,7 @@ export async function GET(request: Request) {
         }
 
         return apiSuccess({
-            isPaid: true,
+            isPaid: activationCode.type !== 'trial',
             code: activationCode.code,
             type: activationCode.type,
             quota: activationCode.remaining, // 返回的是该代码的全局余额

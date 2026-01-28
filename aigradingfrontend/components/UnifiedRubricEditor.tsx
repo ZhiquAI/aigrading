@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Download, Upload, RefreshCw, X, Check, Code, Wand2, Sparkles, FileText, Image as ImageIcon, Menu, Plus, Trash2, Edit2, Type } from 'lucide-react';
-import { generateRubricFromImages, refineRubric, generateRubricFromText } from '../services/rubric-service';
-import { storage } from '../utils/storage';
+import { generateRubricFromImages, refineRubric, generateRubricFromText } from '@/services/rubric-service';
+import { storage } from '@/utils/storage';
 import { toast } from './Toast';
 import RubricFormEditor from './RubricFormEditor';
-import type { RubricJSON } from '../types/rubric';
-import { rubricToMarkdown } from '../utils/rubric-converter';
-import { parseRubricFromCSV, parseRubricFromClipboard } from '../utils/excel-parser';
+import type { RubricJSON } from '@/types/rubric';
+import { rubricToMarkdown } from '@/utils/rubric-converter';
+import { parseRubricFromCSV, parseRubricFromClipboard } from '@/utils/excel-parser';
 
 interface QuestionItem {
     key: string;

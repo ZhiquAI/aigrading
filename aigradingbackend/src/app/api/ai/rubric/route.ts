@@ -7,13 +7,12 @@ import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, apiServerError } from '@/lib/api-response';
 import { RubricJSON, validateRubricJSON } from '@/lib/rubric-types';
 import { getRubricSystemPrompt } from '@/lib/config-service';
+import { generateRubricWithZhipu } from '@/lib/zhipu';
 
 const GPTSAPI_URL = 'https://api.gptsapi.net/v1/chat/completions';
 const GPTSAPI_KEY = process.env.GPTSAPI_KEY || '';
 const GPTSAPI_MODEL = process.env.GPTSAPI_MODEL || 'gpt-4o';
 const GPTSAPI_MODEL_FALLBACK = process.env.GPTSAPI_MODEL_FALLBACK || 'gpt-4o';
-
-// System Prompt 由 config-service 统一生成,不再硬编码
 
 /**
  * 调用 GPTsAPI
@@ -97,10 +96,6 @@ function parseAndValidate(jsonString: string): RubricJSON {
  */
 export async function POST(request: NextRequest) {
     try {
-        if (!GPTSAPI_KEY) {
-            return apiError('服务未配置 API Key', 500);
-        }
-
         const body = await request.json();
         const { questionImage, answerImage, answerText, questionId } = body;
 
@@ -139,16 +134,30 @@ ${answerText}
         let jsonContent: string;
         let provider = 'gptsapi';
 
-        // 尝试主选模型
+        // 尝试主选模型 (GPTSAPI)
         try {
+            if (!GPTSAPI_KEY) throw new Error('GPTSAPI_KEY not configured');
             jsonContent = await callGPTsAPI(systemPrompt, userPrompt, images, GPTSAPI_MODEL);
             console.log(`[Rubric AI] Success with: ${GPTSAPI_MODEL}`);
         } catch (primaryError) {
             console.warn(`[Rubric AI] Primary failed, trying fallback`);
             try {
-                jsonContent = await callGPTsAPI(systemPrompt, userPrompt, images, GPTSAPI_MODEL_FALLBACK);
-            } catch {
-                return apiServerError('AI 服务不可用');
+                if (GPTSAPI_KEY) {
+                    jsonContent = await callGPTsAPI(systemPrompt, userPrompt, images, GPTSAPI_MODEL_FALLBACK);
+                } else {
+                    throw new Error('Fallback to Zhipu direct');
+                }
+            } catch (fallbackError) {
+                console.warn(`[Rubric AI] Fallback failed, trying Zhipu direct`);
+                try {
+                    // 回退到智谱 GLM-4.7 (国产直连，不依赖中转代理)
+                    jsonContent = await generateRubricWithZhipu(systemPrompt, userPrompt, images);
+                    provider = 'zhipu';
+                    console.log(`[Rubric AI] Success with Zhipu GLM-4.7`);
+                } catch (zhipuError: any) {
+                    console.error(`[Rubric AI] All providers failed:`, zhipuError.message);
+                    return apiServerError('AI 服务暂时不可用,请稍后重试');
+                }
             }
         }
 

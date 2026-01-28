@@ -33,7 +33,7 @@ import {
     ChevronRight,
     Users
 } from 'lucide-react';
-import { generateGradingInsight } from '../services/geminiService';
+import { generateGradingInsight } from '@/services/geminiService';
 import { toast } from './Toast';
 
 // 按需注册 Chart.js 组件以优化体积

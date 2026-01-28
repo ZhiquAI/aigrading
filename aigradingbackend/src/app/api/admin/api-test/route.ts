@@ -8,15 +8,14 @@ export async function POST(request: NextRequest) {
         let testResult = { success: false, message: '' };
 
         switch (provider) {
+            case 'gptsapi':
+                testResult = { success: true, message: 'GPTSAPI (GPT-4o) 连接正常 (模拟)' };
+                break;
             case 'zhipu':
-                // 测试智谱 API 连通性
                 testResult = await testZhipuApi();
                 break;
-            case 'qwen':
-                testResult = { success: false, message: '通义千问 API 尚未配置' };
-                break;
-            case 'kimi':
-                testResult = { success: false, message: 'Kimi API 尚未配置' };
+            case 'gemini':
+                testResult = { success: true, message: 'Gemini Direct 连接正常 (模拟)' };
                 break;
             default:
                 testResult = { success: false, message: '未知的 API 提供商' };

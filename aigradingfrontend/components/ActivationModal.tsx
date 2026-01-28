@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Key, ShieldCheck, HelpCircle, X, ChevronRight, Zap, Info } from 'lucide-react';
 import { Button } from './ui';
-import { useAppStore } from '../stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
 
 interface ActivationModalProps {
     onSuccess: () => void;

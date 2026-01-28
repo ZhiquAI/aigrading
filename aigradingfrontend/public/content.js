@@ -3011,6 +3011,67 @@ if (window.hasAIContentScriptLoaded) {
       return false;
     }
 
+    // 3.2 高亮答题卡 (用于重新定位扫描)
+    if (request.type === 'HIGHLIGHT_ANSWER_CARD') {
+      console.log('[AI阅卷] 收到高亮答题卡请求');
+
+      try {
+        const platform = detectPlatform();
+        console.log(`[AI阅卷] 平台: ${platform}, 开始查找答题卡...`);
+
+        // 查找答题卡元素
+        const detectionResults = findAnswerImageAcrossContexts(platform);
+
+        if (!detectionResults || detectionResults.length === 0) {
+          console.error('[AI阅卷] 未找到答题卡');
+          sendResponse({ success: false, error: '未找到答题卡元素' });
+          return false;
+        }
+
+        // 获取评分细则状态以确定高亮颜色
+        checkRubricStatus().then(isRubricConfigured => {
+          const primaryCandidate = detectionResults[0];
+          const highlightStatus = isRubricConfigured ? 'success' : 'error';
+
+          // 高亮显示答题卡
+          if (primaryCandidate?.element) {
+            highlightElement(
+              primaryCandidate.element,
+              `答题卡 (${primaryCandidate.element.tagName})`,
+              primaryCandidate.document || document,
+              highlightStatus
+            );
+            console.log('[AI阅卷] 答题卡高亮显示成功');
+            sendResponse({ success: true });
+          } else {
+            console.error('[AI阅卷] 答题卡元素无效');
+            sendResponse({ success: false, error: '答题卡元素无效' });
+          }
+        }).catch(err => {
+          console.error('[AI阅卷] 检查评分细则状态失败:', err);
+          // 即使检查失败，仍然尝试高亮（使用默认颜色）
+          const primaryCandidate = detectionResults[0];
+          if (primaryCandidate?.element) {
+            highlightElement(
+              primaryCandidate.element,
+              `答题卡 (${primaryCandidate.element.tagName})`,
+              primaryCandidate.document || document,
+              'success'
+            );
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: '答题卡元素无效' });
+          }
+        });
+
+        return true; // 保持通道开放用于异步响应
+      } catch (error) {
+        console.error('[AI阅卷] 高亮答题卡时出错:', error);
+        sendResponse({ success: false, error: error.message || '高亮答题卡失败' });
+        return false;
+      }
+    }
+
     // 4. Ping
     if (request.type === 'PING') {
       sendResponse({ success: true, version: '1.0' });

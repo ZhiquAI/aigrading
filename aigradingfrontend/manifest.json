@@ -15,7 +15,10 @@
     "*://*.7net.cc/*",
     "https://generativelanguage.googleapis.com/*",
     "https://open.bigmodel.cn/*",
-    "http://127.0.0.1:7242/*"
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
   ],
   "content_scripts": [
     {

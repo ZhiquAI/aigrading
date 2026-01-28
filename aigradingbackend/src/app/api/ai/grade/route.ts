@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { gradeWithZhipu, GradeRequest } from '@/lib/zhipu';
 import { gradeWithGPT } from '@/lib/gpt';
 import { gradeWithGemini, isGeminiAvailable } from '@/lib/gemini';
+
 import { apiSuccess, apiError, apiServerError, apiRateLimited, ErrorCode } from '@/lib/api-response';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { createRequestLogger } from '@/lib/logger';
@@ -59,7 +60,7 @@ async function getAvailableQuota(deviceId: string, activationCode?: string | nul
 }
 
 // 扣减配额
-async function deductQuota(id: string, type: 'code' | 'device') {
+async function deductQuota(id: string, type: 'code' | 'device', deviceId: string, activationCode?: string | null) {
     if (type === 'code') {
         const updatedCode = await prisma.activationCode.update({
             where: { id },
@@ -87,9 +88,13 @@ async function deductQuota(id: string, type: 'code' | 'device') {
         });
     }
 
-    // 记录使用 (可选设备 ID 用于追踪，此处简化)
+    // 记录使用
     await prisma.usageRecord.create({
-        data: { deviceId: id, metadata: JSON.stringify({ quotaType: type }) }
+        data: {
+            deviceId: deviceId,
+            activationCode: type === 'code' ? id : (activationCode || null),
+            metadata: JSON.stringify({ quotaType: type })
+        }
     });
 }
 
@@ -133,7 +138,7 @@ export async function POST(request: Request) {
         // 获取可用配额
         const quotaInfo = await getAvailableQuota(deviceId, activationCode);
 
-        // 检查配额与状态 (Suggestion 3)
+        // 检查配额与状态
         if (quotaInfo.status !== 'active') {
             return apiError(quotaInfo.status === 'expired' ? '配额已耗尽，试用期结束' : '激活码状态异常', 403);
         }
@@ -159,8 +164,7 @@ export async function POST(request: Request) {
         let provider: string = 'unknown';
         const aiStartTime = Date.now();
 
-        // 优先级：GPTSAPI 中转 (GPT-4o) → 智谱 (GLM-4V) → Gemini 直连
-        // 1. GPTSAPI 中转 (GPT-4o) - 质量优先
+        // 优先级：GPTSAPI (GPT-4o) → Claude (Puter) → Zhipu (GLM-4) → Gemini
         try {
             console.log(`[Grade API] 尝试 GPTSAPI 中转, 策略: ${gradeStrategy}, 模型: gpt-4o`);
             // @ts-ignore
@@ -172,7 +176,7 @@ export async function POST(request: Request) {
 
             // 2. 回退到智谱 (国产直连)
             try {
-                console.log('[Grade API] 回退到智谱 GLM-4.6V');
+                console.log('[Grade API] 回退到智谱 GLM-4.7');
                 result = await gradeWithZhipu(gradeRequest);
                 provider = 'zhipu';
                 console.log(`[Grade API] ✓ 智谱成功，总耗时: ${Date.now() - aiStartTime}ms`);
@@ -201,14 +205,14 @@ export async function POST(request: Request) {
         }
 
         // 扣减配额
-        await deductQuota(quotaInfo.id, quotaInfo.type as 'code' | 'device');
+        await deductQuota(quotaInfo.id, quotaInfo.type as 'code' | 'device', deviceId, activationCode);
 
         // 获取更新后的配额信息进行展示
         const updatedQuota = quotaInfo.type === 'code'
             ? await prisma.activationCode.findUnique({ where: { id: quotaInfo.id } })
             : await prisma.deviceQuota.findUnique({ where: { deviceId: quotaInfo.id } });
 
-        // 如果有激活码，异步存储批改记录（不阻塞返回响应）
+        // 如果有激活码，异步存储批改记录
         if (activationCode && result) {
             prisma.gradingRecord.create({
                 data: {

@@ -12,9 +12,9 @@ interface ApiProvider {
 }
 
 const defaultProviders: ApiProvider[] = [
-    { id: 'zhipu', name: '智谱 AI (GLM-4V)', enabled: true, priority: 1, status: 'unknown' },
-    { id: 'qwen', name: '通义千问 (Qwen-VL)', enabled: false, priority: 2, status: 'unknown' },
-    { id: 'kimi', name: 'Kimi (Moonshot)', enabled: false, priority: 3, status: 'unknown' },
+    { id: 'gptsapi', name: 'GPTSAPI (GPT-4o)', enabled: true, priority: 1, status: 'unknown' },
+    { id: 'zhipu', name: '智谱 AI (GLM-4)', enabled: true, priority: 2, status: 'unknown' },
+    { id: 'gemini', name: 'Gemini (Direct)', enabled: true, priority: 3, status: 'unknown' },
 ];
 
 export default function ApiPage() {

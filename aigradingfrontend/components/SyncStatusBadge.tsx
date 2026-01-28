@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Cloud, CloudOff, Loader2, Check, AlertCircle } from 'lucide-react';
-import type { SyncStatus } from '../services/rubric-storage';
+import type { SyncStatus } from '@/services/rubric-storage';
 
 interface SyncStatusBadgeProps {
     status: SyncStatus;

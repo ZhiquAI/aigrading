@@ -153,7 +153,14 @@ export default function GradingViewV2() {
             if (typeof chrome !== 'undefined' && chrome.tabs) {
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     if (tabs[0]?.id) {
-                        chrome.tabs.sendMessage(tabs[0].id, { type: 'HIGHLIGHT_ANSWER_CARD' });
+                        chrome.tabs.sendMessage(tabs[0].id, { type: 'REQUEST_PAGE_DATA' }, (response) => {
+                            // 检查响应中的评分细则状态
+                            if (response?.success && response?.isRubricConfigured === false) {
+                                console.log('[GradingViewV2] 检测到评分细则未配置，自动打开设置');
+                                setIsRubricDrawerOpen(true);
+                                toast.warning('检测到评分细则未设置，请先配置');
+                            }
+                        });
                     }
                 });
             }
@@ -163,7 +170,7 @@ export default function GradingViewV2() {
             setIsDetecting(false);
         };
         init();
-    }, []);
+    }, [setIsRubricDrawerOpen]);
 
     const handleRescan = () => {
         setIsDetecting(true);
@@ -259,7 +266,8 @@ export default function GradingViewV2() {
             {
                 label: '评分细则',
                 status: isDetecting && !globalHealth.api ? 'pending' : (isRubricConfigured ? 'success' : 'error'),
-                icon: FileCheck2
+                icon: FileCheck2,
+                action: () => setIsRubricDrawerOpen(true)
             }
         ] as const;
 
@@ -268,10 +276,17 @@ export default function GradingViewV2() {
                 {items.map((item, idx) => (
                     <div
                         key={idx}
+                        onClick={() => {
+                            // 当评分细则未配置时，点击整个区域都可以打开设置
+                            if (item.label === '评分细则' && item.status === 'error') {
+                                item.action?.();
+                            }
+                        }}
                         className={`
                             flex items-center justify-between p-3 rounded-xl transition-all duration-500
                             ${item.status === 'pending' ? 'bg-slate-50/50' : 'bg-slate-50'}
-                            ${item.status === 'pending' && idx > 0 && items[idx - 1].status === 'pending' ? 'opacity-50' : 'opacity-100'} 
+                            ${item.status === 'pending' && idx > 0 && items[idx - 1].status === 'pending' ? 'opacity-50' : 'opacity-100'}
+                            ${item.label === '评分细则' && item.status === 'error' ? 'cursor-pointer hover:bg-slate-100' : ''}
                         `}
                     >
                         <div className="flex items-center gap-3">
@@ -297,6 +312,15 @@ export default function GradingViewV2() {
                                     title="重新扫描"
                                 >
                                     <RefreshCw className={`w-3 h-3 ${isDetecting ? 'animate-spin' : ''}`} />
+                                </button>
+                            )}
+                            {item.label === '评分细则' && item.status === 'error' && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); item.action?.(); }}
+                                    className="p-1 hover:bg-slate-200 rounded-md text-slate-400 hover:text-indigo-500 transition-colors"
+                                    title="配置评分细则"
+                                >
+                                    <Pencil className="w-3 h-3" />
                                 </button>
                             )}
                             <div className="status-icon">

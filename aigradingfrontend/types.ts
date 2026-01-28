@@ -2,7 +2,6 @@
 
 export enum Tab {
   Grading = 'grading',
-  Exams = 'exams',
   History = 'history',
   Analysis = 'analysis',
   Settings = 'settings'

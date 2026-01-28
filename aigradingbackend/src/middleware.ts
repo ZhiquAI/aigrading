@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limiter';
+import { createRequestLogger } from '@/lib/logger';
 
 /**
  * CORS 中间件
@@ -52,18 +54,36 @@ function isOriginAllowed(origin: string | null): boolean {
 }
 
 export function middleware(request: NextRequest) {
+    const reqLogger = createRequestLogger(request);
     const origin = request.headers.get('origin');
     const isAllowed = isOriginAllowed(origin);
 
+    // 1. 速率限制检查 (非管理员路径)
+    if (request.nextUrl.pathname.startsWith('/api/') && !request.nextUrl.pathname.startsWith('/api/admin/')) {
+        const rateCheck = checkRateLimit(request);
+        if (!rateCheck.allowed) {
+            reqLogger.warn('Rate limit exceeded', { clientId: rateCheck.clientId, path: request.nextUrl.pathname });
+            return createRateLimitResponse(rateCheck);
+        }
+    }
+
+    // 2. 结构化日志记录
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+        reqLogger.info(`${request.method} ${request.nextUrl.pathname}`, {
+            ip: request.ip,
+            userAgent: request.headers.get('user-agent')
+        });
+    }
+
     // 处理 CORS
-    if (isAllowed) {
+    if (isAllowed || process.env.NODE_ENV === 'development') {
         const response = NextResponse.next();
 
         // 设置 CORS 头
         response.headers.set('Access-Control-Allow-Origin', origin || '*');
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         response.headers.set('Access-Control-Allow-Headers',
-            'Content-Type, X-Device-ID, X-Activation-Code, Authorization');
+            'Content-Type, X-Device-ID, X-Activation-Code, Authorization, x-device-id, x-activation-code');
         response.headers.set('Access-Control-Allow-Credentials', 'true');
         response.headers.set('Access-Control-Max-Age', '86400');
 

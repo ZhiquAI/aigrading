@@ -334,12 +334,15 @@ export async function verifyActivationCode(code: string): Promise<{
     message: string;
 }> {
     const deviceId = getDeviceId();
+    const activationCode = getActivationCode();
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/activation/verify`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-device-id': deviceId,
+                'x-activation-code': activationCode || ''
             },
             body: JSON.stringify({
                 code,
@@ -419,11 +422,16 @@ export async function generateRubricWithProxy(
         throw new Error('请提供至少一张图片（试题或答案）');
     }
 
+    const deviceId = getDeviceId();
+    const activationCode = getActivationCode();
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/ai/rubric`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-device-id': deviceId,
+                'x-activation-code': activationCode || ''
             },
             body: JSON.stringify({
                 questionImage,
@@ -459,11 +467,16 @@ export async function standardizeRubricWithProxy(
         throw new Error('请提供评分细则内容');
     }
 
+    const deviceId = getDeviceId();
+    const activationCode = getActivationCode();
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/ai/rubric/standardize`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-device-id': deviceId,
+                'x-activation-code': activationCode || ''
             },
             body: JSON.stringify({
                 rubric,
@@ -500,11 +513,13 @@ export interface Exam {
  * 获取所有考试列表
  */
 export async function getExams(): Promise<Exam[]> {
+    const deviceId = getDeviceId();
     const activationCode = getActivationCode();
     try {
         const response = await fetch(`${API_BASE_URL}/api/exams`, {
             method: 'GET',
             headers: {
+                'x-device-id': deviceId,
                 'x-activation-code': activationCode || ''
             }
         });
@@ -524,25 +539,40 @@ export async function getExams(): Promise<Exam[]> {
  * 创建新考试
  */
 export async function createExam(params: Partial<Exam>): Promise<Exam | null> {
+    const deviceId = getDeviceId();
     const activationCode = getActivationCode();
+    console.log('[Proxy] createExam called with:', { params, hasActivationCode: !!activationCode });
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/exams`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-device-id': deviceId,
                 'x-activation-code': activationCode || ''
             },
             body: JSON.stringify(params)
         });
 
         const data = await response.json();
+
+        console.log('[Proxy] createExam response:', { status: response.status, data });
+
         if (data.success) {
             return data.exam;
         }
-        return null;
+
+        // 抛出具体的错误信息
+        const errorMsg = data.error || '创建考试失败';
+        console.warn('[Proxy] createExam failed:', errorMsg);
+        throw new Error(errorMsg);
     } catch (error) {
         console.error('[Proxy] createExam error:', error);
-        return null;
+        // 如果是已知的错误（后端返回的错误消息），重新抛出
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error('网络错误，请检查后端服务是否运行');
     }
 }
 
@@ -550,12 +580,14 @@ export async function createExam(params: Partial<Exam>): Promise<Exam | null> {
  * 更新考试信息
  */
 export async function updateExam(id: string, params: Partial<Exam>): Promise<Exam | null> {
+    const deviceId = getDeviceId();
     const activationCode = getActivationCode();
     try {
         const response = await fetch(`${API_BASE_URL}/api/exams/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'x-device-id': deviceId,
                 'x-activation-code': activationCode || ''
             },
             body: JSON.stringify(params)
@@ -576,11 +608,13 @@ export async function updateExam(id: string, params: Partial<Exam>): Promise<Exa
  * 删除考试
  */
 export async function deleteExam(id: string): Promise<boolean> {
+    const deviceId = getDeviceId();
     const activationCode = getActivationCode();
     try {
         const response = await fetch(`${API_BASE_URL}/api/exams/${id}`, {
             method: 'DELETE',
             headers: {
+                'x-device-id': deviceId,
                 'x-activation-code': activationCode || ''
             }
         });
@@ -612,6 +646,15 @@ export async function saveRubricToServer(questionKey: string, rubric: string, ex
     }
 
     try {
+        // 解析内容，如果是 JSON 字符串则解析，如果是对象则直接使用
+        let rubricObj = {};
+        try {
+            rubricObj = typeof rubric === 'string' ? JSON.parse(rubric) : rubric;
+        } catch (e) {
+            console.warn('[Proxy] saveRubricToServer: rubric 格式非法');
+            return false;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/rubric`, {
             method: 'POST',
             headers: {
@@ -620,9 +663,9 @@ export async function saveRubricToServer(questionKey: string, rubric: string, ex
                 'x-device-id': getDeviceId()
             },
             body: JSON.stringify({
-                questionKey,
-                rubric,
-                examId
+                ...rubricObj,
+                questionKey, // 显式传递 key，后端优先使用
+                examId       // 显式传递考试 ID
             })
         });
 

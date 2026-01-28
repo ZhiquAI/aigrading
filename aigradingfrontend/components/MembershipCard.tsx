@@ -9,7 +9,7 @@ import {
     Crown, Gift, Clock, CheckCircle2,
     ChevronRight, Key, Sparkles
 } from 'lucide-react';
-import { getUsageInfo as fetchUsageFromBackend } from '../services/proxyService';
+import { getUsageInfo as fetchUsageFromBackend } from '@/services/proxyService';
 import { Button } from './ui';
 
 interface MemberInfo {

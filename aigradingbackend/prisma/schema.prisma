@@ -96,12 +96,14 @@ model DeviceQuota {
 
 // 使用记录表（追踪每次使用）
 model UsageRecord {
-  id        String   @id @default(cuid())
-  deviceId  String // 设备标识
-  metadata  String? // 附加信息（题型、模型等）- JSON字符串
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  deviceId       String // 设备标识
+  activationCode String? // 关联激活码 (用于统计具体哪个码消耗了多少)
+  metadata       String? // 附加信息（题型、模型等）- JSON字符串
+  createdAt      DateTime @default(now())
 
   @@index([deviceId])
+  @@index([activationCode])
   @@index([createdAt])
 }
 

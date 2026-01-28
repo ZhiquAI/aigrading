@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Cpu, CheckCircle2, Circle, FileEdit, Zap, Brain, Lightbulb, Sun, Moon, Monitor, Trash2, Shield, Cloud, Server, RefreshCw, ChevronRight, ChevronDown, Wifi, WifiOff, Key, Eye, EyeOff } from 'lucide-react';
-import { GradingStrategy, testConnection } from '../services/geminiService';
+import { GradingStrategy, testConnection } from '@/services/geminiService';
 import { toast } from './Toast';
-import { useTheme } from '../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { Button } from './ui';
-import { clearAllImages } from '../utils/imageDB';
+import { clearAllImages } from '@/utils/imageDB';
 import PrivacyPolicy from './PrivacyPolicy';
 import MembershipCard from './MembershipCard';
 import ActivationView from './ActivationView';
-import { isProxyMode, setProxyMode } from '../services/proxyService';
-import { getAppConfig, saveAppConfig, PROVIDER_DEFAULTS, MODEL_SUGGESTIONS } from '../services/config-service';
-import { ModelProviderType } from '../types';
-import { useAppStore } from '../stores/useAppStore';
+import { isProxyMode, setProxyMode } from '@/services/proxyService';
+import { getAppConfig, saveAppConfig, PROVIDER_DEFAULTS, MODEL_SUGGESTIONS } from '@/services/config-service';
+import { ModelProviderType } from '@/types';
+import { useAppStore } from '@/stores/useAppStore';
 
 // @ts-ignore - Vite 环境变量
 const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';

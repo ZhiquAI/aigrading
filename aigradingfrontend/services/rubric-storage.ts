@@ -108,22 +108,23 @@ function getDeviceId(): string {
 
 /**
  * 同步到后端（异步，不阻塞）
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 async function syncToBackend(rubric: RubricJSON): Promise<boolean> {
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        console.log('[RubricStorage] No activation code, skip backend sync');
-        return false;
-    }
-
     try {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         const response = await fetch(`${BACKEND_URL}/api/rubric`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
             body: JSON.stringify(rubric),
         });
 
@@ -142,20 +143,21 @@ async function syncToBackend(rubric: RubricJSON): Promise<boolean> {
 
 /**
  * 从后端获取评分细则
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 async function fetchFromBackend(questionId: string): Promise<RubricJSON | null> {
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        console.log('[RubricStorage] No activation code, skip backend fetch');
-        return null;
-    }
-
     try {
+        const headers: Record<string, string> = {
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         const response = await fetch(`${BACKEND_URL}/api/rubric?questionKey=${encodeURIComponent(questionId)}`, {
-            headers: {
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
         });
 
         if (!response.ok) {
@@ -173,20 +175,21 @@ async function fetchFromBackend(questionId: string): Promise<RubricJSON | null> 
 
 /**
  * 从后端获取所有评分细则列表
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 async function fetchListFromBackend(): Promise<RubricListItem[]> {
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        console.log('[RubricStorage] No activation code, skip backend list fetch');
-        return [];
-    }
-
     try {
+        const headers: Record<string, string> = {
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         const response = await fetch(`${BACKEND_URL}/api/rubric`, {
-            headers: {
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
         });
 
         if (!response.ok) {
@@ -352,25 +355,26 @@ export function listRubrics(): RubricListItem[] {
 
 /**
  * 删除评分细则
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 export async function deleteRubric(questionId: string): Promise<void> {
     // 1. 先删本地
     deleteFromLocal(questionId);
 
-    // 2. 后台删后端（需要激活码）
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        console.log('[RubricStorage] No activation code, skip backend delete');
-        return;
-    }
-
+    // 2. 后台删后端
     try {
+        const headers: Record<string, string> = {
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         await fetch(`${BACKEND_URL}/api/rubric?questionKey=${encodeURIComponent(questionId)}`, {
             method: 'DELETE',
-            headers: {
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
         });
     } catch (error) {
         console.error(`[RubricStorage] Delete from backend failed: ${questionId}`, error);

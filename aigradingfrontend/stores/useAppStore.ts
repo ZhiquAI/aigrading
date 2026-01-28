@@ -45,6 +45,7 @@ interface ConfiguredQuestion {
     key: string;
     questionNo: string;
     platform: string;
+    examId?: string | null;
 }
 
 interface AppState {
@@ -70,6 +71,7 @@ interface AppState {
 
     // === 计算属性 ===
     readonly currentQuestionKey: string | null;
+    readonly isOfficial: boolean;
 
     // === V2 界面开关 ===
     showV2: boolean;
@@ -227,7 +229,10 @@ const initialState: AppState = {
     rubricLibrary: [],
     rubricData: {},
     exams: [],
-    activeExamId: null
+    activeExamId: null,
+    get isOfficial() {
+        return this.activationCode !== null && this.quota.isPaid;
+    }
 };
 
 // ==================== Store 创建 ====================
@@ -243,13 +248,27 @@ export const useAppStore = create<AppStore>()(
                 return state.manualQuestionKey || state.detectedQuestionKey;
             },
 
+            get isOfficial() {
+                const state = get();
+                // 暂时简单判断：如果有码且是付费状态
+                return state.activationCode !== null && state.quota.isPaid;
+            },
+
             // === 导航操作 ===
             setActiveTab: (tab) => set({ activeTab: tab, isRubricDrawerOpen: false }),
 
             // === 评分细则操作 ===
             setIsRubricConfigured: (configured) => set({ isRubricConfigured: configured }),
             setRubricContent: (content) => set({ rubricContent: content }),
-            setDetectedQuestionKey: (key) => set({ detectedQuestionKey: key }),
+            setDetectedQuestionKey: (key) => {
+                set({ detectedQuestionKey: key });
+                if (key) {
+                    const state = get() as any;
+                    if (!state.manualQuestionKey) {
+                        state.loadRubricForQuestion(key);
+                    }
+                }
+            },
             setManualQuestionKey: (key) => set({ manualQuestionKey: key }),
             setConfiguredQuestions: (questions) => set({ configuredQuestions: questions }),
             setIsRubricDrawerOpen: (open) => set({ isRubricDrawerOpen: open }),
@@ -270,25 +289,74 @@ export const useAppStore = create<AppStore>()(
                     return;
                 }
 
+                // --- 修复点：提取 examId 以便同步 ---
+                let examId = null;
+                try {
+                    const parsed = JSON.parse(content);
+                    examId = parsed.examId || null;
+                } catch (e) {
+                    console.warn('[AppStore] Failed to parse rubric content to extract examId');
+                }
+
                 const storageKey = qk ? `app_rubric_content:${qk}` : 'app_rubric_content';
                 await storage.setItem(storageKey, content);
 
-                set({
-                    rubricContent: content,
-                    isRubricConfigured: true,
-                    isRubricDrawerOpen: false,
-                    ...(qk ? { manualQuestionKey: qk } : {})
+                set((state: any) => {
+                    const parsedContent = JSON.parse(content);
+                    const newRubricData = {
+                        ...state.rubricData,
+                        ...(qk ? { [qk]: parsedContent } : {})
+                    };
+
+                    const existsInLibrary = state.rubricLibrary.some((item: any) => item.id === qk);
+                    let newRubricLibrary;
+
+                    if (existsInLibrary) {
+                        newRubricLibrary = state.rubricLibrary.map((item: any) =>
+                            item.id === qk
+                                ? { 
+                                    ...item, 
+                                    examId: examId, 
+                                    alias: parsedContent.title || item.alias,
+                                    keywords: parsedContent.answerPoints ? 
+                                        (Array.from(new Set(parsedContent.answerPoints.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5) : 
+                                        item.keywords
+                                  }
+                                : item
+                        );
+                    } else {
+                        newRubricLibrary = [
+                            ...state.rubricLibrary,
+                            {
+                                id: qk,
+                                questionNo: parsedContent.questionId || qk.split(':').pop(),
+                                alias: parsedContent.title || '未命名',
+                                keywords: [],
+                                examId: examId,
+                                isActive: true
+                            }
+                        ];
+                    }
+
+                    return {
+                        rubricContent: content,
+                        isRubricConfigured: true,
+                        isRubricDrawerOpen: false,
+                        ...(qk ? { manualQuestionKey: qk } : {}),
+                        rubricData: newRubricData,
+                        rubricLibrary: newRubricLibrary
+                    };
                 });
 
-                console.log('[AppStore] Rubric saved locally:', { storageKey, length: content.length });
+                console.log('[AppStore] Rubric saved locally:', { storageKey, length: content.length, examId });
 
                 // 刷新已配置题目列表
                 (get() as any).loadConfiguredQuestions();
 
-                // 异步同步到后端（不阻塞 UI）
-                if (qk) {
+                // 异步同步到后端（不阻塞 UI）- 仅正式会员
+                if (qk && state.isOfficial) {
                     import('../services/proxyService').then(({ saveRubricToServer }) => {
-                        saveRubricToServer(qk, content).catch(err => {
+                        saveRubricToServer(qk, content, examId).catch(err => {
                             console.warn('[AppStore] 后端同步失败，仅保存本地:', err);
                         });
                     });
@@ -301,36 +369,54 @@ export const useAppStore = create<AppStore>()(
                     return;
                 }
 
+                const state = get() as any;
                 const storageKey = `app_rubric_content:${questionKey}`;
 
-                // 1. 先从本地加载（快速响应）
-                const localRubric = await storage.getItem(storageKey);
+                // --- 优化点：缓存优先，消除闪烁 ---
+                // 1. 检查内存缓存
+                if (state.rubricData && state.rubricData[questionKey]) {
+                    const cached = state.rubricData[questionKey];
+                    const content = typeof cached === 'string' ? cached : JSON.stringify(cached, null, 2);
+                    set({ rubricContent: content, isRubricConfigured: true });
+                    console.log('[AppStore] Rubric loaded from memory cache:', { questionKey });
+                    return;
+                }
 
+                // 2. 本地加载
+                const localRubric = await storage.getItem(storageKey);
                 if (localRubric && localRubric.trim()) {
-                    set({ rubricContent: localRubric, isRubricConfigured: true });
+                    set({
+                        rubricContent: localRubric,
+                        isRubricConfigured: true,
+                        // 同步到内存缓存
+                        rubricData: { ...state.rubricData, [questionKey]: JSON.parse(localRubric) }
+                    });
                     console.log('[AppStore] Rubric loaded from local:', { storageKey });
                     return;
                 }
 
-                // 2. 本地没有，尝试从后端加载
-                try {
-                    const { loadRubricFromServer } = await import('../services/proxyService');
-                    const serverRubric = await loadRubricFromServer(questionKey);
+                // 3. 后端加载
+                if (state.isOfficial) {
+                    try {
+                        const { loadRubricFromServer } = await import('../services/proxyService');
+                        const serverRubric = await loadRubricFromServer(questionKey);
 
-                    if (serverRubric && serverRubric.trim()) {
-                        // 缓存到本地
-                        await storage.setItem(storageKey, serverRubric);
-                        set({ rubricContent: serverRubric, isRubricConfigured: true });
-                        console.log('[AppStore] Rubric loaded from server and cached:', { storageKey });
-                        return;
+                        if (serverRubric && serverRubric.trim()) {
+                            await storage.setItem(storageKey, serverRubric);
+                            set({
+                                rubricContent: serverRubric,
+                                isRubricConfigured: true,
+                                rubricData: { ...state.rubricData, [questionKey]: JSON.parse(serverRubric) }
+                            });
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('[AppStore] 从后端加载评分细则失败:', err);
                     }
-                } catch (err) {
-                    console.warn('[AppStore] 从后端加载评分细则失败:', err);
                 }
 
-                // 3. 本地和后端都没有
+                // 4. 全部落空才重置
                 set({ rubricContent: '', isRubricConfigured: false });
-                console.log('[AppStore] No rubric found:', { storageKey });
             },
 
             loadConfiguredQuestions: async () => {
@@ -349,7 +435,43 @@ export const useAppStore = create<AppStore>()(
                                     const parts = key.replace('app_rubric_content:', '').split(':');
                                     const platform = parts[0] || '未知';
                                     const questionNo = parts[parts.length - 1] || '未知';
-                                    localQuestions.push({ key, questionNo, platform });
+
+                                    // 尝试从内容中提取 examId
+                                    let examId = null;
+                                    try {
+                                        const parsed = JSON.parse(value);
+                                        examId = parsed.examId || (parsed as any).activeExamId || null;
+                                    } catch (e) {
+                                        // 容放：如果解析失败，尝试从现有的库中保留状态
+                                        const existing = (get() as any).rubricLibrary?.find((i: any) => i.id === key.replace('app_rubric_content:', ''));
+                                        examId = existing?.examId || null;
+                                    }
+
+                                    localQuestions.push({ key, questionNo, platform, examId });
+                                }
+                            }
+                        }
+                    } else {
+                        // Fallback for localStorage (development environment)
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (key && key.startsWith('app_rubric_content:')) {
+                                const value = localStorage.getItem(key);
+                                if (typeof value === 'string' && value.trim()) {
+                                    const parts = key.replace('app_rubric_content:', '').split(':');
+                                    const platform = parts[0] || '未知';
+                                    const questionNo = parts[parts.length - 1] || '未知';
+
+                                    let examId = null;
+                                    try {
+                                        const parsed = JSON.parse(value);
+                                        examId = parsed.examId || (parsed as any).activeExamId || null;
+                                    } catch (e) {
+                                        const existing = (get() as any).rubricLibrary?.find((i: any) => i.id === key.replace('app_rubric_content:', ''));
+                                        examId = existing?.examId || null;
+                                    }
+
+                                    localQuestions.push({ key, questionNo, platform, examId });
                                 }
                             }
                         }
@@ -366,13 +488,8 @@ export const useAppStore = create<AppStore>()(
                             const parts = r.questionKey.split(':');
                             const platform = parts[0] || '未知';
                             const questionNo = parts[parts.length - 1] || '未知';
-                            return { key, questionNo, platform };
+                            return { key, questionNo, platform, examId: r.examId };
                         });
-
-                        // 3. 将后端有但本地没有的数据同步到本地（可选，为了离线访问）
-                        // 注意：这里只缓存了元数据id，内容需要懒加载
-                        // 实际上，如果想完全同步，应该把内容也写进去。
-                        // 但为了性能，这里我们只更新列表，点击时通过 loadRubricForQuestion 加载内容
                     } catch (err) {
                         console.warn('[AppStore] Failed to load from server:', err);
                     }
@@ -380,13 +497,16 @@ export const useAppStore = create<AppStore>()(
                     // 4. 合并并去重
                     const questionMap = new Map<string, ConfiguredQuestion>();
 
-                    // 先放本地
-                    localQuestions.forEach(q => questionMap.set(q.key, q));
+                    serverQuestions.forEach(q => questionMap.set(q.key, q));
 
-                    // 再放后端
-                    serverQuestions.forEach(q => {
+                    localQuestions.forEach(q => {
                         if (!questionMap.has(q.key)) {
                             questionMap.set(q.key, q);
+                        } else {
+                            const existing = questionMap.get(q.key)!;
+                            if (!existing.examId && q.examId) {
+                                existing.examId = q.examId;
+                            }
                         }
                     });
 
@@ -406,11 +526,18 @@ export const useAppStore = create<AppStore>()(
 
                         // 优先从 rubricData 中提取最新的元数据
                         if (storedData) {
-                            if (storedData.alias) alias = storedData.alias;
+                            // --- 适配 v2.0 格式 ---
+                            if (storedData.title) alias = storedData.title; // v2.0 使用 title 作为别名
+                            else if (storedData.alias) alias = storedData.alias; // 兼容旧版
+
+                            // 提取关键词
                             if (Array.isArray(storedData.anchorKeywords) && storedData.anchorKeywords.length > 0) {
                                 keywords = storedData.anchorKeywords;
+                            } else if (Array.isArray(storedData.answerPoints)) {
+                                // v2.0 格式：从 answerPoints 提取
+                                keywords = (Array.from(new Set(storedData.answerPoints.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5);
                             } else if (Array.isArray(storedData.points)) {
-                                // 如果锚点关键词为空，从前几个采分点提取关键词作为摘要
+                                // 兼容旧版格式
                                 keywords = (Array.from(new Set(storedData.points.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5);
                             }
                         }
@@ -420,7 +547,8 @@ export const useAppStore = create<AppStore>()(
                             questionNo: q.questionNo,
                             alias,
                             keywords,
-                            isActive: q.key.includes((get() as any).manualQuestionKey || '')
+                            examId: q.examId || (storedData as any)?.examId || null,
+                            isActive: qk === ((get() as any).manualQuestionKey || (get() as any).detectedQuestionKey)
                         };
                     });
 
@@ -433,16 +561,18 @@ export const useAppStore = create<AppStore>()(
 
             createRubricQuestion: (params) => {
                 const id = `manual:${params.questionNo}`;
+                const activeExamId = (get() as any).activeExamId;
                 const newRubric = {
                     id,
                     questionNo: params.questionNo,
                     alias: params.alias,
                     keywords: [],
+                    examId: activeExamId,
                     isActive: true
                 };
 
                 set((state) => ({
-                    rubricLibrary: [...state.rubricLibrary, newRubric],
+                    rubricLibrary: [...state.rubricLibrary.filter(r => r.id !== id), newRubric],
                     manualQuestionKey: id,
                     isRubricConfigured: false,
                     rubricContent: ''
@@ -555,21 +685,72 @@ export const useAppStore = create<AppStore>()(
 
             // === 考试管理操作实现 ===
             loadExams: async () => {
+                // 如果不是正式会员，仅使用本地数据，不从服务器加载
+                if (!(get() as any).isOfficial) {
+                    return;
+                }
+
                 const { getExams } = await import('../services/proxyService');
                 const exams = await getExams();
-                set({ exams });
+                // 简单的合并策略：如果服务器返回了数据，则覆盖；否则保留本地（防止断网清空）
+                if (exams && exams.length > 0) {
+                    set({ exams });
+                }
             },
 
             createExamAction: async (params) => {
-                const { createExam } = await import('../services/proxyService');
-                const exam = await createExam(params);
-                if (exam) {
-                    set(state => ({ exams: [exam, ...state.exams] }));
+                const state = get() as any;
+
+                // 1. 试用会员：仅本地创建
+                if (!state.isOfficial) {
+                    const newExam = {
+                        id: `local_exam_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        name: params.name || '未命名考试',
+                        date: params.date || new Date().toISOString(),
+                        subject: params.subject || '',
+                        grade: params.grade || '',
+                        description: params.description || '',
+                        updatedAt: new Date().toISOString()
+                    };
+                    set(state => ({ exams: [newExam, ...state.exams] }));
+                    return newExam;
                 }
-                return exam;
+
+                // 2. 正式会员：调用后端
+                try {
+                    const { createExam } = await import('../services/proxyService');
+                    const exam = await createExam(params);
+                    if (exam) {
+                        set(state => ({ exams: [exam, ...state.exams] }));
+                    }
+                    return exam;
+                } catch (e: any) {
+                    // 如果是网络错误，也可以考虑降级为本地创建并标记未同步（后续优化）
+                    throw e; // 暂时抛出，让 UI 处理报错
+                }
             },
 
             updateExamAction: async (id, params) => {
+                const state = get() as any;
+
+                // 1. 试用会员或本地考试：本地更新
+                if (!state.isOfficial || id.startsWith('local_')) {
+                    const updatedExam = {
+                        ...state.exams.find((e: any) => e.id === id),
+                        ...params,
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    // 确保对象存在
+                    if (!updatedExam.id) return null;
+
+                    set(state => ({
+                        exams: state.exams.map(e => e.id === id ? updatedExam : e)
+                    }));
+                    return updatedExam;
+                }
+
+                // 2. 正式会员且是服务端ID：调用后端
                 const { updateExam } = await import('../services/proxyService');
                 const exam = await updateExam(id, params);
                 if (exam) {
@@ -581,6 +762,18 @@ export const useAppStore = create<AppStore>()(
             },
 
             deleteExamAction: async (id) => {
+                const state = get() as any;
+
+                // 1. 试用会员或本地考试：本地删除
+                if (!state.isOfficial || id.startsWith('local_')) {
+                    set(state => ({
+                        exams: state.exams.filter(e => e.id !== id),
+                        activeExamId: state.activeExamId === id ? null : state.activeExamId
+                    }));
+                    return true;
+                }
+
+                // 2. 正式会员：调用后端
                 const { deleteExam } = await import('../services/proxyService');
                 const success = await deleteExam(id);
                 if (success) {

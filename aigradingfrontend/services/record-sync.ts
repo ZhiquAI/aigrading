@@ -47,10 +47,11 @@ function getDeviceId(): string {
 }
 
 /**
- * 检查是否可以同步（需要激活码）
+ * 检查是否可以同步（支持设备 ID 回退）
  */
 export function canSync(): boolean {
-    return !!getActivationCode();
+    // 有激活码或设备ID都可以同步
+    return !!getActivationCode() || !!getDeviceId();
 }
 
 // ==================== 后端 API ====================
@@ -84,6 +85,7 @@ export interface FetchRecordsResponse {
 
 /**
  * 从后端获取批改记录
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 export async function fetchRecordsFromServer(options?: {
     page?: number;
@@ -91,11 +93,6 @@ export async function fetchRecordsFromServer(options?: {
     questionNo?: string;
     questionKey?: string;
 }): Promise<FetchRecordsResponse> {
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        return { success: false, message: '未激活，无法同步' };
-    }
-
     try {
         const params = new URLSearchParams();
         if (options?.page) params.append('page', String(options.page));
@@ -105,12 +102,18 @@ export async function fetchRecordsFromServer(options?: {
 
         const url = `${API_BASE_URL}/api/sync/records${params.toString() ? `?${params}` : ''}`;
 
+        const headers: Record<string, string> = {
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         const response = await fetch(url, {
             method: 'GET',
-            headers: {
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
         });
 
         if (!response.ok) {
@@ -134,6 +137,7 @@ export async function fetchRecordsFromServer(options?: {
 
 /**
  * 上传批改记录到后端
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 export async function uploadRecordsToServer(
     records: Array<{
@@ -148,23 +152,24 @@ export async function uploadRecordsToServer(
         breakdown?: unknown;
     }>
 ): Promise<{ success: boolean; created?: number; message?: string }> {
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        return { success: false, message: '未激活，无法同步' };
-    }
-
     if (!records || records.length === 0) {
         return { success: true, created: 0 };
     }
 
     try {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/sync/records`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
             body: JSON.stringify({ records }),
         });
 
@@ -190,27 +195,29 @@ export async function uploadRecordsToServer(
 
 /**
  * 删除后端记录
+ * 支持设备 ID 回退机制：后端会使用 device:${deviceId} 作为标识符
  */
 export async function deleteRecordFromServer(
     options: { id?: string; questionNo?: string; questionKey?: string }
 ): Promise<{ success: boolean; message?: string }> {
-    const activationCode = getActivationCode();
-    if (!activationCode) {
-        return { success: false, message: '未激活，无法删除' };
-    }
-
     try {
         const params = new URLSearchParams();
         if (options.id) params.append('id', options.id);
         if (options.questionNo) params.append('questionNo', options.questionNo);
         if (options.questionKey) params.append('questionKey', options.questionKey);
 
+        const headers: Record<string, string> = {
+            'x-device-id': getDeviceId(),
+        };
+
+        const activationCode = getActivationCode();
+        if (activationCode) {
+            headers['x-activation-code'] = activationCode;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/sync/records?${params}`, {
             method: 'DELETE',
-            headers: {
-                'x-activation-code': activationCode,
-                'x-device-id': getDeviceId(),
-            },
+            headers,
         });
 
         if (!response.ok) {
@@ -271,6 +278,7 @@ export type RecordSyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
 /**
  * 执行完整同步（拉取 + 推送）
+ * 支持设备 ID 回退机制
  */
 export async function syncRecords(options?: {
     onStatusChange?: (status: RecordSyncStatus, message?: string) => void;
@@ -278,7 +286,7 @@ export async function syncRecords(options?: {
     const { onStatusChange } = options || {};
 
     if (!canSync()) {
-        return { success: false, message: '未激活，无法同步' };
+        return { success: false, message: '无法同步：需要设备 ID 或激活码' };
     }
 
     onStatusChange?.('syncing', '正在同步记录…');

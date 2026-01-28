@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Frown, RefreshCw, Download, X, ChevronDown, Trash2, Sparkles } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from './Toast';
+import { syncRecords, getLocalRecords, saveLocalRecords, deleteRecordFromServer, getLastSyncTime, RecordSyncStatus } from '@/services/record-sync';
+import { useAppStore } from '@/stores/useAppStore';
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 
 
 interface HistoryRecord {
@@ -25,17 +29,37 @@ const HistoryView: React.FC = () => {
     const [showHidden, setShowHidden] = useState(false); // 是否显示已隐藏/清除的记录
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = React.useRef<HTMLDivElement>(null);
-    const listContainerRef = useRef<HTMLDivElement>(null); // 虚拟滚动容器引用
+    const listContainerRef = useRef<HTMLDivElement>(null);
+
+    // 同步相关状态
+    const { isOfficial } = useAppStore();
+    const [syncStatus, setSyncStatus] = useState<RecordSyncStatus>('idle');
+    const [lastSyncTime, setLastSyncTime] = useState<string | null>(getLastSyncTime());
+    const [syncMessage, setSyncMessage] = useState<string>('');
 
     // 加载历史记录
     const loadHistory = async (): Promise<HistoryRecord[]> => {
         try {
-            if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-                const wrap = await chrome.storage.local.get(['grading_history']);
-                return Array.isArray(wrap?.grading_history) ? wrap.grading_history : [];
+            // 优先从统一的新 Key 加载
+            let records = getLocalRecords() as any as HistoryRecord[];
+
+            // 如果新 Key 没数据，尝试从旧 Key 迁移
+            if (records.length === 0) {
+                const oldSaved = localStorage.getItem('grading_history');
+                if (oldSaved) {
+                    try {
+                        const oldRecords = JSON.parse(oldSaved);
+                        if (Array.isArray(oldRecords) && oldRecords.length > 0) {
+                            console.log('[History] Migrating records from grading_history to grading_records_v2');
+                            records = oldRecords;
+                            saveLocalRecords(records as any);
+                        }
+                    } catch (e) {
+                        console.warn('[History] Migration failed:', e);
+                    }
+                }
             }
-            const saved = localStorage.getItem('grading_history');
-            return saved ? JSON.parse(saved) : [];
+            return records;
         } catch (e) {
             return [];
         }
@@ -43,33 +67,49 @@ const HistoryView: React.FC = () => {
 
     const saveHistory = async (newHistory: HistoryRecord[]) => {
         setHistory(newHistory);
-        try {
-            if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-                await chrome.storage.local.set({ grading_history: newHistory });
+        saveLocalRecords(newHistory as any);
+    };
+
+    // 执行手动同步
+    const handleSync = async () => {
+        if (!isOfficial) return;
+        const result = await syncRecords({
+            onStatusChange: (status, msg) => {
+                setSyncStatus(status);
+                if (msg) setSyncMessage(msg);
+                if (status === 'success') {
+                    setLastSyncTime(getLastSyncTime());
+                    load(); // 同步成功后重新加载
+                }
             }
-            localStorage.setItem('grading_history', JSON.stringify(newHistory));
-        } catch (e) {
-            console.error("Save history failed:", e);
+        });
+        if (!result.success) {
+            toast.error(result.message || '同步失败');
+        }
+    };
+
+    const load = async () => {
+        setIsLoading(true);
+        const data = await loadHistory();
+        setHistory(data);
+        setIsLoading(false);
+
+        // 默认选中第一个题目（如果有）
+        if (data.length > 0 && !selectedQuestion) {
+            const firstKey = data[0].questionKey || data[0].questionNo || '';
+            if (firstKey) {
+                setSelectedQuestion(firstKey);
+            }
         }
     };
 
     useEffect(() => {
-        const load = async () => {
-            setIsLoading(true);
-            const data = await loadHistory();
-            setHistory(data);
-            setIsLoading(false);
-
-            // 默认选中第一个题目（如果有）
-            if (data.length > 0) {
-                const firstKey = data[0].questionKey || data[0].questionNo || '';
-                if (firstKey) {
-                    setSelectedQuestion(firstKey);
-                }
-            }
-        };
         load();
-    }, []);
+        // 如果是正式会员，进页面自动同步一次
+        if (isOfficial) {
+            handleSync();
+        }
+    }, [isOfficial]);
 
     // 点击外部关闭下拉菜单
     React.useEffect(() => {
@@ -297,6 +337,15 @@ const HistoryView: React.FC = () => {
         }
 
         await saveHistory(newHistory);
+
+        // 如果是正式版，同步删除云端记录
+        if (isOfficial) {
+            if (questionKey === '__uncategorized__') {
+                // 未分类记录删除不支持批量（需要循环或后端支持，暂时静默）
+            } else {
+                deleteRecordFromServer({ questionKey });
+            }
+        }
 
         // 如果删除的是当前选中的题目,切换到第一个剩余题目
         if (selectedQuestion === questionKey) {
@@ -535,11 +584,46 @@ const HistoryView: React.FC = () => {
                     <button
                         onClick={handleExport}
                         className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium transition-colors"
-                        title="导出当前题目完整记录（包含所有重复）"
+                        title="导出当前题目完整记录"
                     >
                         <Download className="w-4 h-4" />
                     </button>
+
+                    {/* 正式会员同步按钮 */}
+                    {isOfficial && (
+                        <button
+                            onClick={handleSync}
+                            disabled={syncStatus === 'syncing'}
+                            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg border text-white font-bold text-xs transition-all shadow-sm ${syncStatus === 'syncing'
+                                ? 'bg-blue-400 cursor-not-allowed animate-pulse'
+                                : 'bg-blue-600 hover:bg-blue-700 active:scale-95 border-blue-500'
+                                }`}
+                            title={lastSyncTime ? `上次同步: ${new Date(lastSyncTime).toLocaleString()}` : "立即同步云端记录"}
+                        >
+                            <RefreshCw className={`w-4 h-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                            {syncStatus === 'syncing' ? '正在同步' : '同步'}
+                        </button>
+                    )}
                 </div>
+
+                {/* 同步状态展示（正式版） */}
+                {isOfficial && (syncStatus !== 'idle' || lastSyncTime) && (
+                    <div className="mt-2 flex items-center justify-between px-1">
+                        <div className="flex items-center gap-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'success' ? 'bg-green-500' : syncStatus === 'error' ? 'bg-red-500' : 'bg-blue-500 animate-pulse'}`}></div>
+                            <span className="text-[10px] text-gray-500">
+                                {syncStatus === 'syncing' ? syncMessage :
+                                    syncStatus === 'success' ? '云端同步已完成' :
+                                        syncStatus === 'error' ? '同步失败，请重试' : '云端同步已就绪'}
+                            </span>
+                        </div>
+                        {lastSyncTime && syncStatus !== 'syncing' && (
+                            <span className="text-[9px] text-gray-400 italic">
+                                上次 {format(new Date(lastSyncTime), 'HH:mm', { locale: zhCN })}
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Main Content */}

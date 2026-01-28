@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Loader2, CheckCircle2, AlertCircle, XCircle, Clock, Wifi } from 'lucide-react';
-import { StatusIndicator } from '../ui/StatusIndicator';
+import { StatusIndicator } from '@/components/ui/StatusIndicator';
 
 export type StatusType = 'idle' | 'loading' | 'success' | 'error' | 'warning' | 'scanning';
 

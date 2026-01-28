@@ -5,15 +5,16 @@ import {
     Pause, RotateCcw, PenTool, LayoutTemplate, Bug, MousePointerClick, Bot,
     Settings as SettingsIcon, RefreshCw, Loader
 } from 'lucide-react';
-import { assessStudentAnswer, generateRubricFromImages, GradingStrategy, getAppConfig } from '../services/geminiService';
-import { gradeStudentAnswerStream } from '../services/grading-stream';
-import { isProxyMode, gradeWithProxy } from '../services/proxyService';
-import { useTheme } from '../hooks/useTheme';
+import { assessStudentAnswer, generateRubricFromImages, GradingStrategy, getAppConfig } from '@/services/geminiService';
+import { gradeStudentAnswerStream } from '@/services/grading-stream';
+import { isProxyMode, gradeWithProxy } from '@/services/proxyService';
+import { useTheme } from '@/hooks/useTheme';
 import AutoRubricModal from './AutoRubricModal';
 import { StatusIndicator } from './ui/StatusIndicator';
 import { toast } from './Toast';
 import { Button } from './ui';
 import RubricLibrary from './RubricLibrary';
+import { addLocalRecord } from '@/services/record-sync';
 
 // @ts-ignore - Vite 环境变量
 const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://localhost:3000';
@@ -741,7 +742,7 @@ const GradingView: React.FC<GradingViewProps> = ({
             });
         }
 
-        // 2. Save History
+        // 2. Save History (Unify storage key using record-sync)
         const histItem = {
             ...resultToSave,
             score,
@@ -751,18 +752,11 @@ const GradingView: React.FC<GradingViewProps> = ({
         };
 
         try {
-            const raw = localStorage.getItem('grading_history');
-            const list = raw ? JSON.parse(raw) : [];
-            list.unshift(histItem);
-            if (list.length > 500) list.pop();
-            localStorage.setItem('grading_history', JSON.stringify(list));
+            // 使用统一的 record-sync 服务保存，这会同步更新 localStorage['grading_records_v2']
+            addLocalRecord(histItem as any);
 
             // 标记用户已使用过批改（用于首次使用检查）
             localStorage.setItem('has_graded_before', 'true');
-
-            if (chrome.storage?.local) {
-                chrome.storage.local.set({ grading_history: list });
-            }
         } catch (e) { console.error(e); }
     };
 

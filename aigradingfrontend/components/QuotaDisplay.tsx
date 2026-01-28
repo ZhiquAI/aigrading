@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { checkQuota } from '../services/cloudbaseService';
-import { getDeviceId } from '../utils/device';
+import { checkQuota } from '@/services/cloudbaseService';
+import { getDeviceId } from '@/utils/device';
 
 interface QuotaDisplayProps {
     onPurchaseClick?: () => void;

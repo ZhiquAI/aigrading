@@ -93,15 +93,130 @@ npm run build               # Build extension to /dist
 - **AI Service**: Use the defined services in `lib/` (e.g., `gpt.ts`) instead of calling APIs directly in components.
 - **Environment Variables**: Store sensitive keys (API Keys, DB URL) in `.env`.
 
-## 6. Current Development Phase
-- **Status**: Backend v0.1.0, Frontend v0.0.0.
-- **Active Tasks**:
-    - **Phase 1**: Security hardening (JWT refresh, Rate limiting).
-    - **Phase 2**: Grading records enhancement (Syncing via Activation Code).
-    - **Integration**: "CherryIN" API platform integration for cost optimization.
+## 6. Device-ID Fallback Mechanism
 
-## 7. Key Configuration Files
-- `aigradingbackend/.env`: Backend environment variables.
-- `aigradingbackend/prisma/schema.prisma`: Database schema definition.
-- `aigradingfrontend/vite.config.ts`: Frontend build config.
-- `backend_development_plan.md`: Detailed roadmap and architectural decisions.
+**Critical Architecture Pattern**: The system implements a "device-id fallback" mechanism for user identification:
+
+### Identifier Priority
+1. **Activation Code** (`x-activation-code` header) - Primary identifier for cross-device sync
+2. **Device ID** (`x-device-id` header) - Fallback for anonymous/trial users
+
+### Implementation
+- Backend APIs accept either identifier via `getUserIdentifier()` helper function
+- When no activation code is provided, the system uses `device:${deviceId}` as the identifier
+- Both user types are stored in the same database tables, differentiated by identifier format
+
+### User Types
+| User Type | Identifier Format | Cross-Device Sync | Quota Management |
+|-----------|------------------|-------------------|-----------------|
+| Activated | `ACTIVATION-CODE` | ✅ Yes | Server-side (activation codes) |
+| Anonymous | `device:DEVICE_ID` | ❌ No | Device-local (localStorage) |
+
+## 7. Data Model Hierarchy
+
+The system uses a hierarchical structure for organizing grading content:
+
+```
+Exam (考试)
+  └── DeviceRubric (评分细则) - linked via examId
+      └── GradingRecord (批改记录) - linked via questionKey
+```
+
+### Key Design Principles
+- **Exams as Containers**: Exams serve as folders/categories for organizing rubrics
+- **User Workflow**: Select exam → Configure rubrics → Grade papers
+- **Navigation Flow**: `exams` → `questions` → `detail` → `point_editor` → `question_settings`
+
+## 8. RubricJSON v2 Format
+
+Rubrics are stored using a structured JSON schema:
+
+```typescript
+interface RubricJSON {
+  version: "2.0";
+  questionId: string;
+  title: string;
+  totalScore: number;
+  scoringStrategy: {
+    type: 'pick_n' | 'all' | 'weighted';
+    maxPoints?: number;
+    pointValue?: number;
+    allowAlternative: boolean;
+    strictMode: boolean;
+  };
+  answerPoints: Array<{
+    id: string;
+    content: string;
+    keywords: string[];
+    score: number;
+  }>;
+  gradingNotes: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## 9. Frontend State Management
+
+### Zustand Store (`useAppStore.ts`)
+- Centralized state with persistence to localStorage
+- Manages: exams, rubrics, activation code, quota, history records
+- Computed property: `currentQuestionKey = manualQuestionKey || detectedQuestionKey`
+
+### View Stack Pattern (`RubricDrawer.tsx`)
+Navigation implemented using a stack array:
+```typescript
+const [viewStack, setViewStack] = useState<View[]>(['exams']);
+
+// Push new view
+pushView('questions');
+
+// Pop to previous
+popView();
+
+// Current view determines rendering
+const currentView = viewStack[viewStack.length - 1];
+```
+
+## 10. Key API Endpoints
+
+### Exams API
+- `GET /api/exams` - List exams (filtered by user identifier)
+- `POST /api/exams` - Create new exam
+- `PUT /api/exams/[id]` - Update exam
+- `DELETE /api/exams/[id]` - Delete exam (sets rubrics' examId to null)
+
+### Rubric API
+- `GET /api/rubric` - List rubrics (with optional examId filter)
+- `POST /api/rubric` - Save rubric (supports conflict detection, returns 409 on conflict)
+- `DELETE /api/rubric?questionKey=X` - Delete rubric
+
+### AI Grading API
+- `POST /api/ai/grade` - Grade answer image with rubric
+  - Headers: `x-activation-code` (optional), `x-device-id`
+  - Body: `imageBase64`, `rubric`, `studentName`, `questionNo`
+
+## 11. Current Development Phase
+- **Status**: Backend v0.1.0, Frontend v0.0.0.
+- **Recent Updates**:
+    - ✅ Device-ID fallback mechanism implemented
+    - ✅ Exam-rubric hierarchy navigation complete
+    - ✅ Full CRUD for exams and rubrics (anonymous and activated users)
+- **Active Tasks**:
+    - **Phase 1**: Security hardening (JWT refresh, Rate limiting)
+    - **Phase 2**: Grading records enhancement (syncing via activation code)
+    - **Integration**: "CherryIN" API platform integration for cost optimization
+
+## 12. Key Configuration Files
+- `aigradingbackend/.env`: Backend environment variables
+- `aigradingbackend/prisma/schema.prisma`: Database schema definition
+- `aigradingfrontend/vite.config.ts`: Frontend build config
+- `backend_development_plan.md`: Detailed roadmap and architectural decisions
+- `CLAUDE.md`: Claude Code AI assistant context file
+
+## 13. Test Activation Codes
+After running `npx tsx prisma/seed.ts`:
+- `TEST-1111-2222-3333` - Trial (300 uses, one-time)
+- `BASIC-AAAA-BBBB-CCCC` - Basic (1000 uses, reusable)
+- `PRO-XXXX-YYYY-ZZZZ` - Pro (3000 uses, reusable)
+- `PERM-AAAA-BBBB-CCCC` - Permanent (999999 uses, reusable)

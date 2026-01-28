@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Check, Plus, Upload, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from './ui';
-import { storage } from '../utils/storage';
+import { storage } from '@/utils/storage';
 
 interface RubricItem {
     key: string;          // 存储 key，如 "app_rubric_content:zhixue:xxx:18"

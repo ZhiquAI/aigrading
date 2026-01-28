@@ -25,15 +25,15 @@ const App: React.FC = () => {
     setShowOnboarding(shouldShowOnboarding());
   }, []);
 
-  // 刷新使用额度（提取为可复用函数）
+  // 刷新使用额度（从 store 获取统一逻辑）
+  const { syncQuota } = useAppStore();
   const refreshUsageInfo = useCallback(async () => {
     try {
-      const info = await fetchUsageFromBackend();
-      // 此处V2已集成，暂不处理
+      await syncQuota();
     } catch {
-      // 后端获取失败时保持默认值
+      // 保持静默
     }
-  }, []);
+  }, [syncQuota]);
 
   // 从后端获取全局使用额度
   useEffect(() => {

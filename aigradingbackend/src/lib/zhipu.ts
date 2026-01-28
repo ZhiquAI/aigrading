@@ -14,7 +14,7 @@ const ZHIPU_API_KEY = process.env.ZHIPU_API_KEY || '';
  */
 function generateZhipuToken(): string {
     if (!ZHIPU_API_KEY || !ZHIPU_API_KEY.includes('.')) {
-        throw new Error('智谱 API Key 格式不正确，应为 {id}.{secret}');
+        throw new Error('智谱 API Key 未配置，应为 {id}.{secret}');
     }
 
     const [apiKeyId, apiKeySecret] = ZHIPU_API_KEY.split('.');
@@ -184,6 +184,68 @@ function parseGradeResult(content: string): GradeResult {
 }
 
 /**
+ * 调用智谱 API 进行评分细则生成
+ */
+export async function generateRubricWithZhipu(
+    systemPrompt: string,
+    userPrompt: string,
+    images: { base64: string; label?: string }[]
+): Promise<string> {
+    if (!ZHIPU_API_KEY) {
+        throw new Error('智谱 API Key 未配置');
+    }
+
+    const content: any[] = [{ type: 'text', text: userPrompt }];
+
+    for (const img of images) {
+        if (img.label) {
+            content.push({ type: 'text', text: img.label });
+        }
+        content.push({
+            type: 'image_url',
+            image_url: {
+                url: img.base64.startsWith('data:')
+                    ? img.base64
+                    : `data:image/jpeg;base64,${img.base64}`
+            }
+        });
+    }
+
+    const requestBody = {
+        model: 'glm-4.7', // 优先使用 4.7
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content }
+        ],
+        temperature: 0.2,
+        max_tokens: 4096
+    };
+
+    try {
+        const token = generateZhipuToken();
+        const response = await fetch(ZHIPU_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`智谱 API 调用失败: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '';
+    } catch (error) {
+        console.error('Zhipu rubric generation error:', error);
+        throw error;
+    }
+}
+
+/**
  * 调用智谱 API 进行批改
  */
 export async function gradeWithZhipu(request: GradeRequest): Promise<GradeResult> {
@@ -195,7 +257,7 @@ export async function gradeWithZhipu(request: GradeRequest): Promise<GradeResult
 
     // 构建请求体
     const requestBody = {
-        model: 'glm-4.6v',
+        model: 'glm-4.7', // 升级到 4.7
         messages: [
             {
                 role: 'user',

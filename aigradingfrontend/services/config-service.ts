@@ -10,9 +10,9 @@ import { encrypt, decrypt, isEncrypted } from '../utils/crypto';
 
 // Default Configuration
 const DEFAULT_CONFIG: AppConfig = {
-    provider: 'google',
-    endpoint: '',
-    modelName: 'gemini-2.0-flash-exp',
+    provider: 'zhipu', // 默认切换到智谱 AI (GLM-4.7)
+    endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    modelName: 'glm-4.7',
     apiKey: ''
 };
 

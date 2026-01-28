@@ -6,9 +6,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, FileJson, Eye, Settings2 } from 'lucide-react';
-import type { RubricJSON, AnswerPoint, ScoringStrategyType } from '../types/rubric';
-import { createEmptyRubric, createEmptyAnswerPoint } from '../types/rubric';
-import { rubricToMarkdown } from '../utils/rubric-converter';
+import type { RubricJSON, AnswerPoint, ScoringStrategyType } from '@/types/rubric';
+import { createEmptyRubric, createEmptyAnswerPoint } from '@/types/rubric';
+import { rubricToMarkdown } from '@/utils/rubric-converter';
 import AnswerPointRow from './AnswerPointRow';
 
 interface RubricFormEditorProps {

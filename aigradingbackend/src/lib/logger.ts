@@ -1,208 +1,79 @@
 /**
- * 结构化日志服务 (Logger)
- * 
- * 功能:
- * - JSON 格式输出
- * - 日志级别控制 (DEBUG/INFO/WARN/ERROR)
- * - 请求追踪 ID
- * - 敏感信息脱敏
- * - 延迟统计
- * 
- * 使用方式:
- * import { logger, createRequestLogger } from '@/lib/logger';
- * 
- * // 简单日志
- * logger.info('User logged in', { userId: '123' });
- * 
- * // 请求级别日志（带追踪ID）
- * const reqLogger = createRequestLogger(request);
- * reqLogger.info('Processing request');
+ * 结构化日志工具
+ * 在开发环境下提供易读的控制台输出，在生产环境下提供 JSON 格式输出
  */
 
 type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 
-interface LogEntry {
-    timestamp: string;
-    level: LogLevel;
+interface LogContext {
+    service?: string;
     traceId?: string;
-    service: string;
-    message: string;
-    data?: Record<string, unknown>;
-    latency?: number;
+    [key: string]: any;
 }
 
-// 日志级别优先级
-const LOG_LEVELS: Record<LogLevel, number> = {
-    DEBUG: 0,
-    INFO: 1,
-    WARN: 2,
-    ERROR: 3
-};
+class Logger {
+    private serviceName: string;
 
-// 默认配置
-const CONFIG = {
-    service: 'ai-grading-backend',
-    minLevel: (process.env.LOG_LEVEL as LogLevel) || 'INFO',
-    sensitiveFields: ['password', 'token', 'apiKey', 'activationCode', 'deviceId']
-};
+    constructor(serviceName: string = 'backend') {
+        this.serviceName = serviceName;
+    }
 
-/**
- * 脱敏处理
- * 将敏感字段的值替换为掩码
- */
-function maskSensitiveData(data: Record<string, unknown>): Record<string, unknown> {
-    const masked: Record<string, unknown> = {};
+    private log(level: LogLevel, message: string, data?: any, context?: LogContext) {
+        const timestamp = new Date().toISOString();
+        const isProduction = process.env.NODE_ENV === 'production';
 
-    for (const [key, value] of Object.entries(data)) {
-        if (CONFIG.sensitiveFields.some(field =>
-            key.toLowerCase().includes(field.toLowerCase())
-        )) {
-            // 脱敏处理
-            if (typeof value === 'string' && value.length > 0) {
-                masked[key] = value.slice(0, 3) + '***' + value.slice(-3);
-            } else {
-                masked[key] = '***';
-            }
-        } else if (typeof value === 'object' && value !== null) {
-            // 递归处理嵌套对象
-            masked[key] = maskSensitiveData(value as Record<string, unknown>);
+        const payload = {
+            timestamp,
+            level,
+            service: context?.service || this.serviceName,
+            traceId: context?.traceId,
+            message,
+            data,
+            ...context
+        };
+
+        if (isProduction) {
+            console.log(JSON.stringify(payload));
         } else {
-            masked[key] = value;
+            const color = level === 'ERROR' ? '\x1b[31m' : level === 'WARN' ? '\x1b[33m' : '\x1b[32m';
+            const reset = '\x1b[0m';
+            console.log(`${color}[${level}]${reset} ${message}`, data ? data : '');
         }
     }
 
-    return masked;
-}
-
-/**
- * 生成追踪 ID
- */
-function generateTraceId(): string {
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * 格式化并输出日志
- */
-function log(level: LogLevel, message: string, data?: Record<string, unknown>, traceId?: string): void {
-    // 检查日志级别
-    if (LOG_LEVELS[level] < LOG_LEVELS[CONFIG.minLevel]) {
-        return;
+    debug(message: string, data?: any, context?: LogContext) {
+        this.log('DEBUG', message, data, context);
     }
 
-    const entry: LogEntry = {
-        timestamp: new Date().toISOString(),
-        level,
-        service: CONFIG.service,
-        message
-    };
-
-    if (traceId) {
-        entry.traceId = traceId;
+    info(message: string, data?: any, context?: LogContext) {
+        this.log('INFO', message, data, context);
     }
 
-    if (data) {
-        entry.data = maskSensitiveData(data);
+    warn(message: string, data?: any, context?: LogContext) {
+        this.log('WARN', message, data, context);
     }
 
-    // JSON 格式输出
-    const output = JSON.stringify(entry);
-
-    switch (level) {
-        case 'ERROR':
-            console.error(output);
-            break;
-        case 'WARN':
-            console.warn(output);
-            break;
-        case 'DEBUG':
-            console.debug(output);
-            break;
-        default:
-            console.log(output);
+    error(message: string, error?: any, context?: LogContext) {
+        const errorData = error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        } : error;
+        this.log('ERROR', message, errorData, context);
     }
 }
 
-/**
- * 全局日志器
- */
-export const logger = {
-    debug: (message: string, data?: Record<string, unknown>) => log('DEBUG', message, data),
-    info: (message: string, data?: Record<string, unknown>) => log('INFO', message, data),
-    warn: (message: string, data?: Record<string, unknown>) => log('WARN', message, data),
-    error: (message: string, data?: Record<string, unknown>) => log('ERROR', message, data)
-};
+export const logger = new Logger();
 
-/**
- * 请求级别日志器
- * 带有追踪 ID 和延迟统计
- */
-export function createRequestLogger(request?: Request) {
-    const traceId = generateTraceId();
-    const startTime = Date.now();
-
-    // 从请求中提取信息
-    const requestInfo: Record<string, unknown> = {};
-    if (request) {
-        requestInfo.method = request.method;
-        requestInfo.url = new URL(request.url).pathname;
-        requestInfo.deviceId = request.headers.get('x-device-id');
-        requestInfo.activationCode = request.headers.get('x-activation-code');
-    }
-
+// 为每个请求创建带上下文的 Logger
+export function createRequestLogger(req: Request | NextRequest) {
+    const traceId = req.headers.get('x-trace-id') || Math.random().toString(36).substring(7);
     return {
-        traceId,
-
-        debug: (message: string, data?: Record<string, unknown>) =>
-            log('DEBUG', message, { ...requestInfo, ...data }, traceId),
-
-        info: (message: string, data?: Record<string, unknown>) =>
-            log('INFO', message, { ...requestInfo, ...data }, traceId),
-
-        warn: (message: string, data?: Record<string, unknown>) =>
-            log('WARN', message, { ...requestInfo, ...data }, traceId),
-
-        error: (message: string, data?: Record<string, unknown>) =>
-            log('ERROR', message, { ...requestInfo, ...data }, traceId),
-
-        /**
-         * 记录请求完成，包含延迟
-         */
-        complete: (message: string, data?: Record<string, unknown>) => {
-            const latency = Date.now() - startTime;
-            log('INFO', message, {
-                ...requestInfo,
-                ...data,
-                latencyMs: latency
-            }, traceId);
-        },
-
-        /**
-         * 获取当前延迟（毫秒）
-         */
-        getLatency: () => Date.now() - startTime
+        info: (msg: string, data?: any) => logger.info(msg, data, { traceId }),
+        warn: (msg: string, data?: any) => logger.warn(msg, data, { traceId }),
+        error: (msg: string, err?: any) => logger.error(msg, err, { traceId }),
+        debug: (msg: string, data?: any) => logger.debug(msg, data, { traceId }),
     };
 }
 
-/**
- * API 日志装饰器（用于包装 API handler）
- */
-export function withLogging<T>(
-    handler: (request: Request, logger: ReturnType<typeof createRequestLogger>) => Promise<T>
-) {
-    return async (request: Request): Promise<T> => {
-        const reqLogger = createRequestLogger(request);
-        reqLogger.info('Request started');
-
-        try {
-            const result = await handler(request, reqLogger);
-            reqLogger.complete('Request completed');
-            return result;
-        } catch (error) {
-            reqLogger.error('Request failed', {
-                error: error instanceof Error ? error.message : String(error)
-            });
-            throw error;
-        }
-    };
-}
+import { NextRequest } from 'next/server';

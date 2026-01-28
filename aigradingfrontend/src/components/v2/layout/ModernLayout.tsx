@@ -18,7 +18,7 @@ import GradingViewV2 from '../views/GradingViewV2';
 import RecordsViewV2 from '../views/RecordsViewV2';
 import AnalysisViewV2 from '../views/AnalysisViewV2';
 import SettingsViewV2 from '../views/SettingsViewV2';
-import ExamsViewV2 from '../views/ExamsViewV2';
+
 import { toast } from '@/components/Toast';
 import ActivationModal from '@/components/ActivationModal';
 import SuccessCelebration from '@/src/components/v2/SuccessCelebration';
@@ -48,28 +48,7 @@ export default function ModernLayout() {
     const [showCelebration, setShowCelebration] = useState(false);
 
     // Connection Monitoring
-    // 监听评分细则未配置的消息
-    useEffect(() => {
-        const handleRubricRequired = (request: any) => {
-            if (request?.type === 'RUBRIC_REQUIRED') {
-                console.log('[ModernLayout] 收到RUBRIC_REQUIRED消息，自动打开评分细则设置');
-                setIsRubricDrawerOpen(true);
-                toast.warning('检测到评分细则未设置，请先配置');
-            }
-        };
-
-        if (typeof chrome !== 'undefined' && chrome.runtime) {
-            chrome.runtime.onMessage.addListener(handleRubricRequired);
-            return () => {
-                try {
-                    chrome.runtime.onMessage.removeListener(handleRubricRequired);
-                } catch (e) {
-                    // 忽略删除监听器的错误
-                }
-            };
-        }
-    }, [setIsRubricDrawerOpen]);
-
+    // Responsive Width Tracking
     useEffect(() => {
         const handleOnline = () => removeTask('system-offline');
         const handleOffline = () => addTask({
@@ -109,7 +88,7 @@ export default function ModernLayout() {
     const getPageTitle = () => {
         switch (activeTab) {
             case Tab.Grading: return '智能阅卷';
-            case Tab.Exams: return '考试管理';
+
             case Tab.History: return '阅卷记录';
             case Tab.Analysis: return '考情分析';
             case Tab.Settings: return '系统设置';
@@ -306,10 +285,7 @@ export default function ModernLayout() {
                     <GradingViewV2 />
                 </div>
 
-                {/* Tab: Exams */}
-                <div className={`page-container ${activeTab === Tab.Exams ? 'flex' : 'hidden'} h-full flex-col`}>
-                    <ExamsViewV2 />
-                </div>
+
 
                 {/* Tab: History */}
                 <div className={`page-container ${activeTab === Tab.History ? 'flex' : 'hidden'} h-full flex-col`}>
@@ -337,13 +313,7 @@ export default function ModernLayout() {
                     label="阅卷"
                     hideLabel={isNarrow}
                 />
-                <NavButton
-                    active={activeTab === Tab.Exams}
-                    onClick={() => setActiveTab(Tab.Exams)}
-                    icon={<MonitorCheck size={22} strokeWidth={activeTab === Tab.Exams ? 2.5 : 2} />}
-                    label="考试"
-                    hideLabel={isNarrow}
-                />
+
                 <NavButton
                     active={activeTab === Tab.History}
                     onClick={() => setActiveTab(Tab.History)}
