@@ -173,17 +173,23 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                 store.createRubricQuestion({ questionNo: newId, alias: '新题目' });
                 console.log('[RubricDrawer] Action dispatched');
 
-                // Initialize local config for the new question
-                setActiveConfig({
-                    id: id,
-                    questionNo: newId,
-                    alias: '新题目',
-                    points: [],
-                    anchorKeywords: [],
-                    examId: activeExamId
-                });
-
-                pushView('editor');
+                // 新题目创建后，需要等待 store 更新完成
+                // 使用 setTimeout 确保 store 中的 currentQuestionKey 已更新
+                setTimeout(() => {
+                    const updatedStore = useAppStore.getState();
+                    if (updatedStore.currentQuestionKey) {
+                        // Initialize local config for the new question
+                        setActiveConfig({
+                            id: updatedStore.currentQuestionKey,
+                            questionNo: newId,
+                            alias: '新题目',
+                            points: [],
+                            anchorKeywords: [],
+                            examId: activeExamId
+                        });
+                        pushView('editor');
+                    }
+                }, 0);
             } catch (e: any) {
                 console.error('[RubricDrawer] Error creating question:', e);
                 // Show exact error message to user
