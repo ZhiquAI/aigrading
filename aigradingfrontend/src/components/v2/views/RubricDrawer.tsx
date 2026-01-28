@@ -76,7 +76,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
         // console.log('[RubricDrawer] addQuestionToLibrary type:', typeof addQuestionToLibrary);
     }, []);
 
-    const [viewStack, setViewStack] = useState<('library' | 'detail' | 'point_editor' | 'question_settings' | 'editor')[]>(['library']);
+    const [viewStack, setViewStack] = useState<('library' | 'detail' | 'question_settings' | 'editor')[]>(['library']);
     const currentView = viewStack[viewStack.length - 1];
 
     const [isVisible, setIsVisible] = useState(false);
@@ -93,6 +93,9 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
     // --- Text Import State ---
     const [showTextImport, setShowTextImport] = useState(false);
     const [rubricTextInput, setRubricTextInput] = useState('');
+
+    // --- Point Editor Modal State ---
+    const [showPointEditor, setShowPointEditor] = useState(false);
 
     // --- Effects ---
     useEffect(() => {
@@ -136,7 +139,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
     }, [currentView, currentQuestionKey, rubricData, rubricLibrary]);
 
     // --- Navigation ---
-    const pushView = (view: 'library' | 'detail' | 'point_editor' | 'question_settings' | 'editor') => setViewStack(p => [...p, view]);
+    const pushView = (view: 'library' | 'detail' | 'question_settings' | 'editor') => setViewStack(p => [...p, view]);
     const popView = () => setViewStack(p => p.length > 1 ? p.slice(0, p.length - 1) : p);
 
     const handleSelectQuestion = (id: string) => {
@@ -196,7 +199,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
     // --- Editor Actions ---
     const handleEditPoint = (point: RubricPoint) => {
         setEditingPoint({ ...point });
-        pushView('point_editor');
+        setShowPointEditor(true);
     };
 
     const handleAddPoint = () => {
@@ -207,7 +210,7 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
             score: 1,
             openEnded: false
         });
-        pushView('point_editor');
+        setShowPointEditor(true);
     };
 
     const handleSavePoint = () => {
@@ -219,7 +222,12 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                 : [...prev.points, editingPoint];
             return { ...prev, points: newPoints };
         });
-        popView();
+        setShowPointEditor(false);
+    };
+
+    const handleClosePointEditor = () => {
+        setShowPointEditor(false);
+        setEditingPoint(null);
     };
 
     const handleDeletePoint = (e: React.MouseEvent, id: string) => {
@@ -675,96 +683,108 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                     </div>
                 </div>
 
-                {/* --- VIEW 3: EDITOR (Form) --- */}
-                <div className={`absolute inset-0 top-6 flex flex-col bg-slate-50 transition-transform duration-300 ${currentView === 'point_editor' ? 'translate-x-0' : 'translate-x-full'}`}>
-                    <header className="h-14 border-b border-slate-100 flex items-center justify-between px-4 shrink-0 bg-white">
-                        <button className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg" onClick={popView}><ArrowLeft className="w-5 h-5" /></button>
-                        <h2 className="font-bold text-slate-800 text-sm">编辑行</h2>
-                        <button onClick={handleSavePoint} className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg shadow-sm">完成</button>
-                    </header>
-                    {editingPoint && (
-                        <div className="p-5 space-y-5 overflow-y-auto flex-1">
-                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">题号 / 标识符</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        value={editingPoint.id}
-                                        onChange={e => setEditingPoint({ ...editingPoint, id: e.target.value })}
-                                        placeholder="例如：15-1-1"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">问题词 (Question Word)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        value={editingPoint.questionSegment || ''}
-                                        onChange={e => setEditingPoint({ ...editingPoint, questionSegment: e.target.value })}
-                                        placeholder="例如：根本原因"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">分值</label>
-                                    <div className="flex gap-3 items-center">
-                                        <button onClick={() => setEditingPoint({ ...editingPoint, score: Math.max(0, editingPoint.score - 0.5) })} className="p-2 border rounded-lg hover:bg-slate-50"><Minus className="w-4 h-4 text-slate-400" /></button>
-                                        <span className="text-xl font-bold text-indigo-600 w-12 text-center">{editingPoint.score}</span>
-                                        <button onClick={() => setEditingPoint({ ...editingPoint, score: editingPoint.score + 0.5 })} className="p-2 border rounded-lg hover:bg-slate-50"><Plus className="w-4 h-4 text-slate-400" /></button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">参考答案 (内容描述)</label>
-                                    <textarea
-                                        className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none h-24 resize-none"
-                                        value={editingPoint.content}
-                                        onChange={e => setEditingPoint({ ...editingPoint, content: e.target.value })}
-                                        placeholder="例如：根本原因：斯图亚特王朝的封建专制..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">扣分/注意事项 (可选)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-amber-700 bg-amber-50/30"
-                                        value={editingPoint.deductionRules || ''}
-                                        onChange={e => setEditingPoint({ ...editingPoint, deductionRules: e.target.value })}
-                                        placeholder="例如：必须提到...否则不得分"
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                <label className="block text-xs font-bold text-slate-700 mb-2">匹配关键词</label>
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    {editingPoint.keywords.map(kw => (
-                                        <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium border border-indigo-100">
-                                            {kw}
-                                            <button onClick={() => removeKeyword(kw)} className="text-indigo-300 hover:text-indigo-600"><X className="w-3 h-3" /></button>
-                                        </span>
-                                    ))}
-                                </div>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"
-                                        placeholder="输入关键词..."
-                                        value={newKeyword}
-                                        onChange={e => setNewKeyword(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && handleAddKeyword()}
-                                    />
-                                    <button onClick={handleAddKeyword} className="px-3 bg-slate-100 text-slate-600 font-bold rounded-lg text-xs hover:bg-slate-200">添加</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
 
                 {isGenerating && (
                     <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-[60] flex flex-col items-center justify-center animate-in fade-in duration-300">
                         <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
                         <h3 className="font-bold text-slate-800">正在解析内容...</h3>
                         <p className="text-xs text-slate-500 mt-2">AI 正在进行结构化分析</p>
+                    </div>
+                )}
+
+                {/* --- Point Editor Modal --- */}
+                {showPointEditor && editingPoint && (
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={handleClosePointEditor}>
+                        <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white">
+                                <h3 className="text-sm font-bold text-slate-800">编辑评分点</h3>
+                                <button className="p-1 text-slate-400 hover:text-slate-600" onClick={handleClosePointEditor}><X className="w-4 h-4" /></button>
+                            </div>
+                            <div className="p-4 space-y-4 overflow-y-auto">
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">题号 / 标识符</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            value={editingPoint.id}
+                                            onChange={e => setEditingPoint({ ...editingPoint, id: e.target.value })}
+                                            placeholder="例如：15-1-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">问题词 (Question Word)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            value={editingPoint.questionSegment || ''}
+                                            onChange={e => setEditingPoint({ ...editingPoint, questionSegment: e.target.value })}
+                                            placeholder="例如：根本原因"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">分值</label>
+                                        <div className="flex gap-3 items-center">
+                                            <button onClick={() => setEditingPoint({ ...editingPoint, score: Math.max(0, editingPoint.score - 0.5) })} className="p-2 border rounded-lg hover:bg-slate-50"><Minus className="w-4 h-4 text-slate-400" /></button>
+                                            <span className="text-xl font-bold text-indigo-600 w-12 text-center">{editingPoint.score}</span>
+                                            <button onClick={() => setEditingPoint({ ...editingPoint, score: editingPoint.score + 0.5 })} className="p-2 border rounded-lg hover:bg-slate-50"><Plus className="w-4 h-4 text-slate-400" /></button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">参考答案 (内容描述)</label>
+                                        <textarea
+                                            className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none h-20 resize-none"
+                                            value={editingPoint.content}
+                                            onChange={e => setEditingPoint({ ...editingPoint, content: e.target.value })}
+                                            placeholder="例如：根本原因：斯图亚特王朝的封建专制..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">扣分/注意事项 (可选)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-amber-700 bg-amber-50/30"
+                                            value={editingPoint.deductionRules || ''}
+                                            onChange={e => setEditingPoint({ ...editingPoint, deductionRules: e.target.value })}
+                                            placeholder="例如：必须提到...否则不得分"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <label className="block text-xs font-bold text-slate-700 mb-2">匹配关键词</label>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {editingPoint.keywords.map(kw => (
+                                            <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium border border-indigo-100">
+                                                {kw}
+                                                <button onClick={() => removeKeyword(kw)} className="text-indigo-300 hover:text-indigo-600"><X className="w-3 h-3" /></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                                            placeholder="输入关键词..."
+                                            value={newKeyword}
+                                            onChange={e => setNewKeyword(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleAddKeyword()}
+                                        />
+                                        <button onClick={handleAddKeyword} className="px-3 bg-slate-100 text-slate-600 font-bold rounded-lg text-xs hover:bg-slate-200">添加</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+                                <button className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-white" onClick={handleClosePointEditor}>取消</button>
+                                <button
+                                    className="flex-[2] px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                                    onClick={handleSavePoint}
+                                >
+                                    保存
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 

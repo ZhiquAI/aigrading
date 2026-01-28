@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pipx --version:*)"
+      "Bash(pipx --version:*)",
+      "Edit",
+      "mcp__zcode_internal_tool__new_page"
     ]
+  },
+  "model": "opus",
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true
   }
 }
