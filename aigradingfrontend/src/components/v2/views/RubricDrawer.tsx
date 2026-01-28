@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     X,
     Sparkles,
@@ -440,9 +440,10 @@ export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
                             </div>
                         ) : (
                             (rubricLibrary || []).map(item => {
-                                const data = (rubricData || {})[item.id];
-                                const examId = data?.examId || (item as any).examId;
-                                const exam = exams.find(e => e.id === examId);
+                                // 使用 useMemo 缓存计算结果，避免每次渲染都重新计算
+                                const data = useMemo(() => (rubricData || {})[item.id], [rubricData, item.id]);
+                                const examId = useMemo(() => data?.examId || (item as any).examId, [data, item]);
+                                const exam = useMemo(() => exams.find(e => e.id === examId), [exams, examId]);
 
                                 return (
                                     <div key={item.id} onClick={() => handleSelectQuestion(item.id)} className={`relative border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all ${item.isActive ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100'}`}>

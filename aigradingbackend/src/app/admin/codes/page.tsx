@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import CodeList from './components/CodeList';
 import CreateCodeModal from './components/CreateCodeModal';
+import { ChevronUp, ChevronDown, Search, Filter, BarChart3, List } from 'lucide-react';
+
+type ViewMode = 'list' | 'stats';
 
 export default function CodesPage() {
     const [codes, setCodes] = useState([]);
@@ -10,6 +13,16 @@ export default function CodesPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [filter, setFilter] = useState('all'); // all, unused, used
     const [searchTerm, setSearchTerm] = useState('');
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
+
+    // 统计视图状态
+    const [statsData, setStatsData] = useState<any>(null);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [sortBy, setSortBy] = useState('used');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const [filterType, setFilterType] = useState('all');
+    const [searchCode, setSearchCode] = useState('');
 
     const fetchCodes = useCallback(async () => {
         setLoading(true);
@@ -32,6 +45,62 @@ export default function CodesPage() {
             setLoading(false);
         }
     }, [filter, searchTerm]);
+
+    // 加载统计数据
+    const fetchStatsData = useCallback(async () => {
+        setStatsLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: '50',
+                sortBy,
+                sortOrder,
+                ...(filterType !== 'all' && { filterType }),
+                ...(searchCode && { search: searchCode })
+            });
+
+            const res = await fetch(`/api/admin/quota/by-code?${params}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                setStatsData(result.data);
+            }
+        } catch (error) {
+            console.error('Fetch stats data error:', error);
+        } finally {
+            setStatsLoading(false);
+        }
+    }, [page, sortBy, sortOrder, filterType, searchCode]);
+
+    useEffect(() => {
+        if (viewMode === 'stats') {
+            fetchStatsData();
+        }
+    }, [viewMode, fetchStatsData]);
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('desc');
+        }
+        setPage(1);
+    };
+
+    const getTypeColor = (type: string) => {
+        const colors: Record<string, string> = {
+            trial: 'bg-purple-100 text-purple-700',
+            basic: 'bg-blue-100 text-blue-700',
+            standard: 'bg-green-100 text-green-700',
+            pro: 'bg-orange-100 text-orange-700',
+            permanent: 'bg-red-100 text-red-700',
+        };
+        return colors[type] || 'bg-gray-100 text-gray-700';
+    };
 
     const handleExportCodes = async () => {
         const params = new URLSearchParams({ filter });
