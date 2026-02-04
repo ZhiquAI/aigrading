@@ -157,8 +157,11 @@ export default function GradingViewV2() {
                             // 检查响应中的评分细则状态
                             if (response?.success && response?.isRubricConfigured === false) {
                                 console.log('[GradingViewV2] 检测到评分细则未配置，自动打开设置');
-                                setIsRubricDrawerOpen(true);
-                                toast.warning('检测到评分细则未设置，请先配置');
+                                // 延迟弹出，给用户视觉过渡
+                                setTimeout(() => {
+                                    setIsRubricDrawerOpen(true);
+                                    toast.info('请先配置评分细则，即可开始阅卷');
+                                }, 300);
                             }
                         });
                     }
@@ -248,100 +251,47 @@ export default function GradingViewV2() {
     }, [status]);
 
     /**
-     * V4 Design Health Check List
+     * 检测中指示器 - 简洁的加载状态
      */
-    const HealthCheckList = () => {
-        const items = [
-            {
-                label: '答题卡定位',
-                status: globalHealth.answerCard === null ? 'pending' : (globalHealth.answerCard ? 'success' : 'error'),
-                icon: FileQuestion,
-                action: handleRescan
-            },
-            {
-                label: 'API 连接',
-                status: globalHealth.api === null ? 'pending' : (globalHealth.api ? 'success' : 'error'),
-                icon: Server
-            },
-            {
-                label: '评分细则',
-                status: isDetecting && !globalHealth.api ? 'pending' : (isRubricConfigured ? 'success' : 'error'),
-                icon: FileCheck2,
-                action: () => setIsRubricDrawerOpen(true)
-            }
-        ] as const;
-
-        return (
-            <div className="w-full max-w-[320px] bg-white rounded-2xl p-2 shadow-sm border border-slate-100 space-y-1 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
-                {items.map((item, idx) => (
-                    <div
-                        key={idx}
-                        onClick={() => {
-                            // 当评分细则未配置时，点击整个区域都可以打开设置
-                            if (item.label === '评分细则' && item.status === 'error') {
-                                item.action?.();
-                            }
-                        }}
-                        className={`
-                            flex items-center justify-between p-3 rounded-xl transition-all duration-500
-                            ${item.status === 'pending' ? 'bg-slate-50/50' : 'bg-slate-50'}
-                            ${item.status === 'pending' && idx > 0 && items[idx - 1].status === 'pending' ? 'opacity-50' : 'opacity-100'}
-                            ${item.label === '评分细则' && item.status === 'error' ? 'cursor-pointer hover:bg-slate-100' : ''}
-                        `}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={`
-                                w-8 h-8 rounded-lg flex items-center justify-center border shadow-sm transition-all duration-500
-                                ${item.status === 'success'
-                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                    : item.status === 'error'
-                                        ? 'bg-red-50 border-red-100 text-red-600'
-                                        : 'bg-white border-slate-100 text-slate-400'}
-                            `}>
-                                <item.icon className="w-4 h-4" />
-                            </div>
-                            <span className={`text-[10px] font-bold transition-colors duration-300 ${item.status !== 'pending' ? 'text-slate-800' : 'text-slate-500'}`}>
-                                {item.label}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {item.label === '答题卡定位' && item.status !== 'pending' && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); item.action?.(); }}
-                                    className="p-1 hover:bg-slate-200 rounded-md text-slate-400 hover:text-indigo-500 transition-colors"
-                                    title="重新扫描"
-                                >
-                                    <RefreshCw className={`w-3 h-3 ${isDetecting ? 'animate-spin' : ''}`} />
-                                </button>
-                            )}
-                            {item.label === '评分细则' && item.status === 'error' && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); item.action?.(); }}
-                                    className="p-1 hover:bg-slate-200 rounded-md text-slate-400 hover:text-indigo-500 transition-colors"
-                                    title="配置评分细则"
-                                >
-                                    <Pencil className="w-3 h-3" />
-                                </button>
-                            )}
-                            <div className="status-icon">
-                                {item.status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
-                                {item.status === 'success' && (
-                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center animate-in zoom-in spin-in-90 duration-300">
-                                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                    </div>
-                                )}
-                                {item.status === 'error' && (
-                                    <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center animate-in zoom-in duration-300">
-                                        <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+    const DetectingIndicator = () => (
+        <div className="w-full max-w-[320px] bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-100 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                </div>
+                <div>
+                    <p className="text-xs font-bold text-slate-700">正在连接阅卷环境</p>
+                    <p className="text-[10px] text-slate-400">检测答题卡与 API 状态...</p>
+                </div>
             </div>
-        );
-    };
+        </div>
+    );
+
+    /**
+     * 系统就绪确认 - 所有检查通过后显示
+     */
+    const ReadyConfirmation = () => (
+        <div className="w-full max-w-[320px] bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-4 shadow-sm border border-emerald-100 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+                    <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                </div>
+                <div className="flex-1">
+                    <p className="text-xs font-bold text-emerald-700">系统已就绪</p>
+                    <p className="text-[10px] text-slate-500 truncate">
+                        当前细则: {currentQuestionKey || '默认题目'}
+                    </p>
+                </div>
+                <button
+                    onClick={() => setIsRubricDrawerOpen(true)}
+                    className="p-2 hover:bg-emerald-100 rounded-lg text-emerald-600 transition-colors"
+                    title="查看/修改评分细则"
+                >
+                    <Pencil className="w-3.5 h-3.5" />
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="relative h-full flex flex-col overflow-hidden">
@@ -360,7 +310,7 @@ export default function GradingViewV2() {
                         <div className="absolute inset-8 border border-violet-300 rounded-full animate-[ping_4s_infinite_reverse] opacity-20"></div>
 
                         {/* Core AI Orb */}
-                        <div className="w-24 h-24 bg-gradient-to-tr from-indigo-600 to-violet-700 rounded-full shadow-[0_0_40px_rgba(79,70,229,0.4)] flex items-center justify-center z-10 animate-outline-glow">
+                        <div className="w-24 h-24 bg-brand-gradient rounded-full shadow-[0_0_40px_rgba(99,102,241,0.4)] flex items-center justify-center z-10 animate-outline-glow">
                             <Bot className="w-10 h-10 text-white animate-pulse" />
                         </div>
 
@@ -438,7 +388,7 @@ export default function GradingViewV2() {
                             w-24 h-24 rounded-full shadow-lg flex items-center justify-center relative z-10 transition-all duration-700
                             ${!isRubricConfigured || isDetecting
                                 ? 'bg-slate-300 grayscale opacity-80 scale-90'
-                                : 'bg-gradient-to-tr from-indigo-500 to-violet-600 shadow-indigo-500/30 group-hover:scale-105 active:scale-95 animate-[float_6s_infinite_ease-in-out]'
+                                : 'bg-brand-gradient shadow-brand group-hover:scale-105 active:scale-95 animate-[float_6s_infinite_ease-in-out]'
                             }
                         `}>
                             {isDetecting ? (
@@ -459,8 +409,9 @@ export default function GradingViewV2() {
                         </p>
                     </div>
 
-                    {/* V4 Health Check List */}
-                    <HealthCheckList />
+                    {/* 系统状态指示器 */}
+                    {isDetecting && <DetectingIndicator />}
+                    {!isDetecting && isRubricConfigured && globalHealth.api && <ReadyConfirmation />}
 
                     {/* Rubric Config Button (If check failed) */}
                     {!isDetecting && !isRubricConfigured && globalHealth.api && (

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>模块识别头 - HTML 设计稿</title>
+  <style>
+    :root {
+      --slate-50: #F8FAFC;
+      --slate-100: #F1F5F9;
+      --slate-200: #E2E8F0;
+      --slate-500: #64748B;
+      --slate-700: #334155;
+      --slate-900: #0F172A;
+      --indigo: #4F46E5;
+      --blue: #2563EB;
+      --amber: #F59E0B;
+      --gray: #64748B;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+    }
+    .panel {
+      width: 360px;
+      min-height: 100vh;
+      margin: 0 auto;
+      border-left: 1px solid var(--slate-200);
+      border-right: 1px solid var(--slate-200);
+      background: #fff;
+    }
+    .demo-block { border-bottom: 1px solid var(--slate-200); }
+
+    .header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--slate-200);
+      background: #fff;
+      position: relative;
+    }
+    .header::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--indigo);
+    }
+    .header.tint-indigo { background: rgba(79, 70, 229, 0.06); }
+    .header.tint-blue { background: rgba(37, 99, 235, 0.06); }
+    .header.tint-amber { background: rgba(245, 158, 11, 0.08); }
+    .header.tint-gray { background: rgba(100, 116, 139, 0.08); }
+
+    .header.indigo::after { background: var(--indigo); }
+    .header.blue::after { background: var(--blue); }
+    .header.amber::after { background: var(--amber); }
+    .header.gray::after { background: var(--gray); }
+
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .icon.indigo { background: var(--indigo); }
+    .icon.blue { background: var(--blue); }
+    .icon.amber { background: var(--amber); }
+    .icon.gray { background: var(--gray); }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .title h1 { margin: 0; font-size: 13px; font-weight: 800; }
+    .title span { font-size: 9px; color: var(--slate-500); letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .actions { display: flex; gap: 6px; }
+    .btn {
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--slate-700);
+    }
+
+    .content { padding: 14px; font-size: 11px; color: var(--slate-500); }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="demo-block">
+      <div class="header indigo tint-indigo">
+        <div class="left">
+          <div class="icon indigo">细</div>
+          <div class="title">
+            <h1>评分细则</h1>
+            <span>Rubric</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn">导入</button>
+          <button class="btn">导出</button>
+        </div>
+      </div>
+      <div class="content">模块主体内容占位...</div>
+    </div>
+
+    <div class="demo-block">
+      <div class="header blue tint-blue">
+        <div class="left">
+          <div class="icon blue">阅</div>
+          <div class="title">
+            <h1>智能阅卷</h1>
+            <span>Grading</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn">辅助</button>
+          <button class="btn">自动</button>
+        </div>
+      </div>
+      <div class="content">模块主体内容占位...</div>
+    </div>
+
+    <div class="demo-block">
+      <div class="header amber tint-amber">
+        <div class="left">
+          <div class="icon amber">记</div>
+          <div class="title">
+            <h1>阅卷记录</h1>
+            <span>Records</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn">导出记录</button>
+        </div>
+      </div>
+      <div class="content">模块主体内容占位...</div>
+    </div>
+
+    <div class="demo-block">
+      <div class="header gray tint-gray">
+        <div class="left">
+          <div class="icon gray">设</div>
+          <div class="title">
+            <h1>系统设置</h1>
+            <span>Settings</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn">企业版</button>
+          <button class="btn">个人版</button>
+        </div>
+      </div>
+      <div class="content">模块主体内容占位...</div>
+    </div>
+  </div>
+</body>
+</html>

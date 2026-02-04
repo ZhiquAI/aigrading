@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紧凑布局设计</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+
+        /* 上传区域悬浮效果 */
+        .upload-card {
+            transition: all 0.2s ease;
+        }
+
+        .upload-card:hover {
+            border-color: #a5b4fc;
+            background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+        }
+
+        .upload-card.has-image {
+            border-style: solid;
+            border-color: #c7d2fe;
+        }
+
+        /* AI 按钮动画 */
+        @keyframes shimmer {
+            0% {
+                background-position: -200% center;
+            }
+
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        .btn-ai {
+            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 25%, #a855f7 50%, #8b5cf6 75%, #6366f1 100%);
+            background-size: 200% auto;
+        }
+
+        .btn-ai:hover {
+            animation: shimmer 2s linear infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Chrome Sidepanel Container -->
+    <div class="w-[420px] h-[700px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+
+        <!-- Header -->
+        <header
+            class="h-11 flex items-center justify-between px-4 border-b border-slate-100 shrink-0 bg-gradient-to-r from-indigo-50 to-violet-50">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <h1 class="font-bold text-slate-800 text-sm">AI 智能生成细则</h1>
+            </div>
+            <button class="text-[11px] text-indigo-600 font-medium hover:underline flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                设置
+            </button>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+
+            <!-- ========== 第一行：考试 + 学科 + 题号 ========== -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between px-0.5">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">基本信息</span>
+                    <button class="text-[10px] text-indigo-500 hover:underline">管理考试 →</button>
+                </div>
+                <div class="flex gap-2">
+                    <!-- 考试选择 (占 2/4) -->
+                    <div class="flex-[2] relative">
+                        <select
+                            class="w-full pl-8 pr-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium appearance-none focus:border-indigo-300 outline-none truncate">
+                            <option>2024期末考试</option>
+                            <option>月考模拟</option>
+                            <option value="new">➕ 新建考试</option>
+                        </select>
+                        <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <svg class="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    <!-- 学科选择 (占 1/4) -->
+                    <div class="flex-1 relative">
+                        <select
+                            class="w-full pl-7 pr-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-medium text-amber-700 appearance-none focus:border-amber-400 outline-none">
+                            <option>历史</option>
+                            <option>政治</option>
+                            <option>语文</option>
+                            <option>物理</option>
+                        </select>
+                        <svg class="w-3.5 h-3.5 text-amber-500 absolute left-2 top-1/2 -translate-y-1/2" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <svg class="w-3 h-3 text-amber-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    <!-- 题号输入 (占 1/4) -->
+                    <div class="w-16 relative">
+                        <input type="text" placeholder="题号" value="15"
+                            class="w-full pl-7 pr-2 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-center text-indigo-700 focus:border-indigo-400 outline-none">
+                        <span
+                            class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">#</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 第二行：题目图片 + 答案图片 并列 ========== -->
+            <div class="space-y-1.5">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-0.5">上传图片</span>
+                <div class="flex gap-3">
+                    <!-- 题目图片 -->
+                    <label
+                        class="flex-1 upload-card flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-slate-200 cursor-pointer min-h-[120px]">
+                        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs font-medium text-slate-600">题目图片</p>
+                            <p class="text-[10px] text-slate-400">可选</p>
+                        </div>
+                        <input type="file" class="hidden" accept="image/*">
+                    </label>
+
+                    <!-- 答案图片 -->
+                    <label
+                        class="flex-1 upload-card flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-slate-200 cursor-pointer min-h-[120px]">
+                        <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs font-medium text-slate-600">答案图片</p>
+                            <p class="text-[10px] text-violet-500 font-medium">推荐</p>
+                        </div>
+                        <input type="file" class="hidden" accept="image/*">
+                    </label>
+                </div>
+            </div>
+
+            <!-- ========== 或者分隔线 ========== -->
+            <div class="flex items-center gap-3 px-2">
+                <div class="flex-1 h-px bg-slate-200"></div>
+                <span class="text-[10px] text-slate-400 font-medium">或者</span>
+                <div class="flex-1 h-px bg-slate-200"></div>
+            </div>
+
+            <!-- ========== 文本输入区 ========== -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between px-0.5">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">粘贴参考答案</span>
+                    <button class="text-[10px] text-slate-400 hover:text-slate-600">
+                        <svg class="w-3.5 h-3.5 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        粘贴
+                    </button>
+                </div>
+                <textarea placeholder="粘贴参考答案文本，例如：&#10;（1）根本原因：封建专制制度阻碍资本主义发展（2分）&#10;（2）特点：改革不彻底、保留封建残余（2分）"
+                    class="w-full h-24 p-3 bg-white rounded-xl border border-slate-200 text-xs outline-none resize-none focus:border-indigo-300 placeholder:text-slate-300"></textarea>
+            </div>
+
+
+        </div>
+
+        <!-- ========== 底部 AI 生成按钮 ========== -->
+        <div class="p-4 bg-white border-t border-slate-100 shrink-0">
+            <button
+                class="btn-ai w-full py-4 text-white rounded-2xl shadow-lg shadow-indigo-500/30 text-sm font-bold flex items-center justify-center gap-2.5 hover:shadow-xl transition-shadow">
+                <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <span>AI 一键生成评分细则</span>
+            </button>
+            <p class="text-center text-[10px] text-slate-400 mt-2">支持 Gemini 2.0 Flash · 预计耗时 5-10 秒</p>
+        </div>
+    </div>
+
+    <!-- ========== 已上传状态预览 ========== -->
+    <div class="w-[420px] h-[700px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col ml-6">
+
+        <!-- Header (同上) -->
+        <header
+            class="h-11 flex items-center justify-between px-4 border-b border-slate-100 shrink-0 bg-gradient-to-r from-indigo-50 to-violet-50">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <h1 class="font-bold text-slate-800 text-sm">AI 智能生成细则</h1>
+            </div>
+            <span
+                class="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                已就绪
+            </span>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+
+            <!-- 第一行：考试 + 学科 + 题号 (同上) -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between px-0.5">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">基本信息</span>
+                    <span class="text-[10px] text-emerald-500 flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        已保存
+                    </span>
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-[2] relative">
+                        <select
+                            class="w-full pl-8 pr-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium appearance-none focus:border-indigo-300 outline-none truncate">
+                            <option>2024期末考试</option>
+                        </select>
+                        <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <svg class="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    <div class="flex-1 relative">
+                        <select
+                            class="w-full pl-7 pr-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-medium text-amber-700 appearance-none focus:border-amber-400 outline-none">
+                            <option>历史</option>
+                        </select>
+                        <svg class="w-3.5 h-3.5 text-amber-500 absolute left-2 top-1/2 -translate-y-1/2" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <svg class="w-3 h-3 text-amber-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    <div class="w-16 relative">
+                        <input type="text" value="15"
+                            class="w-full pl-7 pr-2 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-center text-indigo-700 focus:border-indigo-400 outline-none">
+                        <span
+                            class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">#</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行：已上传的图片状态 -->
+            <div class="space-y-1.5">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-0.5">上传图片</span>
+                <div class="flex gap-3">
+                    <!-- 题目图片 - 已上传 -->
+                    <div
+                        class="flex-1 upload-card has-image relative rounded-xl border border-indigo-200 overflow-hidden min-h-[120px]">
+                        <img src="https://via.placeholder.com/200x120/f5f3ff/6366f1?text=题目截图"
+                            class="w-full h-full object-cover" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                            <span class="text-[10px] text-white font-medium">题目图片</span>
+                            <button
+                                class="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center text-slate-600 hover:bg-white">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div
+                            class="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- 答案图片 - 已上传 -->
+                    <div
+                        class="flex-1 upload-card has-image relative rounded-xl border border-violet-200 overflow-hidden min-h-[120px]">
+                        <img src="https://via.placeholder.com/200x120/f5f3ff/8b5cf6?text=答案截图"
+                            class="w-full h-full object-cover" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                            <span class="text-[10px] text-white font-medium">答案图片</span>
+                            <button
+                                class="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center text-slate-600 hover:bg-white">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div
+                            class="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- 生成预览提示 -->
+            <div class="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-100">
+                <div class="flex items-start gap-2">
+                    <div class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-indigo-800">准备就绪</p>
+                        <p class="text-[10px] text-indigo-600 mt-0.5">已上传 2 张图片，点击下方按钮开始 AI 分析</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部 AI 生成按钮 - 激活状态 -->
+        <div class="p-4 bg-white border-t border-slate-100 shrink-0">
+            <button
+                class="btn-ai w-full py-4 text-white rounded-2xl shadow-lg shadow-indigo-500/30 text-sm font-bold flex items-center justify-center gap-2.5 hover:shadow-xl transition-shadow">
+                <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <span>AI 一键生成评分细则</span>
+            </button>
+            <p class="text-center text-[10px] text-slate-400 mt-2">支持 Gemini 2.0 Flash · 预计耗时 5-10 秒</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

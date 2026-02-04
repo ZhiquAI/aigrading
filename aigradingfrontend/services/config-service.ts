@@ -72,8 +72,8 @@ export function checkApiKeyConfigured(): boolean {
  */
 export const PROVIDER_DEFAULTS: Record<ModelProviderType, { endpoint: string; model: string }> = {
     openai: {
-        endpoint: 'https://api.openai.com/v1/chat/completions',
-        model: 'gpt-4o'
+        endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+        model: 'google/gemini-2.5-flash'
     },
     google: {
         endpoint: 'https://generativelanguage.googleapis.com/v1beta',
@@ -94,12 +94,12 @@ export const PROVIDER_DEFAULTS: Record<ModelProviderType, { endpoint: string; mo
  */
 export const MODEL_SUGGESTIONS: Record<ModelProviderType, string[]> = {
     openai: [
-        'gemini-3-flash-preview',
-        'gemini-2.0-flash',
-        'gpt-4o',
-        'gpt-4o-mini',
-        'o3-mini',
-        'o1-preview'
+        'google/gemini-2.0-flash-001',
+        'google/gemini-2.5-flash-preview',
+        'openai/gpt-4o',
+        'openai/gpt-4o-mini',
+        'anthropic/claude-3.5-sonnet',
+        'anthropic/claude-3-haiku'
     ],
     google: [
         'gemini-3-flash-preview',

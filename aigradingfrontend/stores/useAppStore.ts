@@ -191,7 +191,7 @@ type AppStore = AppState & AppActions;
 // ==================== 初始状态 ====================
 
 const initialState: AppState = {
-    activeTab: Tab.Grading,
+    activeTab: Tab.Rubric, // 默认为细则配置（工作流起点）
     isRubricConfigured: false,
     rubricContent: '',
     detectedQuestionKey: null,
@@ -314,14 +314,14 @@ export const useAppStore = create<AppStore>()(
                     if (existsInLibrary) {
                         newRubricLibrary = state.rubricLibrary.map((item: any) =>
                             item.id === qk
-                                ? { 
-                                    ...item, 
-                                    examId: examId, 
+                                ? {
+                                    ...item,
+                                    examId: examId,
                                     alias: parsedContent.title || item.alias,
-                                    keywords: parsedContent.answerPoints ? 
-                                        (Array.from(new Set(parsedContent.answerPoints.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5) : 
+                                    keywords: parsedContent.answerPoints ?
+                                        (Array.from(new Set(parsedContent.answerPoints.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5) :
                                         item.keywords
-                                  }
+                                }
                                 : item
                         );
                     } else {

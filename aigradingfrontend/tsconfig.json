@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "types": [
       "node",
-      "chrome"
+      "chrome",
+      "vite/client"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,

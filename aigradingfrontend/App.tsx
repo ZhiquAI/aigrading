@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import VConsole from 'vconsole';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './components/Toast';
 import { AppProvider } from './contexts/AppContext';
@@ -8,6 +9,13 @@ import { MandatoryActivationGate } from './src/components/v2/onboarding/Mandator
 import { getUsageInfo as fetchUsageFromBackend } from './services/proxyService';
 import { OnboardingGuide, shouldShowOnboarding } from './components/OnboardingGuide';
 
+// vConsole 全局单例 - 仅在开发环境下初始化一次
+// 放在模块顶层，避免 HMR 时重复创建/销毁导致闪烁
+let vConsoleInstance: VConsole | null = null;
+if (import.meta.env.MODE === 'development' && !vConsoleInstance) {
+  vConsoleInstance = new VConsole();
+}
+
 // 加载占位组件
 const LoadingFallback: React.FC = () => (
   <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 dark:bg-gray-900/80">
@@ -16,8 +24,6 @@ const LoadingFallback: React.FC = () => (
 );
 
 const App: React.FC = () => {
-
-  // 新手引导状态
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // 检查是否需要显示引导

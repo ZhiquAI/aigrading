@@ -1,17 +1,45 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Download, Search, LayoutGrid, List, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Bot } from 'lucide-react';
 import { useAppStore, HistoryRecord } from '@/stores/useAppStore';
+import { Tab } from '@/types';
 
 const RecordsViewV2: React.FC = () => {
-    const { historyRecords, loadHistory, isHistoryLoading, deleteHistoryRecord, setHeaderActions } = useAppStore();
+    const { historyRecords, loadHistory, isHistoryLoading, deleteHistoryRecord, setHeaderActions, activeTab } = useAppStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    // Initial load & Header Action Registration
+    // Initial load
     useEffect(() => {
         loadHistory();
+    }, []);
 
-        // Register Export Action
+    // Export handler
+    const handleExport = useCallback(() => {
+        const headers = ['序号', '时间', '题目', '得分', '满分', 'AI评语'];
+        const rows = historyRecords.map((h, idx) => {
+            const ts = Number(h.timestamp);
+            const time = Number.isFinite(ts) && ts > 0 ? new Date(ts).toLocaleString('zh-CN', { hour12: false }) : '';
+            const questionNo = h.questionNo || '-';
+            const safeComment = (h.comment || '').replace(/"/g, '""');
+            return [historyRecords.length - idx, time, questionNo, h.score, h.maxScore, `"${safeComment}"`];
+        });
+
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `grading_records_${new Date().getTime()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, [historyRecords]);
+
+    // Register Header Action - only when History tab is active
+    useEffect(() => {
+        if (activeTab !== Tab.History) return;
         setHeaderActions([
             {
                 id: 'export-history',
@@ -20,9 +48,8 @@ const RecordsViewV2: React.FC = () => {
                 onClick: handleExport
             }
         ]);
-
         return () => setHeaderActions([]);
-    }, []);
+    }, [setHeaderActions, handleExport, activeTab]);
 
     // Filter Logic
     const filteredRecords = useMemo(() => {
@@ -55,31 +82,7 @@ const RecordsViewV2: React.FC = () => {
         return 'text-red-500';
     };
 
-    const handleExport = () => {
-        const headers = ['序号', '时间', '题目', '得分', '满分', 'AI评语'];
-        const rows = filteredRecords.map((h, idx) => {
-            const ts = Number(h.timestamp);
-            const time = Number.isFinite(ts) && ts > 0 ? new Date(ts).toLocaleString('zh-CN', { hour12: false }) : '';
-            const questionNo = h.questionNo || '-';
 
-            // Escape quotes for CSV
-            const safeComment = (h.comment || '').replace(/"/g, '""');
-
-            return [filteredRecords.length - idx, time, questionNo, h.score, h.maxScore, `"${safeComment}"`];
-        });
-
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `grading_records_${new Date().getTime()}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
 
     return (
         <div className="flex flex-col h-full bg-slate-50">

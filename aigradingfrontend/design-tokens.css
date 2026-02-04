@@ -1,94 +1,275 @@
 /**
  * ========================================
- * 智能批改助手 - Design System v2.0
- * Modern Minimalist & Glassmorphism
+ * 智能批改助手 - Design System v3.0
+ * Shadcn UI / Radix UI 风格
+ * Modern Minimalism + Indigo Primary
  * ========================================
  */
 
+/* ========== Google Font: Plus Jakarta Sans ========== */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 :root {
-  /* ========== Color Palette (Refined) ========== */
-  
-  /* Primary: Lively Blue */
-  --color-primary: #3B82F6;
-  --color-primary-hover: #2563EB;
-  --color-primary-active: #1D4ED8;
-  --color-primary-subtle: #EFF6FF;  /* Blue-50 */
-  --color-primary-border: #BFDBFE;  /* Blue-200 */
-  
-  /* Secondary: Fresh Teal/Emerald */
-  --color-secondary: #059669;       /* Emerald-600 */
-  --color-secondary-hover: #047857;
-  --color-secondary-subtle: #ECFDF5;
-  --color-secondary-border: #A7F3D0;
-  
-  /* Accent: Electric Violet (AI) */
-  --color-accent: #7C3AED;          /* Violet-600 */
-  --color-accent-hover: #6D28D9;
+  /* ========== Color Palette (Shadcn Inspired) ========== */
+
+  /* Primary: Indigo (专业 & 可信) */
+  --color-primary: #6366F1;
+  /* Indigo-500 */
+  --color-primary-hover: #4F46E5;
+  /* Indigo-600 */
+  --color-primary-active: #4338CA;
+  /* Indigo-700 */
+  --color-primary-subtle: #EEF2FF;
+  /* Indigo-50 */
+  --color-primary-border: #C7D2FE;
+  /* Indigo-200 */
+
+  /* Secondary: Indigo Light */
+  --color-secondary: #818CF8;
+  /* Indigo-400 */
+  --color-secondary-hover: #6366F1;
+  --color-secondary-subtle: #E0E7FF;
+  /* Indigo-100 */
+  --color-secondary-border: #A5B4FC;
+  /* Indigo-300 */
+
+  /* Success / CTA: Emerald (活力 & 及格) */
+  --color-success: #10B981;
+  /* Emerald-500 */
+  --color-success-hover: #059669;
+  /* Emerald-600 */
+  --color-success-subtle: #ECFDF5;
+  /* Emerald-50 */
+  --color-success-border: #A7F3D0;
+  /* Emerald-200 */
+
+  /* Accent: Violet (AI 智能感) */
+  --color-accent: #8B5CF6;
+  /* Violet-500 */
+  --color-accent-hover: #7C3AED;
+  /* Violet-600 */
   --color-accent-subtle: #F5F3FF;
+  /* Violet-50 */
   --color-accent-border: #DDD6FE;
-  
+  /* Violet-200 */
+
   /* Functional Colors */
-  --color-danger: #DC2626;          /* Red-600 */
+  --color-danger: #EF4444;
+  /* Red-500 */
+  --color-danger-hover: #DC2626;
+  /* Red-600 */
   --color-danger-subtle: #FEF2F2;
-  --color-warning: #D97706;         /* Amber-600 */
+  /* Red-50 */
+  --color-danger-border: #FECACA;
+  /* Red-200 */
+
+  --color-warning: #F59E0B;
+  /* Amber-500 */
+  --color-warning-hover: #D97706;
+  /* Amber-600 */
   --color-warning-subtle: #FFFBEB;
-  
-  /* Neutral / Surface */
-  --color-text-main: #1F2937;       /* Gray-800 */
-  --color-text-body: #4B5563;       /* Gray-600 */
-  --color-text-muted: #9CA3AF;      /* Gray-400 */
-  --color-text-light: #D1D5DB;      /* Gray-300 */
-  
-  --color-bg-app: #F3F4F6;          /* Gray-100: App Background */
-  --color-bg-card: #FFFFFF;         /* Card Background */
-  --color-bg-float: rgba(255, 255, 255, 0.85); /* Glass Background */
-  
-  --color-border: #E5E7EB;          /* Gray-200 */
-  --color-border-subtle: #F3F4F6;   /* Gray-100 */
+  /* Amber-50 */
+  --color-warning-border: #FDE68A;
+  /* Amber-200 */
 
-  /* ========== Shadows (Depth) ========== */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-  --shadow-float: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+  /* Neutral / Surface (Shadcn Slate Based) */
+  --color-text-main: #1E1B4B;
+  /* Indigo-950: Professional deep text */
+  --color-text-body: #475569;
+  /* Slate-600: Body text */
+  --color-text-muted: #94A3B8;
+  /* Slate-400: Secondary text */
+  --color-text-light: #CBD5E1;
+  /* Slate-300: Placeholder */
 
-  /* ========== Radius ========== */
-  --radius-sm: 0.375rem; /* 6px */
-  --radius-md: 0.5rem;   /* 8px */
-  --radius-lg: 0.75rem;  /* 12px */
-  --radius-xl: 1rem;     /* 16px */
-  --radius-2xl: 1.5rem;  /* 24px */
+  --color-bg-app: #F8FAFC;
+  /* Slate-50: App background */
+  --color-bg-card: #FFFFFF;
+  /* White: Card surface */
+  --color-bg-elevated: #FFFFFF;
+  /* White: Modal/Dropdown */
+  --color-bg-muted: #F1F5F9;
+  /* Slate-100: Muted areas */
+
+  --color-border: #E2E8F0;
+  /* Slate-200: Default border */
+  --color-border-subtle: #F1F5F9;
+  /* Slate-100: Subtle border */
+  --color-border-active: #6366F1;
+  /* Indigo: Focus border */
+
+  /* ========== Shadows (Refined, Subtle) ========== */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  /* Indigo focus ring */
+
+  /* ========== Radius (Consistent) ========== */
+  --radius-sm: 0.375rem;
+  /* 6px */
+  --radius-md: 0.5rem;
+  /* 8px */
+  --radius-lg: 0.75rem;
+  /* 12px - DEFAULT */
+  --radius-xl: 1rem;
+  /* 16px */
+  --radius-2xl: 1.5rem;
+  /* 24px */
   --radius-full: 9999px;
+  /* Pill */
 
   /* ========== Typography ========== */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', width: 0.8em, monospace;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Font Weights */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* ========== Spacing (8px Grid) ========== */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  /* 4px */
+  --space-2: 0.5rem;
+  /* 8px */
+  --space-3: 0.75rem;
+  /* 12px */
+  --space-4: 1rem;
+  /* 16px */
+  --space-5: 1.25rem;
+  /* 20px */
+  --space-6: 1.5rem;
+  /* 24px */
+  --space-8: 2rem;
+  /* 32px */
+  --space-10: 2.5rem;
+  /* 40px */
+  --space-12: 3rem;
+  /* 48px */
+
+  /* ========== Transitions ========== */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ========== Z-Index Scale ========== */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
 }
 
-/* Dark Mode Overrides */
-:root.dark, [data-theme="dark"] {
-  --color-primary: #60A5FA;
-  --color-primary-hover: #3B82F6;
-  --color-primary-subtle: rgba(59, 130, 246, 0.15);
-  --color-primary-border: rgba(59, 130, 246, 0.3);
+/* ========== Global Resets ========== */
+body {
+  font-family: var(--font-sans);
+  font-weight: var(--font-normal);
+  color: var(--color-text-body);
+  background-color: var(--color-bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  --color-secondary: #34D399;
-  --color-secondary-subtle: rgba(16, 185, 129, 0.15);
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--font-bold);
+  color: var(--color-text-main);
+  line-height: 1.25;
+}
 
-  --color-accent: #A78BFA;
-  --color-accent-subtle: rgba(139, 92, 246, 0.15);
+/* Focus States (Keyboard Accessibility) */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
 
-  --color-text-main: #F9FAFB;
-  --color-text-body: #D1D5DB;
-  --color-text-muted: #9CA3AF;
-  
-  --color-bg-app: #111827;        /* Gray-900 */
-  --color-bg-card: #1F2937;       /* Gray-800 */
-  --color-bg-float: rgba(31, 41, 55, 0.85);
-  
-  --color-border: #374151;        /* Gray-700 */
-  --color-border-subtle: #1F2937; /* Gray-800 */
+/* Button Base */
+button,
+[role="button"] {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Card Base */
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Input Base */
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-border-active);
+  box-shadow: var(--shadow-focus);
+  outline: none;
+}
+
+/* ========== Dark Mode ========== */
+:root.dark,
+[data-theme="dark"] {
+  --color-primary: #818CF8;
+  /* Indigo-400 */
+  --color-primary-hover: #6366F1;
+  --color-primary-subtle: rgba(99, 102, 241, 0.15);
+  --color-primary-border: rgba(99, 102, 241, 0.3);
+
+  --color-secondary: #A5B4FC;
+  --color-secondary-subtle: rgba(165, 180, 252, 0.15);
+
+  --color-success: #34D399;
+  /* Emerald-400 */
+  --color-success-subtle: rgba(16, 185, 129, 0.15);
+
+  --color-text-main: #F8FAFC;
+  /* Slate-50 */
+  --color-text-body: #CBD5E1;
+  /* Slate-300 */
+  --color-text-muted: #94A3B8;
+  /* Slate-400 */
+
+  --color-bg-app: #0F172A;
+  /* Slate-900 */
+  --color-bg-card: #1E293B;
+  /* Slate-800 */
+  --color-bg-elevated: #334155;
+  /* Slate-700 */
+  --color-bg-muted: #1E293B;
+
+  --color-border: #334155;
+  /* Slate-700 */
+  --color-border-subtle: #1E293B;
+  /* Slate-800 */
 }

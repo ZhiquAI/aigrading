@@ -10,8 +10,8 @@ import { StudentResult, AppConfig } from '../types';
 // ==================== 默认配置 ====================
 
 export const OPENAI_DEFAULTS = {
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo']
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    models: ['google/gemini-2.5-flash', 'google/gemini-2.0-flash-001', 'openai/gpt-4o', 'openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet']
 };
 
 // ==================== 类型定义 ====================
@@ -79,10 +79,15 @@ export async function callOpenAI(
     const userContent: OpenAIContentPart[] = [{ type: 'text', text: userPrompt }];
 
     if (imageBase64) {
+        // 处理图片格式：支持纯 base64 或完整 data URL
+        const imageUrl = imageBase64.startsWith('data:')
+            ? imageBase64  // 已经是完整的 data URL，直接使用
+            : `data:image/jpeg;base64,${imageBase64}`;  // 纯 base64，添加前缀
+
         userContent.push({
             type: 'image_url',
             image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
+                url: imageUrl,
                 detail: 'high'
             }
         });
@@ -107,17 +112,42 @@ export async function callOpenAI(
         body.response_format = { type: 'json_object' };
     }
 
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`
-        },
-        body: JSON.stringify(body)
-    });
+    // 构建 headers，OpenRouter 需要额外的 HTTP-Referer 和 X-Title
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+    };
+
+    // 检测是否为 OpenRouter endpoint，添加额外 headers
+    if (endpoint.includes('openrouter.ai')) {
+        headers['HTTP-Referer'] = 'https://ai-grading.app';
+        headers['X-Title'] = 'AI Grading Assistant';
+    }
+
+    console.log('[OpenAI] Calling endpoint:', endpoint);
+    console.log('[OpenAI] Model:', modelName);
+    console.log('[OpenAI] Headers:', Object.keys(headers));
+
+    let response: Response;
+    try {
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+        });
+    } catch (fetchError) {
+        // 网络层错误 (CORS, 连接失败等)
+        console.error('[OpenAI] Fetch network error:', fetchError);
+        console.error('[OpenAI] Error type:', (fetchError as Error).constructor.name);
+        console.error('[OpenAI] Error message:', (fetchError as Error).message);
+        throw new Error(`网络请求失败: ${(fetchError as Error).message}`);
+    }
+
+    console.log('[OpenAI] Response status:', response.status);
 
     if (!response.ok) {
         const errorBody = await response.json().catch(() => ({ message: response.statusText }));
+        console.error('[OpenAI] Error body:', errorBody);
         const { parseAPIError } = await import('./ai-error');
         throw parseAPIError(response.status, errorBody);
     }
@@ -156,10 +186,15 @@ export async function* callOpenAIStream(
     const userContent: OpenAIContentPart[] = [{ type: 'text', text: userPrompt }];
 
     if (imageBase64) {
+        // 处理图片格式：支持纯 base64 或完整 data URL
+        const imageUrl = imageBase64.startsWith('data:')
+            ? imageBase64
+            : `data:image/jpeg;base64,${imageBase64}`;
+
         userContent.push({
             type: 'image_url',
             image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
+                url: imageUrl,
                 detail: 'high'
             }
         });
@@ -181,12 +216,19 @@ export async function* callOpenAIStream(
         body.max_tokens = options.maxTokens;
     }
 
+    // OpenRouter headers
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+    };
+    if (endpoint.includes('openrouter.ai')) {
+        headers['HTTP-Referer'] = 'https://ai-grading.app';
+        headers['X-Title'] = 'AI Grading Assistant';
+    }
+
     const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`
-        },
+        headers,
         body: JSON.stringify(body)
     });
 
@@ -267,10 +309,15 @@ export async function callOpenAIMultiImage(
         if (img.label) {
             userContent.push({ type: 'text', text: img.label });
         }
+        // 处理图片格式：支持纯 base64 或完整 data URL
+        const imageUrl = img.base64.startsWith('data:')
+            ? img.base64
+            : `data:image/jpeg;base64,${img.base64}`;
+
         userContent.push({
             type: 'image_url',
             image_url: {
-                url: `data:image/jpeg;base64,${img.base64}`,
+                url: imageUrl,
                 detail: 'high'
             }
         });
@@ -291,12 +338,19 @@ export async function callOpenAIMultiImage(
         body.response_format = { type: 'json_object' };
     }
 
+    // OpenRouter headers
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+    };
+    if (endpoint.includes('openrouter.ai')) {
+        headers['HTTP-Referer'] = 'https://ai-grading.app';
+        headers['X-Title'] = 'AI Grading Assistant';
+    }
+
     const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`
-        },
+        headers,
         body: JSON.stringify(body)
     });
 

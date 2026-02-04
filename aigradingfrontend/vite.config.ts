@@ -23,20 +23,20 @@ export default defineConfig(({ mode }) => {
             mkdirSync(path.resolve(__dirname, 'dist/public'), { recursive: true });
             // 复制 content.js 和 background.js （原始文件，不经过Vite打包）
             copyFileSync(
-              path.resolve(__dirname, 'public/content.js'), 
+              path.resolve(__dirname, 'public/content.js'),
               path.resolve(__dirname, 'dist/public/content.js')
             );
             copyFileSync(
-              path.resolve(__dirname, 'public/background.js'), 
+              path.resolve(__dirname, 'public/background.js'),
               path.resolve(__dirname, 'dist/public/background.js')
             );
             console.log('✅ public/content.js 和 public/background.js 已直接复制到 dist/public/');
-            
+
             // 修改 dist/manifest.json 中的 content_scripts 路径，使用原始文件而不是打包后的
             const manifestPath = path.resolve(__dirname, 'dist/manifest.json');
             const manifestContent = readFileSync(manifestPath, 'utf8');
             const manifestObj = JSON.parse(manifestContent);
-            
+
             if (manifestObj.content_scripts && manifestObj.content_scripts[0]) {
               manifestObj.content_scripts[0].js = ['public/content.js'];
               console.log('✅ 已更新 manifest.json：content_scripts 使用原始 public/content.js');
@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
               manifestObj.background.service_worker = 'public/background.js';
               console.log('✅ 已更新 manifest.json：background 使用原始 public/background.js');
             }
-            
+
             writeFileSync(manifestPath, JSON.stringify(manifestObj, null, 2));
             console.log('✅ manifest.json 已更新并保存');
           } catch (err) {
@@ -58,14 +58,14 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
+          manualChunks: mode === 'production' ? {
             // 分离Chart.js及相关依赖
             'chart': ['chart.js', 'react-chartjs-2'],
             // 分离React核心库  
             'react-vendor': ['react', 'react-dom'],
             // 分离Lucide图标库
             'icons': ['lucide-react']
-          }
+          } : undefined
         }
       },
       // 调整chunk大小警告阈值

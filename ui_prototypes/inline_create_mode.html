@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内联创建模式</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Chrome Sidepanel Container -->
+    <div class="w-[400px] h-[750px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+
+        <!-- Header -->
+        <header class="h-12 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
+            <h1 class="font-bold text-slate-800">评分细则</h1>
+            <div class="flex items-center gap-1.5">
+                <button class="text-xs text-indigo-600 font-medium hover:underline">管理考试</button>
+            </div>
+        </header>
+
+        <!-- 内联选择/创建区域 -->
+        <div class="px-4 py-3 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 space-y-3 shrink-0">
+
+            <!-- 考试选择/创建 -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-500 uppercase">考试</label>
+                <div class="relative">
+                    <!-- 下拉选择器 + 新建输入 -->
+                    <div class="flex gap-2">
+                        <div class="flex-1 relative">
+                            <select id="examSelect"
+                                class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm appearance-none pr-8 focus:border-indigo-300 outline-none">
+                                <option value="">选择已有考试...</option>
+                                <option value="new">➕ 新建考试</option>
+                            </select>
+                            <svg class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- 新建考试输入框 (默认显示，演示用) -->
+                    <div id="newExamInput" class="mt-2 flex gap-2">
+                        <input type="text" placeholder="输入考试名称，如：期末考试"
+                            class="flex-1 px-3 py-2 bg-white border border-indigo-200 rounded-lg text-sm focus:border-indigo-400 outline-none"
+                            id="examNameInput">
+                        <button id="createExamBtn"
+                            class="px-3 py-2 bg-indigo-500 text-white text-xs font-bold rounded-lg hover:bg-indigo-600 shrink-0">
+                            创建
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 题号 + 学科 (同行) -->
+            <div class="flex gap-3">
+                <!-- 题号输入 -->
+                <div class="w-24 space-y-1.5">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">题号</label>
+                    <input type="text" placeholder="如: 15"
+                        class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-center font-bold focus:border-indigo-300 outline-none"
+                        id="questionNoInput">
+                </div>
+
+                <!-- 学科快速选择 -->
+                <div class="flex-1 space-y-1.5">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">学科</label>
+                    <div class="flex gap-1">
+                        <button
+                            class="subject-btn flex-1 py-2.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-lg border border-amber-200">历史</button>
+                        <button
+                            class="subject-btn flex-1 py-2.5 text-xs font-medium bg-slate-100 text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-200">政治</button>
+                        <button
+                            class="subject-btn flex-1 py-2.5 text-xs font-medium bg-slate-100 text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-200">语文</button>
+                        <button
+                            class="subject-btn flex-1 py-2.5 text-xs font-medium bg-slate-100 text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-200">物理</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 当前状态提示 -->
+            <div id="statusHint"
+                class="hidden p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span class="text-xs text-emerald-700">已自动保存：<strong>期末考试 · 第15题 · 历史</strong></span>
+            </div>
+        </div>
+
+        <!-- AI 创建工作区 -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+
+            <!-- Hero 区域 (更紧凑) -->
+            <div class="text-center py-1">
+                <div
+                    class="w-12 h-12 mx-auto mb-2 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <h2 class="text-sm font-bold text-slate-800">AI 智能生成</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">上传答案文本，自动生成评分细则</p>
+            </div>
+
+            <!-- 导入答案 -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase">导入参考答案</h3>
+                    <button class="text-[10px] text-indigo-600 hover:underline">上传图片</button>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <textarea placeholder="粘贴参考答案文本，例如：&#10;（1）根本原因：封建专制制度阻碍资本主义发展（2分）&#10;（2）特点：改革不彻底、保留封建残余（2分）"
+                        class="w-full h-32 p-3 text-xs border-0 outline-none resize-none placeholder:text-slate-300"></textarea>
+                </div>
+            </div>
+
+            <!-- 分值设置 -->
+            <div class="bg-white rounded-xl border border-slate-200 p-3 flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-600">题目总分</span>
+                <div class="flex items-center gap-2">
+                    <button
+                        class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 text-lg">−</button>
+                    <span class="w-10 text-center font-bold text-slate-800 text-lg">10</span>
+                    <button
+                        class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 text-lg">+</button>
+                </div>
+            </div>
+
+            <!-- 上传题目图片 (可选，折叠) -->
+            <details class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <summary
+                    class="p-3 text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between">
+                    <span>📷 上传题目图片（可选）</span>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </summary>
+                <div class="p-3 pt-0 border-t border-slate-100">
+                    <label
+                        class="block p-4 border-2 border-dashed border-slate-200 rounded-lg text-center cursor-pointer hover:border-indigo-300 transition-colors">
+                        <svg class="w-8 h-8 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-xs text-slate-400">点击上传</span>
+                        <input type="file" class="hidden" accept="image/*">
+                    </label>
+                </div>
+            </details>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <div class="p-4 border-t border-slate-100 bg-white shrink-0">
+            <button
+                class="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/25 text-sm font-bold flex items-center justify-center gap-2 hover:shadow-xl transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                AI 生成评分细则
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 模拟交互
+        const examSelect = document.getElementById('examSelect');
+        const newExamInput = document.getElementById('newExamInput');
+        const createExamBtn = document.getElementById('createExamBtn');
+        const examNameInput = document.getElementById('examNameInput');
+        const questionNoInput = document.getElementById('questionNoInput');
+        const statusHint = document.getElementById('statusHint');
+        const subjectBtns = document.querySelectorAll('.subject-btn');
+
+        // 默认隐藏新建输入框
+        newExamInput.classList.add('hidden');
+
+        // 选择考试时
+        examSelect.addEventListener('change', () => {
+            if (examSelect.value === 'new') {
+                newExamInput.classList.remove('hidden');
+                examNameInput.focus();
+            } else {
+                newExamInput.classList.add('hidden');
+            }
+        });
+
+        // 创建考试
+        createExamBtn.addEventListener('click', () => {
+            const name = examNameInput.value.trim();
+            if (name) {
+                // 添加到下拉列表
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                option.selected = true;
+                examSelect.insertBefore(option, examSelect.options[1]);
+
+                // 隐藏输入框
+                newExamInput.classList.add('hidden');
+                examNameInput.value = '';
+
+                // 显示保存提示
+                checkAndShowStatus();
+            }
+        });
+
+        // 题号输入自动保存
+        questionNoInput.addEventListener('blur', () => {
+            if (questionNoInput.value.trim()) {
+                checkAndShowStatus();
+            }
+        });
+
+        // 学科选择
+        subjectBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                subjectBtns.forEach(b => {
+                    b.classList.remove('bg-amber-100', 'text-amber-700', 'border-amber-200');
+                    b.classList.add('bg-slate-100', 'text-slate-500', 'border-slate-200');
+                });
+                btn.classList.remove('bg-slate-100', 'text-slate-500', 'border-slate-200');
+                btn.classList.add('bg-amber-100', 'text-amber-700', 'border-amber-200');
+                checkAndShowStatus();
+            });
+        });
+
+        // 检查并显示保存状态
+        function checkAndShowStatus() {
+            const exam = examSelect.options[examSelect.selectedIndex]?.textContent;
+            const question = questionNoInput.value.trim();
+            const subject = document.querySelector('.subject-btn.bg-amber-100')?.textContent;
+
+            if (exam && exam !== '选择已有考试...' && exam !== '➕ 新建考试' && question) {
+                statusHint.classList.remove('hidden');
+                statusHint.querySelector('strong').textContent = `${exam} · 第${question}题 · ${subject}`;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

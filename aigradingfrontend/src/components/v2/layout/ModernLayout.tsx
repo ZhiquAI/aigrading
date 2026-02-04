@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppStore } from '@/stores/useAppStore';
 import { Tab } from '@/types';
 import {
     Settings2,
     History,
-    PieChart,
+    FileText,
     CheckCircle2,
     Download,
+    Upload,
+    Plus,
     Share2,
     MonitorCheck,
     MousePointerClick,
@@ -14,9 +16,9 @@ import {
     ChevronDown,
     Zap
 } from 'lucide-react';
+import RubricView from '../views/RubricView';
 import GradingViewV2 from '../views/GradingViewV2';
 import RecordsViewV2 from '../views/RecordsViewV2';
-import AnalysisViewV2 from '../views/AnalysisViewV2';
 import SettingsViewV2 from '../views/SettingsViewV2';
 
 import { toast } from '@/components/Toast';
@@ -39,7 +41,8 @@ export default function ModernLayout() {
         removeTask,
         status,
         quota,
-        setIsRubricDrawerOpen
+        setIsRubricDrawerOpen,
+        setManualQuestionKey
     } = useAppStore();
     const containerRef = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(0);
@@ -84,13 +87,57 @@ export default function ModernLayout() {
     const isNarrow = width < 340;
     const isUltraNarrow = width < 280;
 
+    const moduleMeta = useMemo(() => {
+        switch (activeTab) {
+            case Tab.Rubric:
+                return {
+                    label: 'Rubric',
+                    Icon: FileText,
+                    tint: 'bg-indigo-50/60',
+                    accent: 'bg-indigo-500',
+                    iconBg: 'bg-indigo-500'
+                };
+            case Tab.Grading:
+                return {
+                    label: 'Grading',
+                    Icon: CheckCircle2,
+                    tint: 'bg-blue-50/60',
+                    accent: 'bg-blue-500',
+                    iconBg: 'bg-blue-500'
+                };
+            case Tab.History:
+                return {
+                    label: 'Records',
+                    Icon: History,
+                    tint: 'bg-amber-50/70',
+                    accent: 'bg-amber-500',
+                    iconBg: 'bg-amber-500'
+                };
+            case Tab.Settings:
+                return {
+                    label: 'Settings',
+                    Icon: Settings2,
+                    tint: 'bg-slate-100/70',
+                    accent: 'bg-slate-500',
+                    iconBg: 'bg-slate-500'
+                };
+            default:
+                return {
+                    label: 'Module',
+                    Icon: FileText,
+                    tint: 'bg-slate-50/60',
+                    accent: 'bg-slate-400',
+                    iconBg: 'bg-slate-500'
+                };
+        }
+    }, [activeTab]);
+
     // Dynamic Title Logic
     const getPageTitle = () => {
         switch (activeTab) {
+            case Tab.Rubric: return '评分细则';
             case Tab.Grading: return '智能阅卷';
-
             case Tab.History: return '阅卷记录';
-            case Tab.Analysis: return '考情分析';
             case Tab.Settings: return '系统设置';
             default: return 'AI Grading';
         }
@@ -185,6 +232,8 @@ export default function ModernLayout() {
                                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${isOpen ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'text-slate-500 hover:bg-slate-100'}`}
                             >
                                 {action.icon === 'Download' && <Download size={16} />}
+                                {action.icon === 'Upload' && <Upload size={16} />}
+                                {action.icon === 'Plus' && <Plus size={16} />}
                                 {!isNarrow && <span>{action.label}</span>}
                                 {hasDropdown && <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />}
                             </button>
@@ -229,9 +278,35 @@ export default function ModernLayout() {
             )}
 
             {/* 1. Dynamic Header (V13 Prototype style) */}
-            <header className={`bg-white/80 backdrop-blur-xl border-b px-3 flex items-center justify-between shrink-0 sticky top-0 z-20 h-14 transition-all duration-700 ${status === 'thinking' ? 'border-indigo-400 bg-indigo-50/50 shadow-[0_0_20px_rgba(79,70,229,0.1)]' : 'border-slate-100'}`}>
-                <div className="flex items-center gap-2 shrink-0">
-                    {!isUltraNarrow && <h1 className="font-black text-slate-900 text-base tracking-tight whitespace-nowrap">{getPageTitle()}</h1>}
+            <header className={`relative bg-white/90 backdrop-blur-xl border-b px-3 flex items-center justify-between shrink-0 sticky top-0 z-20 h-12 transition-all duration-700 ${status === 'thinking' ? 'border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.1)]' : 'border-slate-100'}`}>
+                <div className={`absolute inset-0 pointer-events-none ${moduleMeta.tint}`} />
+                <div className={`absolute bottom-0 left-0 w-full h-0.5 ${moduleMeta.accent}`} />
+
+                <div className="relative z-10 flex items-center gap-2 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab(Tab.Rubric);
+                            setManualQuestionKey(null);
+                            setIsRubricDrawerOpen(false);
+                        }}
+                        className="flex items-center gap-2 rounded-lg px-1.5 py-1 -ml-1 hover:bg-white/70 transition-colors"
+                        aria-label="回到主页面"
+                    >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${moduleMeta.iconBg}`}>
+                            <moduleMeta.Icon size={14} className="text-white" />
+                        </div>
+                        {!isUltraNarrow && (
+                            <div className="flex flex-col leading-tight text-left">
+                                <span className="font-black text-slate-900 text-sm tracking-tight whitespace-nowrap">
+                                    {getPageTitle()}
+                                </span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest">
+                                    {moduleMeta.label}
+                                </span>
+                            </div>
+                        )}
+                    </button>
                     {activeTab === Tab.Grading && (
                         <MembershipBadge
                             isPaid={quota.isPaid}
@@ -242,7 +317,7 @@ export default function ModernLayout() {
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="relative z-10 flex items-center gap-2">
                     {renderHeaderActions()}
                 </div>
             </header>
@@ -278,23 +353,21 @@ export default function ModernLayout() {
             )}
 
             {/* 2. Main Content Stage */}
-            <main className="flex-1 overflow-hidden relative z-10 pb-16 bg-slate-50/30">
+            <main className="flex-1 overflow-hidden relative pb-16 bg-slate-50/30">
 
-                {/* Tab: Grade (Active View) */}
+                {/* Tab: Rubric (评分细则) */}
+                <div className={`page-container ${activeTab === Tab.Rubric ? 'flex' : 'hidden'} h-full flex-col`}>
+                    <RubricView />
+                </div>
+
+                {/* Tab: Grade (阅卷) */}
                 <div className={`page-container ${activeTab === Tab.Grading ? 'flex' : 'hidden'} h-full flex-col`}>
                     <GradingViewV2 />
                 </div>
 
-
-
-                {/* Tab: History */}
+                {/* Tab: History (记录) */}
                 <div className={`page-container ${activeTab === Tab.History ? 'flex' : 'hidden'} h-full flex-col`}>
                     <RecordsViewV2 />
-                </div>
-
-                {/* Tab: Analysis */}
-                <div className={`page-container ${activeTab === Tab.Analysis ? 'flex' : 'hidden'} h-full flex-col`}>
-                    <AnalysisViewV2 />
                 </div>
 
                 {/* Tab: Settings */}
@@ -304,8 +377,15 @@ export default function ModernLayout() {
 
             </main>
 
-            {/* 3. Bottom Navigation Bar (V13 Implementation) */}
+            {/* 3. Bottom Navigation Bar - 4 Tabs */}
             <nav className="bg-white/95 backdrop-blur-md border-t border-slate-100 h-16 px-1 flex items-center justify-around shrink-0 fixed bottom-0 w-full z-30 shadow-[0_-8px_20px_-10px_rgba(0,0,0,0.05)]">
+                <NavButton
+                    active={activeTab === Tab.Rubric}
+                    onClick={() => setActiveTab(Tab.Rubric)}
+                    icon={<FileText size={22} strokeWidth={activeTab === Tab.Rubric ? 2.5 : 2} />}
+                    label="细则"
+                    hideLabel={isNarrow}
+                />
                 <NavButton
                     active={activeTab === Tab.Grading}
                     onClick={() => setActiveTab(Tab.Grading)}
@@ -313,19 +393,11 @@ export default function ModernLayout() {
                     label="阅卷"
                     hideLabel={isNarrow}
                 />
-
                 <NavButton
                     active={activeTab === Tab.History}
                     onClick={() => setActiveTab(Tab.History)}
                     icon={<History size={22} strokeWidth={activeTab === Tab.History ? 2.5 : 2} />}
                     label="记录"
-                    hideLabel={isNarrow}
-                />
-                <NavButton
-                    active={activeTab === Tab.Analysis}
-                    onClick={() => setActiveTab(Tab.Analysis)}
-                    icon={<PieChart size={22} strokeWidth={activeTab === Tab.Analysis ? 2.5 : 2} />}
-                    label="分析"
                     hideLabel={isNarrow}
                 />
                 <NavButton

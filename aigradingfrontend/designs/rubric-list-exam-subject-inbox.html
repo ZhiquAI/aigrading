@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>评分细则 - 考试+学科 Inbox 列表</title>
+  <style>
+    :root {
+      --indigo-600: #4F46E5;
+      --slate-50: #F8FAFC;
+      --slate-100: #F1F5F9;
+      --slate-200: #E2E8F0;
+      --slate-300: #CBD5F5;
+      --slate-400: #94A3B8;
+      --slate-500: #64748B;
+      --slate-700: #334155;
+      --slate-900: #0F172A;
+      --emerald-50: #ECFDF5;
+      --emerald-600: #059669;
+      --amber-50: #FFFBEB;
+      --amber-600: #D97706;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+    }
+    .panel {
+      width: 360px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: #fff;
+      border-left: 1px solid var(--slate-200);
+      border-right: 1px solid var(--slate-200);
+    }
+    .header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .title { font-size: 14px; font-weight: 800; }
+    .sub { font-size: 11px; color: var(--slate-500); }
+
+    .group {
+      border-bottom: 1px solid var(--slate-100);
+    }
+    .exam-header {
+      padding: 10px 14px;
+      background: var(--slate-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--slate-700);
+    }
+    .exam-count {
+      font-size: 10px;
+      color: var(--slate-500);
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .subject-header {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--slate-500);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .row {
+      padding: 10px 14px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid var(--slate-100);
+    }
+    .badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--slate-100);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: var(--slate-500);
+      font-size: 12px;
+    }
+    .row-title { font-size: 12px; font-weight: 800; color: var(--slate-900); }
+    .meta { font-size: 10px; color: var(--slate-500); margin-top: 2px; }
+    .status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 6px;
+      border-radius: 999px;
+    }
+    .status.done { background: var(--emerald-50); color: var(--emerald-600); }
+    .status.todo { background: var(--amber-50); color: var(--amber-600); }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px 14px;
+    }
+    .btn {
+      flex: 1;
+      padding: 8px 0;
+      border-radius: 10px;
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--slate-700);
+    }
+    .btn.primary { background: var(--indigo-600); color: #fff; border: none; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div>
+        <div class="title">评分细则 · Inbox 列表</div>
+        <div class="sub">按考试 → 学科 分组</div>
+      </div>
+      <div class="sub">共 12</div>
+    </div>
+
+    <!-- 考试 1 -->
+    <div class="group">
+      <div class="exam-header">
+        <span>2026 期末考试</span>
+        <span class="exam-count">6 题</span>
+      </div>
+
+      <div class="subject-header">
+        <span>历史</span>
+        <span>3 题</span>
+      </div>
+      <div class="row">
+        <div class="badge">12</div>
+        <div>
+          <div class="row-title">主观题 · 经济动因分析</div>
+          <div class="meta">总分 10 · 得分点 5</div>
+        </div>
+        <div class="status done">已完成</div>
+      </div>
+      <div class="row">
+        <div class="badge">13</div>
+        <div>
+          <div class="row-title">材料题 · 近代化路径</div>
+          <div class="meta">总分 8 · 得分点 4</div>
+        </div>
+        <div class="status todo">进行中</div>
+      </div>
+
+      <div class="subject-header">
+        <span>政治</span>
+        <span>2 题</span>
+      </div>
+      <div class="row">
+        <div class="badge">6</div>
+        <div>
+          <div class="row-title">选择题 · 时政判断</div>
+          <div class="meta">总分 4 · 得分点 0</div>
+        </div>
+        <div class="status todo">进行中</div>
+      </div>
+    </div>
+
+    <!-- 考试 2 -->
+    <div class="group">
+      <div class="exam-header">
+        <span>周测 · 初三一班</span>
+        <span class="exam-count">3 题</span>
+      </div>
+
+      <div class="subject-header">
+        <span>语文</span>
+        <span>2 题</span>
+      </div>
+      <div class="row">
+        <div class="badge">3</div>
+        <div>
+          <div class="row-title">材料题 · 修辞分析</div>
+          <div class="meta">总分 8 · 得分点 4</div>
+        </div>
+        <div class="status done">已完成</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary">新建</button>
+      <button class="btn">导入</button>
+    </div>
+  </div>
+</body>
+</html>

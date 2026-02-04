@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>评分细则模块 - Sidepanel HTML 设计稿</title>
+  <style>
+    :root {
+      --indigo-50: #EEF2FF;
+      --indigo-100: #E0E7FF;
+      --indigo-500: #6366F1;
+      --indigo-600: #4F46E5;
+      --indigo-700: #4338CA;
+      --slate-50: #F8FAFC;
+      --slate-100: #F1F5F9;
+      --slate-200: #E2E8F0;
+      --slate-400: #94A3B8;
+      --slate-500: #64748B;
+      --slate-700: #334155;
+      --slate-900: #0F172A;
+      --emerald-500: #10B981;
+      --amber-500: #F59E0B;
+      --bg: #FFFFFF;
+      --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
+      --radius-xl: 16px;
+      --radius-lg: 14px;
+      --radius-md: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+    }
+
+    .panel {
+      width: 360px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: #fff;
+      border-left: 1px solid var(--slate-200);
+      border-right: 1px solid var(--slate-200);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--slate-200);
+      padding: 14px 14px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title h1 {
+      font-size: 15px;
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .title p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--slate-500);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      color: var(--slate-700);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 150ms ease, box-shadow 200ms ease, background 200ms ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--indigo-600), #6366F1);
+      border: none;
+      color: #fff;
+      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+    }
+
+    .btn-ghost {
+      background: var(--slate-100);
+      color: var(--slate-700);
+    }
+
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+
+    .section {
+      padding: 14px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: var(--slate-400);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .empty-state {
+      border: 1px dashed #C7D2FE;
+      border-radius: var(--radius-xl);
+      padding: 26px 16px;
+      text-align: center;
+      background: linear-gradient(180deg, #FFFFFF, #F8FAFF);
+    }
+
+    .empty-icon {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 12px;
+      border-radius: 16px;
+      background: var(--indigo-100);
+      display: grid;
+      place-items: center;
+    }
+
+    .empty-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .empty-desc {
+      font-size: 11px;
+      color: var(--slate-500);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .cards {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--indigo-50);
+      color: var(--indigo-700);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #FEF3C7;
+      color: #B45309;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--slate-500);
+      font-size: 11px;
+      margin-top: 6px;
+    }
+
+    .score {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .divider { height: 1px; background: var(--slate-100); margin: 12px 0; }
+
+    .overlay {
+      margin: 12px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--slate-200);
+      box-shadow: var(--shadow-md);
+    }
+
+    .overlay-header {
+      padding: 12px;
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+    }
+
+    .overlay-header h2 { font-size: 14px; margin: 0; font-weight: 800; }
+    .overlay-header p { font-size: 11px; color: var(--slate-500); margin: 4px 0 0; }
+
+    .overlay-content {
+      padding: 12px;
+      background: var(--slate-50);
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--slate-500);
+    }
+
+    .field input, .field select, .field textarea {
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--slate-200);
+      background: #fff;
+      font-size: 12px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .upload {
+      border: 1px dashed #C7D2FE;
+      border-radius: 12px;
+      padding: 12px;
+      background: #F8FAFF;
+      text-align: center;
+      display: grid;
+      gap: 6px;
+      min-height: 120px;
+      align-content: center;
+    }
+
+    .preview {
+      background: #0F172A;
+      color: #E2E8F0;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      max-height: 160px;
+      overflow: auto;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .table th, .table td {
+      border-bottom: 1px solid var(--slate-200);
+      padding: 8px 6px;
+      text-align: left;
+    }
+    .table th { color: var(--slate-500); font-weight: 700; }
+
+    .table input {
+      width: 100%;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid var(--slate-200);
+      font-size: 11px;
+    }
+
+    .footer-actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div class="title">
+        <h1>评分细则</h1>
+        <p>卡片管理 · 图片生成 JSON · 可编辑预览</p>
+      </div>
+      <button class="btn btn-primary">创建</button>
+    </div>
+
+    <div class="section">
+      <div class="section-label">空状态</div>
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 4h12l4 4v12a2 2 0 0 1-2 2H4z" />
+            <path d="M14 4v4h4" />
+            <path d="M8 12h8" />
+            <path d="M8 16h5" />
+          </svg>
+        </div>
+        <div class="empty-title">还没有评分细则</div>
+        <div class="empty-desc">上传试题与答案图片，自动生成 JSON 并可视化编辑。</div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-primary">创建第一条</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">卡片列表</div>
+      <div class="cards">
+        <div class="card">
+          <div class="card-head">
+            <span class="chip">历史 · 主观题</span>
+            <span class="status">进行中</span>
+          </div>
+          <h3 style="margin:8px 0 4px; font-size:14px;">期末考试 · 第12题</h3>
+          <div class="meta">
+            <span>总分 10</span>
+            <span>得分点 5</span>
+            <span>更新 2h</span>
+          </div>
+          <div style="margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div class="score">10</div>
+              <div class="meta">分值配置</div>
+            </div>
+            <button class="btn btn-ghost">JSON 预览</button>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary" style="flex:1;">编辑</button>
+            <button class="btn" style="flex:1;">复制</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="chip">政治 · 选择题</span>
+            <span class="status" style="background:#DCFCE7; color:#047857;">已完成</span>
+          </div>
+          <h3 style="margin:8px 0 4px; font-size:14px;">周测 · 第6题</h3>
+          <div class="meta">
+            <span>总分 4</span>
+            <span>得分点 4</span>
+            <span>更新 昨天</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary" style="flex:1;">编辑</button>
+            <button class="btn" style="flex:1;">导出</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-style:dashed; background:#F8FAFF;">
+          <h3 style="margin:0 0 6px; font-size:14px;">快速创建</h3>
+          <p class="empty-desc">拖拽图片或选择文件生成评分细则。</p>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn btn-primary" style="flex:1;">图片生成</button>
+            <button class="btn" style="flex:1;">模板</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">创建弹窗（全屏覆盖）</div>
+      <div class="overlay">
+        <div class="overlay-header">
+          <div>
+            <h2>创建评分细则</h2>
+            <p>填写题目信息并上传图片，生成 JSON</p>
+          </div>
+          <button class="btn btn-ghost">关闭</button>
+        </div>
+        <div class="overlay-content">
+          <div class="field">
+            <label>考试信息</label>
+            <input placeholder="2026 期末考试" />
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>题号</label>
+              <input placeholder="12" />
+            </div>
+            <div class="field">
+              <label>题目总分</label>
+              <input placeholder="10" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>题目类型</label>
+            <select>
+              <option>主观题</option>
+              <option>选择题</option>
+              <option>材料解析</option>
+            </select>
+          </div>
+
+          <div class="grid-2">
+            <div class="upload">
+              <strong>上传试题图片</strong>
+              <span class="empty-desc">JPG / PNG</span>
+              <button class="btn">选择文件</button>
+            </div>
+            <div class="upload">
+              <strong>上传参考答案图片</strong>
+              <span class="empty-desc">用于生成细则</span>
+              <button class="btn">选择文件</button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <button class="btn btn-primary">生成 JSON</button>
+            <button class="btn btn-ghost">使用模板</button>
+          </div>
+
+          <div class="field">
+            <label>JSON 预览</label>
+            <div class="preview">
+{
+  "version": "2.0",
+  "exam": "2026 期末考试",
+  "questionNo": "12",
+  "type": "essay",
+  "totalScore": 10,
+  "answerPoints": [
+    { "id": "1", "content": "核心原因说明", "score": 4 },
+    { "id": "2", "content": "关键事实举例", "score": 3 },
+    { "id": "3", "content": "结论与评价", "score": 3 }
+  ]
+}
+            </div>
+          </div>
+
+          <div class="card" style="background:#F8FAFC;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <strong style="font-size:12px;">得分点表格预览</strong>
+              <button class="btn btn-ghost">新增行</button>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width:44px;">ID</th>
+                  <th>得分点</th>
+                  <th style="width:60px;">分值</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input value="1" /></td>
+                  <td><input value="核心原因说明" /></td>
+                  <td><input value="4" /></td>
+                </tr>
+                <tr>
+                  <td><input value="2" /></td>
+                  <td><input value="关键事实举例" /></td>
+                  <td><input value="3" /></td>
+                </tr>
+                <tr>
+                  <td><input value="3" /></td>
+                  <td><input value="结论与评价" /></td>
+                  <td><input value="3" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer-actions">
+            <button class="btn">导出 JSON</button>
+            <button class="btn btn-primary">保存评分细则</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

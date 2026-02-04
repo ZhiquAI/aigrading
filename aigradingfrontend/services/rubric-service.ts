@@ -269,12 +269,22 @@ export async function generateRubricFromImages(
         // 前端直连模式：使用用户配置的 AI API
         try {
             const { callAI } = await import('./ai-router');
+            const { getAppConfig } = await import('./config-service');
+
+            const config = getAppConfig();
+            console.log('[generateRubricFromImages] Frontend direct mode');
+            console.log('[generateRubricFromImages] Provider:', config.provider);
+            console.log('[generateRubricFromImages] Endpoint:', config.endpoint);
+            console.log('[generateRubricFromImages] Model:', config.modelName);
+            console.log('[generateRubricFromImages] API Key configured:', !!config.apiKey);
 
             const systemPrompt = getRubricSystemPrompt();
             const userPrompt = '请根据图片中的参考答案生成结构化评分细则 JSON。';
 
             // 使用参考答案图片或试题图片
             const imageToUse = answerImageBase64 || questionImageBase64 || '';
+            console.log('[generateRubricFromImages] Image length:', imageToUse.length);
+            console.log('[generateRubricFromImages] Image starts with data:', imageToUse.startsWith('data:'));
 
             const result = await callAI(systemPrompt, userPrompt, imageToUse, { jsonMode: true });
 
@@ -283,6 +293,9 @@ export async function generateRubricFromImages(
             return parseRubricJSON(JSON.parse(cleaned));
         } catch (error) {
             console.error('[generateRubricFromImages] Frontend direct failed:', error);
+            console.error('[generateRubricFromImages] Error name:', (error as Error).name);
+            console.error('[generateRubricFromImages] Error message:', (error as Error).message);
+            console.error('[generateRubricFromImages] Error stack:', (error as Error).stack);
             throw new Error(`生成评分细则失败：${error instanceof Error ? error.message : 'AI 服务不可用'} `);
         }
     }

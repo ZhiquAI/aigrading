@@ -1,10 +1,10 @@
 
 
 export enum Tab {
-  Grading = 'grading',
-  History = 'history',
-  Analysis = 'analysis',
-  Settings = 'settings'
+  Rubric = 'rubric',    // 细则配置（阅卷前）
+  Grading = 'grading',  // 阅卷（阅卷中）
+  History = 'history',  // 批改记录（阅卷后）
+  Settings = 'settings' // 设置（移至 Header）
 }
 
 export enum GradingMode {

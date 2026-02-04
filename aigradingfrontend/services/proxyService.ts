@@ -22,18 +22,16 @@ export function getDeviceId(): string {
 }
 
 // 代理模式配置
-// 生产环境（配置了后端 API 地址）默认使用代理模式
-// 开发环境默认使用前端直连模式
+// 默认使用前端直连模式（用户可以使用自己的 API Key）
+// 只有用户明确开启代理模式时才使用后端代理
 export function isProxyMode(): boolean {
     const saved = localStorage.getItem('proxy_mode');
     if (saved !== null) {
         return saved === 'true';
     }
-    // 如果没有手动设置，根据环境变量决定默认值
-    // 有 VITE_API_BASE_URL 配置时，默认使用代理模式
-    // @ts-ignore - Vite 环境变量
-    const hasBackendUrl = !!import.meta.env?.VITE_API_BASE_URL;
-    return hasBackendUrl;
+    // 默认使用前端直连模式
+    // 这样用户无需启动后端也能使用 OpenRouter/Gemini 等 API
+    return false;
 }
 
 export function setProxyMode(enabled: boolean): void {
