@@ -584,7 +584,10 @@ export const assessStudentAnswer = async (
   const thinkingBudget = getThinkingBudget(strategy);
 
   // 检测是否为 JSON 格式的评分细则
-  const isJSONRubric = rubricText.trim().startsWith('{') || rubricText.includes('"answerPoints"');
+  const isJSONRubric = rubricText.trim().startsWith('{')
+    || rubricText.includes('"strategyType"')
+    || rubricText.includes('"version":"3.0"')
+    || rubricText.includes('"version": "3.0"');
 
   let userPrompt: string;
   if (isJSONRubric) {
@@ -597,11 +600,11 @@ ${rubricText}
 【评分规则】
 
 0. **原子化判定原则**（必须严格遵守）：
-   - 逐一处理每个 answerPoint，禁止整体跳读或合并判定
+   - 逐一处理每个评分条目（point/step/dimension），禁止整体跳读或合并判定
    - 每个得分点独立评分，互不影响
    - 判定流程：提取关键词 → 核对学生答案 → 给出该点分数
 
-1. 逐一检查 answerPoints 中的每个得分点
+1. 逐一检查评分细则中的每个得分项（points/steps/dimensions）
 2. 根据 keywords 关键词匹配学生答案
 3. 根据 scoringStrategy 计算最终得分：
    - pick_n: 最多计算 maxPoints 个得分点
@@ -638,7 +641,7 @@ ${rubricText}
      * 仅有观点无逻辑，或仅有描述无观点 → 1分
      * 完全跑题或逻辑混乱 → 0分
 
-5. 参考 gradingNotes 中的阅卷提示进行评分
+5. 参考 constraints 中的阅卷提示进行评分
 
 6. **因果逻辑验证**（防止关键词堆砌欺骗）：
    - 人物→成就映射检查：
@@ -652,7 +655,7 @@ ${rubricText}
      * 若题目涉及"古代中国"，答案中出现"工业革命""资本主义"等近现代概念，需核对上下文，若明显错乱则判0分
      * 若题目涉及"工业革命"，答案中出现"互联网""人工智能"等信息时代概念，判定为时空错乱，该小题0分
    
-   - gradingNotes 中若包含【逻辑验证】或【时空围栏】标记，必须严格执行
+   - constraints 中若包含【逻辑验证】或【时空围栏】标记，必须严格执行
 
 7. **技术指令**（AI 判定优先级）：
    - 专有名词（人名、地名、法律文件名）→ 绝对匹配，零容错
@@ -663,7 +666,7 @@ ${rubricText}
      * 意思无关或错误 → 0分
 
 8. **deductionRules 优先级**（最高优先级）：
-   - 若 answerPoint 包含 deductionRules 字段，必须严格按照其中的判定逻辑执行
+   - 若评分条目包含 deductionRules 字段，必须严格按照其中的判定逻辑执行
    - deductionRules 优先级高于全局题型策略（strictMode/allowAlternative/openEnded）
    - 判定模式示例：
      * "绝对匹配。柏里克利/伯利克利均0分" → 执行字符串完全相等校验

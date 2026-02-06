@@ -315,7 +315,7 @@ const AnalysisView: React.FC = () => {
             const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
             downloadFile(blob, `${filename}.csv`);
         } else {
-            const exportData = { version: '2.0', exportTime: new Date().toISOString(), question: questionLabel, stats, records: list };
+            const exportData = { version: '3.0', exportTime: new Date().toISOString(), question: questionLabel, stats, records: list };
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             downloadFile(blob, `${filename}.json`);
         }
