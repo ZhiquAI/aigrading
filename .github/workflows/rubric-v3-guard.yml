@@ -1,0 +1,33 @@
+name: rubric-v3-guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  contract-and-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: aigradingbackend/package-lock.json
+
+      - name: Install backend deps
+        run: npm ci
+        working-directory: aigradingbackend
+
+      - name: Rubric V3 contract check
+        run: npm run check:rubric-contract
+        working-directory: aigradingbackend
+
+      - name: Rubric V3 keyword guard
+        run: bash scripts/check-rubric-v3-guard.sh

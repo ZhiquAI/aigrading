@@ -1,0 +1,51 @@
+{
+  "version": "3.0",
+  "metadata": {
+    "questionId": "13",
+    "title": "历史综合题",
+    "subject": "历史",
+    "grade": "九年级",
+    "questionType": "材料题",
+    "examName": "期末考试"
+  },
+  "strategyType": "point_accumulation",
+  "content": {
+    "scoringStrategy": {
+      "type": "weighted",
+      "strictMode": false,
+      "allowAlternative": true,
+      "openEnded": false
+    },
+    "points": [
+      {
+        "id": "13-1",
+        "questionSegment": "原因",
+        "content": "资本主义萌芽",
+        "keywords": [
+          "资本主义",
+          "萌芽"
+        ],
+        "score": 2
+      },
+      {
+        "id": "13-2",
+        "questionSegment": "影响",
+        "content": "推动社会转型",
+        "keywords": [
+          "社会转型"
+        ],
+        "score": 4
+      }
+    ],
+    "totalScore": 6
+  },
+  "constraints": [
+    {
+      "id": "c1",
+      "type": "阅卷提示",
+      "description": "按关键词给分"
+    }
+  ],
+  "createdAt": "2026-02-06T00:00:00.000Z",
+  "updatedAt": "2026-02-06T00:00:00.000Z"
+}
