@@ -10,6 +10,62 @@ import { Tab, AppConfig } from '../types';
 import { GradingStrategy } from '../services/geminiService';
 import { storage } from '../utils/storage';
 import { Exam } from '../services/proxyService';
+import { coerceRubricToV3 } from '../utils/rubric-convert';
+import {
+    getRubricTemplateLifecycleStatus,
+    setRubricTemplateLifecycleStatus,
+    type RubricTemplateLifecycleStatus
+} from '../src/components/v2/views/rubric-template-status';
+
+type AnyRubric = Record<string, any>;
+
+const isRubricV3 = (data: AnyRubric): boolean => data?.version === '3.0' && !!data?.metadata;
+
+const extractRubricMeta = (data: AnyRubric) => {
+    if (isRubricV3(data)) {
+        return {
+            questionId: data.metadata?.questionId,
+            title: data.metadata?.title,
+            subject: data.metadata?.subject,
+            examName: data.metadata?.examName,
+            examId: data.metadata?.examId,
+            questionType: data.metadata?.questionType
+        };
+    }
+    return {
+        questionId: undefined,
+        title: undefined,
+        subject: undefined,
+        examName: undefined,
+        examId: undefined,
+        questionType: undefined
+    };
+};
+
+const extractRubricPoints = (data: AnyRubric): AnyRubric[] => {
+    if (isRubricV3(data)) {
+        if (data.strategyType === 'rubric_matrix') return data.content?.dimensions || [];
+        if (data.strategyType === 'sequential_logic') return data.content?.steps || [];
+        return data.content?.points || [];
+    }
+    return [];
+};
+
+const extractRubricKeywords = (data: AnyRubric): string[] => {
+    const points = extractRubricPoints(data);
+    if (isRubricV3(data) && data.strategyType === 'rubric_matrix') {
+        return (Array.from(new Set(points.map((p: any) => p.name).filter(Boolean))) as string[]).slice(0, 5);
+    }
+    return (Array.from(new Set(points.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5);
+};
+
+const parseRubricV3Safe = (data: unknown): AnyRubric | null => {
+    try {
+        return coerceRubricToV3(data).rubric as AnyRubric;
+    } catch {
+        return null;
+    }
+};
 
 // ==================== 状态类型定义 ====================
 
@@ -46,6 +102,7 @@ interface ConfiguredQuestion {
     questionNo: string;
     platform: string;
     examId?: string | null;
+    lifecycleStatus?: RubricTemplateLifecycleStatus;
 }
 
 interface AppState {
@@ -137,7 +194,11 @@ interface AppActions {
     setGradingStrategy: (strategy: GradingStrategy) => void;
 
     // === 复合操作 ===
-    saveRubric: (content: string, questionKey?: string) => Promise<void>;
+    saveRubric: (
+        content: string,
+        questionKey?: string,
+        options?: { lifecycleStatus?: RubricTemplateLifecycleStatus }
+    ) => Promise<void>;
     loadRubricForQuestion: (questionKey: string) => Promise<void>;
     loadConfiguredQuestions: () => Promise<void>;
     createRubricQuestion: (params: { questionNo: string; alias: string }) => void;
@@ -280,9 +341,10 @@ export const useAppStore = create<AppStore>()(
             },
 
             // === 复合操作 ===
-            saveRubric: async (content, questionKey) => {
+            saveRubric: async (content, questionKey, options) => {
                 const state = get() as any;
                 const qk = questionKey || state.manualQuestionKey || state.detectedQuestionKey;
+                const lifecycleStatus: RubricTemplateLifecycleStatus = options?.lifecycleStatus || 'draft';
 
                 if (!content.trim()) {
                     console.warn('[AppStore] Attempted to save empty rubric');
@@ -293,16 +355,43 @@ export const useAppStore = create<AppStore>()(
                 let examId = null;
                 try {
                     const parsed = JSON.parse(content);
-                    examId = parsed.examId || null;
+                    const normalized = coerceRubricToV3(parsed).rubric;
+                    examId = normalized.metadata?.examId || null;
                 } catch (e) {
                     console.warn('[AppStore] Failed to parse rubric content to extract examId');
                 }
 
+                let normalizedContent = content;
+                try {
+                    const parsed = JSON.parse(content);
+                    const normalized = parseRubricV3Safe(parsed);
+                    if (!normalized) {
+                        throw new Error('仅支持 Rubric v3');
+                    }
+                    normalizedContent = JSON.stringify(normalized, null, 2);
+                } catch {
+                    // 保持原文
+                }
+
                 const storageKey = qk ? `app_rubric_content:${qk}` : 'app_rubric_content';
-                await storage.setItem(storageKey, content);
+                await storage.setItem(storageKey, normalizedContent);
+                if (qk) {
+                    setRubricTemplateLifecycleStatus(qk, lifecycleStatus);
+                }
 
                 set((state: any) => {
-                    const parsedContent = JSON.parse(content);
+                    let parsedContent: any = {};
+                    try {
+                        parsedContent = JSON.parse(normalizedContent);
+                        if (!isRubricV3(parsedContent)) {
+                            parsedContent = parseRubricV3Safe(parsedContent) || {};
+                        }
+                    } catch (e) {
+                        console.warn('[AppStore] Failed to parse rubric content:', e);
+                        parsedContent = {};
+                    }
+                    const meta = extractRubricMeta(parsedContent);
+                    const keywords = extractRubricKeywords(parsedContent);
                     const newRubricData = {
                         ...state.rubricData,
                         ...(qk ? { [qk]: parsedContent } : {})
@@ -317,10 +406,11 @@ export const useAppStore = create<AppStore>()(
                                 ? {
                                     ...item,
                                     examId: examId,
-                                    alias: parsedContent.title || item.alias,
-                                    keywords: parsedContent.answerPoints ?
-                                        (Array.from(new Set(parsedContent.answerPoints.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5) :
-                                        item.keywords
+                                    alias: meta.title || item.alias,
+                                    subject: meta.subject || item.subject,
+                                    examName: meta.examName || item.examName,
+                                    lifecycleStatus,
+                                    keywords: keywords.length > 0 ? keywords : item.keywords
                                 }
                                 : item
                         );
@@ -329,17 +419,20 @@ export const useAppStore = create<AppStore>()(
                             ...state.rubricLibrary,
                             {
                                 id: qk,
-                                questionNo: parsedContent.questionId || qk.split(':').pop(),
-                                alias: parsedContent.title || '未命名',
-                                keywords: [],
-                                examId: examId,
-                                isActive: true
-                            }
+                                questionNo: meta.questionId || qk.split(':').pop(),
+                                alias: meta.title || '未命名',
+                                keywords,
+                                    examId: examId,
+                                    subject: meta.subject || undefined,
+                                    examName: meta.examName || undefined,
+                                    lifecycleStatus,
+                                    isActive: true
+                                }
                         ];
                     }
 
                     return {
-                        rubricContent: content,
+                        rubricContent: normalizedContent,
                         isRubricConfigured: true,
                         isRubricDrawerOpen: false,
                         ...(qk ? { manualQuestionKey: qk } : {}),
@@ -348,7 +441,7 @@ export const useAppStore = create<AppStore>()(
                     };
                 });
 
-                console.log('[AppStore] Rubric saved locally:', { storageKey, length: content.length, examId });
+                console.log('[AppStore] Rubric saved locally:', { storageKey, length: normalizedContent.length, examId });
 
                 // 刷新已配置题目列表
                 (get() as any).loadConfiguredQuestions();
@@ -356,7 +449,7 @@ export const useAppStore = create<AppStore>()(
                 // 异步同步到后端（不阻塞 UI）- 仅正式会员
                 if (qk && state.isOfficial) {
                     import('../services/proxyService').then(({ saveRubricToServer }) => {
-                        saveRubricToServer(qk, content, examId).catch(err => {
+                        saveRubricToServer(qk, content, examId, lifecycleStatus).catch(err => {
                             console.warn('[AppStore] 后端同步失败，仅保存本地:', err);
                         });
                     });
@@ -373,26 +466,173 @@ export const useAppStore = create<AppStore>()(
                 const storageKey = `app_rubric_content:${questionKey}`;
 
                 // --- 优化点：缓存优先，消除闪烁 ---
+                const hasValidPoints = (raw: any) => {
+                    if (!raw) return false;
+                    if (!isRubricV3(raw)) return false;
+                    const points = extractRubricPoints(raw);
+                    return points.length > 0;
+                };
+
                 // 1. 检查内存缓存
                 if (state.rubricData && state.rubricData[questionKey]) {
                     const cached = state.rubricData[questionKey];
-                    const content = typeof cached === 'string' ? cached : JSON.stringify(cached, null, 2);
-                    set({ rubricContent: content, isRubricConfigured: true });
-                    console.log('[AppStore] Rubric loaded from memory cache:', { questionKey });
-                    return;
+                    try {
+                        const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+                        const normalized = parseRubricV3Safe(parsed);
+                        if (normalized && hasValidPoints(normalized)) {
+                            const content = typeof cached === 'string' ? cached : JSON.stringify(normalized, null, 2);
+                            set({
+                                rubricContent: content,
+                                isRubricConfigured: true,
+                                rubricData: { ...state.rubricData, [questionKey]: normalized }
+                            });
+                            console.log('[AppStore] Rubric loaded from memory cache:', { questionKey });
+                            return;
+                        }
+                    } catch {
+                        // ignore invalid cached content
+                    }
                 }
 
                 // 2. 本地加载
                 const localRubric = await storage.getItem(storageKey);
                 if (localRubric && localRubric.trim()) {
-                    set({
-                        rubricContent: localRubric,
-                        isRubricConfigured: true,
-                        // 同步到内存缓存
-                        rubricData: { ...state.rubricData, [questionKey]: JSON.parse(localRubric) }
+                    try {
+                        const parsedLocal = JSON.parse(localRubric);
+                        const normalized = parseRubricV3Safe(parsedLocal);
+                        if (hasValidPoints(normalized)) {
+                            const normalizedText = JSON.stringify(normalized, null, 2);
+                            set({
+                                rubricContent: normalizedText,
+                                isRubricConfigured: true,
+                                // 同步到内存缓存
+                                rubricData: { ...state.rubricData, [questionKey]: normalized }
+                            });
+                            console.log('[AppStore] Rubric loaded from local:', { storageKey });
+                            return;
+                        }
+                    } catch (e) {
+                        // ignore invalid local
+                    }
+                }
+
+                // 2.1 兜底：根据题号/学科/考试名在本地存储中匹配正确的 rubric
+                const libraryItem = state.rubricLibrary?.find((item: any) => item.id === questionKey);
+                if (libraryItem) {
+                    const parseQuestionNoFromId = (rawId: string) => {
+                        if (!rawId.startsWith('imported:')) return rawId.split(':').pop() || '';
+                        const rawPart = rawId.replace('imported:', '');
+                        if (rawPart.includes(':')) {
+                            const parts = rawPart.split(':');
+                            return parts[parts.length - 1] || '';
+                        }
+                        const firstSep = rawPart.indexOf('_');
+                        return firstSep > -1 ? rawPart.slice(0, firstSep) : rawPart;
+                    };
+
+                    const targetQuestionNo = libraryItem.questionNo || parseQuestionNoFromId(questionKey);
+                    const targetSubject = libraryItem.subject || '';
+                    const targetExamName = libraryItem.examName || '';
+
+                    const parseMeta = (raw: any) => ({
+                        questionNo: raw?.metadata?.questionId || '',
+                        subject: raw?.metadata?.subject || '',
+                        examName: raw?.metadata?.examName || ''
                     });
-                    console.log('[AppStore] Rubric loaded from local:', { storageKey });
-                    return;
+
+                    const pickBestCandidate = (candidates: { key: string; content: string }[]) => {
+                        let best: { key: string; content: string } | null = null;
+                        let bestScore = -1;
+                        for (const candidate of candidates) {
+                            try {
+                                const parsed = JSON.parse(candidate.content);
+                                const normalized = parseRubricV3Safe(parsed);
+                                if (!normalized) continue;
+                                const points = extractRubricPoints(normalized);
+                                const totalScore = (() => {
+                                    if (normalized.strategyType === 'rubric_matrix') {
+                                        return normalized.content.totalScore
+                                            || normalized.content.dimensions.reduce((sum: number, d: any) => sum + (d.weight || 0), 0);
+                                    }
+                                    if (normalized.strategyType === 'sequential_logic') {
+                                        return normalized.content.totalScore
+                                            || normalized.content.steps.reduce((sum: number, p: any) => sum + (p.score || 0), 0);
+                                    }
+                                    return normalized.content.totalScore
+                                        || normalized.content.points.reduce((sum: number, p: any) => sum + (p.score || 0), 0);
+                                })();
+                                const score = (points.length * 10) + totalScore;
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    best = candidate;
+                                }
+                            } catch (e) {
+                                continue;
+                            }
+                        }
+                        return best;
+                    };
+
+                    const candidates: { key: string; content: string }[] = [];
+
+                    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                        const items = await new Promise<Record<string, unknown>>((resolve) => {
+                            chrome.storage.local.get(null, resolve);
+                        });
+                        for (const key of Object.keys(items)) {
+                            if (!key.startsWith('app_rubric_content:')) continue;
+                            const value = items[key];
+                            if (typeof value !== 'string' || !value.trim()) continue;
+                            try {
+                                const parsed = JSON.parse(value);
+                                const normalized = parseRubricV3Safe(parsed);
+                                if (!normalized) continue;
+                                const meta = parseMeta(normalized);
+                                if (meta.questionNo !== targetQuestionNo) continue;
+                                if (targetSubject && meta.subject !== targetSubject) continue;
+                                if (targetExamName && meta.examName !== targetExamName) continue;
+                                candidates.push({ key: key.replace('app_rubric_content:', ''), content: JSON.stringify(normalized) });
+                            } catch (e) {
+                                continue;
+                            }
+                        }
+                    } else {
+                        for (let i = 0; i < localStorage.length; i += 1) {
+                            const key = localStorage.key(i);
+                            if (!key || !key.startsWith('app_rubric_content:')) continue;
+                            const value = localStorage.getItem(key);
+                            if (!value || !value.trim()) continue;
+                            try {
+                                const parsed = JSON.parse(value);
+                                const normalized = parseRubricV3Safe(parsed);
+                                if (!normalized) continue;
+                                const meta = parseMeta(normalized);
+                                if (meta.questionNo !== targetQuestionNo) continue;
+                                if (targetSubject && meta.subject !== targetSubject) continue;
+                                if (targetExamName && meta.examName !== targetExamName) continue;
+                                candidates.push({ key: key.replace('app_rubric_content:', ''), content: JSON.stringify(normalized) });
+                            } catch (e) {
+                                continue;
+                            }
+                        }
+                    }
+
+                    const bestMatch = pickBestCandidate(candidates);
+                    if (bestMatch) {
+                        const parsedMatched = JSON.parse(bestMatch.content);
+                        const updatedLibrary = state.rubricLibrary.map((item: any) =>
+                            item.id === questionKey ? { ...item, id: bestMatch.key } : item
+                        );
+                        set({
+                            rubricContent: bestMatch.content,
+                            isRubricConfigured: true,
+                            manualQuestionKey: bestMatch.key,
+                            rubricData: { ...state.rubricData, [bestMatch.key]: parsedMatched },
+                            rubricLibrary: updatedLibrary
+                        });
+                        console.log('[AppStore] Rubric loaded via fallback match:', { matchedKey: bestMatch.key });
+                        return;
+                    }
                 }
 
                 // 3. 后端加载
@@ -402,11 +642,17 @@ export const useAppStore = create<AppStore>()(
                         const serverRubric = await loadRubricFromServer(questionKey);
 
                         if (serverRubric && serverRubric.trim()) {
-                            await storage.setItem(storageKey, serverRubric);
+                            const parsedServer = JSON.parse(serverRubric);
+                            const normalized = parseRubricV3Safe(parsedServer);
+                            if (!normalized) {
+                                throw new Error('服务端评分细则不是 Rubric v3');
+                            }
+                            const normalizedText = JSON.stringify(normalized, null, 2);
+                            await storage.setItem(storageKey, normalizedText);
                             set({
-                                rubricContent: serverRubric,
+                                rubricContent: normalizedText,
                                 isRubricConfigured: true,
-                                rubricData: { ...state.rubricData, [questionKey]: JSON.parse(serverRubric) }
+                                rubricData: { ...state.rubricData, [questionKey]: normalized }
                             });
                             return;
                         }
@@ -423,6 +669,7 @@ export const useAppStore = create<AppStore>()(
                 try {
                     // 1. 获取本地数据
                     const localQuestions: ConfiguredQuestion[] = [];
+                    const loadedRubricData: Record<string, any> = {};
                     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
                         const items = await new Promise<Record<string, unknown>>((resolve) => {
                             chrome.storage.local.get(null, resolve);
@@ -435,19 +682,26 @@ export const useAppStore = create<AppStore>()(
                                     const parts = key.replace('app_rubric_content:', '').split(':');
                                     const platform = parts[0] || '未知';
                                     const questionNo = parts[parts.length - 1] || '未知';
+                                    const qk = key.replace('app_rubric_content:', '');
 
                                     // 尝试从内容中提取 examId
                                     let examId = null;
                                     try {
                                         const parsed = JSON.parse(value);
-                                        examId = parsed.examId || (parsed as any).activeExamId || null;
+                                        const normalized = parseRubricV3Safe(parsed);
+                                        if (!normalized) {
+                                            throw new Error('仅支持 Rubric v3');
+                                        }
+                                        examId = normalized.metadata?.examId || parsed.examId || (parsed as any).activeExamId || null;
+                                        loadedRubricData[qk] = normalized;
                                     } catch (e) {
                                         // 容放：如果解析失败，尝试从现有的库中保留状态
                                         const existing = (get() as any).rubricLibrary?.find((i: any) => i.id === key.replace('app_rubric_content:', ''));
                                         examId = existing?.examId || null;
                                     }
 
-                                    localQuestions.push({ key, questionNo, platform, examId });
+                                    const lifecycleStatus = getRubricTemplateLifecycleStatus(qk, 'draft');
+                                    localQuestions.push({ key, questionNo, platform, examId, lifecycleStatus });
                                 }
                             }
                         }
@@ -461,17 +715,24 @@ export const useAppStore = create<AppStore>()(
                                     const parts = key.replace('app_rubric_content:', '').split(':');
                                     const platform = parts[0] || '未知';
                                     const questionNo = parts[parts.length - 1] || '未知';
+                                    const qk = key.replace('app_rubric_content:', '');
 
                                     let examId = null;
                                     try {
                                         const parsed = JSON.parse(value);
-                                        examId = parsed.examId || (parsed as any).activeExamId || null;
+                                        const normalized = parseRubricV3Safe(parsed);
+                                        if (!normalized) {
+                                            throw new Error('仅支持 Rubric v3');
+                                        }
+                                        examId = normalized.metadata?.examId || parsed.examId || (parsed as any).activeExamId || null;
+                                        loadedRubricData[qk] = normalized;
                                     } catch (e) {
                                         const existing = (get() as any).rubricLibrary?.find((i: any) => i.id === key.replace('app_rubric_content:', ''));
                                         examId = existing?.examId || null;
                                     }
 
-                                    localQuestions.push({ key, questionNo, platform, examId });
+                                    const lifecycleStatus = getRubricTemplateLifecycleStatus(qk, 'draft');
+                                    localQuestions.push({ key, questionNo, platform, examId, lifecycleStatus });
                                 }
                             }
                         }
@@ -488,7 +749,8 @@ export const useAppStore = create<AppStore>()(
                             const parts = r.questionKey.split(':');
                             const platform = parts[0] || '未知';
                             const questionNo = parts[parts.length - 1] || '未知';
-                            return { key, questionNo, platform, examId: r.examId };
+                            const lifecycleStatus = r.lifecycleStatus === 'published' ? 'published' : 'draft';
+                            return { key, questionNo, platform, examId: r.examId, lifecycleStatus };
                         });
                     } catch (err) {
                         console.warn('[AppStore] Failed to load from server:', err);
@@ -507,6 +769,11 @@ export const useAppStore = create<AppStore>()(
                             if (!existing.examId && q.examId) {
                                 existing.examId = q.examId;
                             }
+                            if (!existing.lifecycleStatus && q.lifecycleStatus) {
+                                existing.lifecycleStatus = q.lifecycleStatus;
+                            } else if (existing.lifecycleStatus !== 'published' && q.lifecycleStatus === 'published') {
+                                existing.lifecycleStatus = 'published';
+                            }
                         }
                     });
 
@@ -515,32 +782,26 @@ export const useAppStore = create<AppStore>()(
                     // 按题号排序
                     allQuestions.sort((a, b) => (parseInt(a.questionNo) || 0) - (parseInt(b.questionNo) || 0));
 
-                    const currentRubricData = (get() as any).rubricData || {};
+                    const currentRubricData = {
+                        ...((get() as any).rubricData || {}),
+                        ...loadedRubricData
+                    };
 
                     const libraryItems = allQuestions.map(q => {
                         const qk = q.key.replace('app_rubric_content:', '');
                         const storedData = currentRubricData[qk];
+                        const lifecycleStatus = q.lifecycleStatus || getRubricTemplateLifecycleStatus(qk, 'draft');
 
                         let alias = q.platform === 'manual' ? '手动配置题目' : `${q.platform} 平台题目`;
                         let keywords: string[] = [];
 
                         // 优先从 rubricData 中提取最新的元数据
                         if (storedData) {
-                            // --- 适配 v2.0 格式 ---
-                            if (storedData.title) alias = storedData.title; // v2.0 使用 title 作为别名
-                            else if (storedData.alias) alias = storedData.alias; // 兼容旧版
-
-                            // 提取关键词
-                            if (Array.isArray(storedData.anchorKeywords) && storedData.anchorKeywords.length > 0) {
-                                keywords = storedData.anchorKeywords;
-                            } else if (Array.isArray(storedData.answerPoints)) {
-                                // v2.0 格式：从 answerPoints 提取
-                                keywords = (Array.from(new Set(storedData.answerPoints.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5);
-                            } else if (Array.isArray(storedData.points)) {
-                                // 兼容旧版格式
-                                keywords = (Array.from(new Set(storedData.points.slice(0, 3).flatMap((p: any) => p.keywords || []))) as string[]).slice(0, 5);
-                            }
+                            const meta = extractRubricMeta(storedData);
+                            if (meta.title) alias = meta.title;
+                            keywords = extractRubricKeywords(storedData);
                         }
+                        setRubricTemplateLifecycleStatus(qk, lifecycleStatus);
 
                         return {
                             id: qk,
@@ -548,11 +809,12 @@ export const useAppStore = create<AppStore>()(
                             alias,
                             keywords,
                             examId: q.examId || (storedData as any)?.examId || null,
+                            lifecycleStatus,
                             isActive: qk === ((get() as any).manualQuestionKey || (get() as any).detectedQuestionKey)
                         };
                     });
 
-                    set({ configuredQuestions: allQuestions, rubricLibrary: libraryItems });
+                    set({ configuredQuestions: allQuestions, rubricLibrary: libraryItems, rubricData: currentRubricData });
 
                 } catch (e) {
                     console.error('[AppStore] Error loading configured questions:', e);

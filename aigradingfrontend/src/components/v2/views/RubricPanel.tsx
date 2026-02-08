@@ -1,93 +1,216 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-    Zap, ChevronDown, Folder, BookOpen, Hash,
-    Image as ImageIcon, FileText, X, Loader2, Check,
-    Clipboard, ArrowLeft
+    AlertTriangle,
+    Camera,
+    ChevronDown,
+    ChevronLeft,
+    FileCheck2,
+    Image as ImageIcon,
+    Info,
+    Sparkles,
+    X,
+    Zap
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
-import { generateRubricFromImages, generateRubricFromText } from '@/services/rubric-service';
+import { generateRubricFromImages } from '@/services/rubric-service';
+import { createRubricTemplate } from '@/services/rubric-templates';
 import { toast } from '@/components/Toast';
+import type { RubricJSONV3, StrategyType } from '@/types/rubric-v3';
+import { coerceRubricToV3 } from '@/utils/rubric-convert';
 import RubricResultView from './RubricResultView';
-import RubricListView, { RubricEmptyState } from './RubricListView';
-
-interface RubricPanelProps {
-    onClose?: () => void;
-}
+import RubricListView from './RubricListView';
+import type { RubricTemplateSeed } from './RubricListView';
+import {
+    RUBRIC_STRATEGY_OPTIONS,
+    getQuestionTypeOptions,
+    getSubjectOptions,
+    inferStrategyTypeByQuestionType
+} from './rubric-config';
+import { validateRubricForTemplate } from './rubric-validator';
+import { setRubricTemplateLifecycleStatus } from './rubric-template-status';
 
 type ViewState = 'list' | 'input' | 'generating' | 'result';
 
-export default function RubricPanel({ onClose }: RubricPanelProps) {
+const GENERATING_MESSAGES = [
+    '正在识别题干结构...',
+    '正在提取采分点与关键词...',
+    '正在匹配评分策略与题型...',
+    '正在生成可编辑评分细则...'
+];
+
+const SUBJECT_OPTIONS = getSubjectOptions();
+const GRADE_OPTIONS = ['初一', '初二', '初三', '高一', '高二', '高三'];
+
+export default function RubricPanel() {
     const {
         exams,
         rubricLibrary,
         rubricData,
         activeExamId,
         setActiveExamId,
-        currentQuestionKey,
         setRubricConfig,
         saveRubric,
         createExamAction,
-        selectQuestion,
+        loadConfiguredQuestions
     } = useAppStore();
 
-    // 判断是否有细则
-    const hasRubrics = (rubricLibrary || []).length > 0;
+    const defaultSubject = SUBJECT_OPTIONS[0]?.value || '历史';
+    const defaultQuestionType = getQuestionTypeOptions(defaultSubject)[0]?.value || '材料题';
 
-    // 视图状态：有细则默认显示列表，无细则显示创建
-    const [viewState, setViewState] = useState<ViewState>(hasRubrics ? 'list' : 'input');
-    const [generatedRubric, setGeneratedRubric] = useState<any>(null);
+    const [viewState, setViewState] = useState<ViewState>('list');
+    const [generatedRubric, setGeneratedRubric] = useState<RubricJSONV3 | null>(null);
+    const [selectedQuestionKey, setSelectedQuestionKey] = useState<string | null>(null);
 
-    // 输入状态
     const [showNewExamInput, setShowNewExamInput] = useState(false);
     const [newExamName, setNewExamName] = useState('');
     const [questionNo, setQuestionNo] = useState('');
-    const [subject, setSubject] = useState('历史');
+    const [subject, setSubject] = useState(defaultSubject);
+    const [grade, setGrade] = useState(GRADE_OPTIONS[2]);
+    const [questionType, setQuestionType] = useState(defaultQuestionType);
+    const [strategyType, setStrategyType] = useState<StrategyType>(
+        inferStrategyTypeByQuestionType(defaultSubject, defaultQuestionType)
+    );
 
-    // 图片上传状态
     const [questionImage, setQuestionImage] = useState<string | null>(null);
     const [answerImage, setAnswerImage] = useState<string | null>(null);
-    const [textInput, setTextInput] = useState('');
 
-    // 当前选中的考试
-    const selectedExam = useMemo(() =>
-        exams.find(e => e.id === activeExamId),
+    const [generationError, setGenerationError] = useState<string | null>(null);
+    const [generationStep, setGenerationStep] = useState(0);
+
+    const selectedExam = useMemo(
+        () => exams.find((e) => e.id === activeExamId),
         [exams, activeExamId]
     );
 
-    // 进入创建模式
-    const handleCreateNew = () => {
+    const questionTypeOptions = useMemo(
+        () => getQuestionTypeOptions(subject),
+        [subject]
+    );
+
+    const generatingProgress = ((generationStep + 1) / GENERATING_MESSAGES.length) * 100;
+
+    useEffect(() => {
+        if (viewState !== 'generating') {
+            setGenerationStep(0);
+            return;
+        }
+        const timer = setInterval(() => {
+            setGenerationStep((prev) => (prev + 1) % GENERATING_MESSAGES.length);
+        }, 1400);
+        return () => clearInterval(timer);
+    }, [viewState]);
+
+    const resetInputState = useCallback(() => {
+        setQuestionNo('');
+        setGrade(GRADE_OPTIONS[2]);
+        setQuestionImage(null);
+        setAnswerImage(null);
+        setGenerationError(null);
+
+        const nextType = getQuestionTypeOptions(subject)[0]?.value || defaultQuestionType;
+        setQuestionType(nextType);
+        setStrategyType(inferStrategyTypeByQuestionType(subject, nextType));
+    }, [defaultQuestionType, subject]);
+
+    const findExistingQuestionKey = useCallback((rubric: RubricJSONV3): string | null => {
+        const targetQuestionId = (rubric.metadata.questionId || '').trim();
+        const targetSubject = (rubric.metadata.subject || '').trim();
+        const targetExam = rubric.metadata.examId || null;
+
+        if (!targetQuestionId) return null;
+
+        for (const item of rubricLibrary || []) {
+            const existing = rubricData?.[item.id];
+            if (!existing) continue;
+
+            try {
+                const normalized = coerceRubricToV3(existing).rubric;
+                const matchesQuestion = (normalized.metadata.questionId || '').trim() === targetQuestionId;
+                const matchesSubject = !targetSubject || (normalized.metadata.subject || '').trim() === targetSubject;
+                const matchesExam = (normalized.metadata.examId || null) === targetExam;
+
+                if (matchesQuestion && matchesSubject && matchesExam) {
+                    return item.id;
+                }
+            } catch {
+                continue;
+            }
+        }
+
+        return null;
+    }, [rubricData, rubricLibrary]);
+
+    const buildManualQuestionKey = useCallback((rubric: RubricJSONV3): string => {
+        const safeQuestionNo = (rubric.metadata.questionId || questionNo || 'unknown').trim() || 'unknown';
+        const safeSubject = (rubric.metadata.subject || subject || 'unknown').trim() || 'unknown';
+        const safeExam = (rubric.metadata.examId || activeExamId || 'noexam').trim() || 'noexam';
+
+        return `manual:${safeExam}:${safeSubject}:${safeQuestionNo}`;
+    }, [activeExamId, questionNo, subject]);
+
+    const handleCreateNew = useCallback(() => {
+        setSelectedQuestionKey(null);
+        setGeneratedRubric(null);
         setViewState('input');
-        // 重置输入
+        resetInputState();
+    }, [resetInputState]);
+
+    const handleUseTemplate = useCallback((template: RubricTemplateSeed) => {
+        setSelectedQuestionKey(null);
+        setGeneratedRubric(null);
+        setGenerationError(null);
         setQuestionNo('');
         setQuestionImage(null);
         setAnswerImage(null);
-        setTextInput('');
-    };
-
-    // 选择已有细则进行查看/编辑
-    const handleSelectRubric = (questionKey: string) => {
-        selectQuestion(questionKey);
-        // TODO: 可以跳转到编辑视图
-        toast.info(`已选中: ${questionKey}`);
-    };
-
-    // 返回列表
-    const handleBackToList = () => {
-        if (hasRubrics) {
-            setViewState('list');
-        } else {
-            setViewState('input');
+        setShowNewExamInput(false);
+        setNewExamName('');
+        setSubject(template.subject);
+        setQuestionType(template.questionType);
+        setStrategyType(template.strategyType);
+        if (template.examId) {
+            setActiveExamId(template.examId);
         }
-    };
+        setViewState('input');
+        toast.success(`已应用模板：${template.subject} · ${template.questionType}`);
+    }, [setActiveExamId]);
 
-    // 创建考试
-    const handleCreateExam = async () => {
+    const handleSelectRubric = useCallback((questionKey: string) => {
+        const target = rubricData?.[questionKey];
+        if (!target) {
+            toast.error('未找到对应评分细则');
+            return;
+        }
+
+        try {
+            const normalized = coerceRubricToV3(target).rubric;
+            setGeneratedRubric(normalized);
+            setSelectedQuestionKey(questionKey);
+            setQuestionNo(normalized.metadata.questionId || '');
+            setSubject(normalized.metadata.subject || defaultSubject);
+            setGrade(normalized.metadata.grade || GRADE_OPTIONS[2]);
+            const nextType = normalized.metadata.questionType || getQuestionTypeOptions(normalized.metadata.subject || defaultSubject)[0]?.value || defaultQuestionType;
+            setQuestionType(nextType);
+            setStrategyType(normalized.strategyType || inferStrategyTypeByQuestionType(normalized.metadata.subject || defaultSubject, nextType));
+            setActiveExamId(normalized.metadata.examId || null);
+            setGenerationError(null);
+            setViewState('result');
+        } catch (error) {
+            console.error('[RubricPanel] Select rubric error:', error);
+            toast.error('细则数据格式异常，无法打开');
+        }
+    }, [defaultQuestionType, defaultSubject, rubricData, setActiveExamId]);
+
+    const handleBackToList = useCallback(() => {
+        setViewState('list');
+    }, []);
+
+    const handleCreateExam = useCallback(async () => {
         if (!newExamName.trim()) return;
         try {
             const newExam = await createExamAction({
-                name: newExamName,
-                grade: '初三',
-                subject: subject,
+                name: newExamName.trim(),
+                grade,
+                subject,
                 date: new Date().toISOString().split('T')[0]
             });
             setNewExamName('');
@@ -95,124 +218,197 @@ export default function RubricPanel({ onClose }: RubricPanelProps) {
             if (newExam?.id) {
                 setActiveExamId(newExam.id);
             }
-            toast.success("考试已创建");
-        } catch (e) {
-            console.error('[RubricPanel] Create exam error:', e);
-            toast.error("创建失败");
+            toast.success('考试已创建');
+        } catch (error) {
+            console.error('[RubricPanel] Create exam error:', error);
+            toast.error('创建失败');
         }
-    };
+    }, [createExamAction, grade, newExamName, setActiveExamId, subject]);
 
-    // 图片上传处理
-    const handleImageUpload = (type: 'question' | 'answer') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = useCallback((type: 'question' | 'answer') => (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
         const reader = new FileReader();
         reader.onload = (ev) => {
-            if (ev.target?.result) {
-                if (type === 'question') {
-                    setQuestionImage(ev.target.result as string);
-                } else {
-                    setAnswerImage(ev.target.result as string);
-                }
-                toast.success("图片已上传");
+            if (!ev.target?.result) return;
+
+            if (type === 'question') {
+                setQuestionImage(ev.target.result as string);
+            } else {
+                setAnswerImage(ev.target.result as string);
             }
+            setGenerationError(null);
+            toast.success('图片已上传');
         };
         reader.readAsDataURL(file);
-    };
+    }, []);
 
-    // AI 生成
-    const handleGenerate = async () => {
-        if (!textInput.trim() && !answerImage) {
-            toast.error("请先导入参考答案");
+    const handleGenerate = useCallback(async () => {
+        if (!questionNo.trim()) {
+            toast.error('请输入题号');
             return;
         }
 
-        if (!questionNo) {
-            toast.error("请输入题号");
+        if (!answerImage) {
+            toast.error('请上传答案照片');
             return;
         }
 
+        setGenerationError(null);
         setViewState('generating');
 
         try {
-            let rubric;
-            if (answerImage) {
-                rubric = await generateRubricFromImages(questionImage, answerImage, questionNo);
-            } else {
-                rubric = await generateRubricFromText(textInput, questionNo);
-            }
+            const context = {
+                subject,
+                grade,
+                questionType,
+                strategyType,
+                examName: selectedExam?.name || undefined
+            };
 
-            // 补充元数据
-            rubric.examName = selectedExam?.name || '';
-            rubric.subject = subject;
-            rubric.questionNo = questionNo;
+            const rubric = await generateRubricFromImages(questionImage, answerImage, questionNo.trim(), context);
 
-            setGeneratedRubric(rubric);
+            const normalizedRubric: RubricJSONV3 = {
+                ...rubric,
+                metadata: {
+                    ...rubric.metadata,
+                    examName: selectedExam?.name || rubric.metadata.examName || '',
+                    examId: activeExamId || rubric.metadata.examId || null,
+                    subject: subject || rubric.metadata.subject,
+                    grade: grade || rubric.metadata.grade,
+                    questionType: questionType || rubric.metadata.questionType,
+                    questionId: questionNo.trim() || rubric.metadata.questionId
+                },
+                strategyType: rubric.strategyType || strategyType
+            };
+
+            setGeneratedRubric(normalizedRubric);
             setViewState('result');
-        } catch (e: any) {
-            console.error('AI Generation failed:', e);
-            toast.error(`生成失败: ${e.message || '服务不可用'}`);
+        } catch (error) {
+            console.error('[RubricPanel] AI generation failed:', error);
+            const message = error instanceof Error ? error.message : '服务不可用';
+            setGenerationError(message);
+            toast.error(`生成失败: ${message}`);
             setViewState('input');
         }
-    };
+    }, [
+        activeExamId,
+        answerImage,
+        grade,
+        questionImage,
+        questionNo,
+        questionType,
+        selectedExam?.name,
+        strategyType,
+        subject
+    ]);
 
-    // 保存生成的细则
-    const handleSaveRubric = async (rubric: any) => {
-        const questionKey = currentQuestionKey || `manual:${questionNo}`;
-        const fullConfig = {
-            questionNo: rubric.questionId || questionNo,
-            alias: rubric.title || `第${questionNo}题`,
-            subject: subject.toLowerCase(),
-            type: 'short_answer',
-            anchorKeywords: rubric.answerPoints.flatMap((p: any) => p.keywords || []).slice(0, 5),
-            points: rubric.answerPoints.map((p: any) => ({
-                id: p.id,
-                questionSegment: p.questionSegment,
-                content: p.content,
-                keywords: p.keywords,
-                score: p.score,
-                deductionRules: p.deductionRules
-            })),
-            examId: activeExamId,
-            globalPreferences: { handwritingScore: true, spellingStrictness: 'low' }
+    const normalizeRubricForPersistence = useCallback((rubric: RubricJSONV3): RubricJSONV3 => {
+        return {
+            ...rubric,
+            metadata: {
+                ...rubric.metadata,
+                examId: activeExamId || rubric.metadata.examId || null,
+                examName: selectedExam?.name || rubric.metadata.examName || '',
+                subject: subject || rubric.metadata.subject,
+                grade: grade || rubric.metadata.grade,
+                questionType: questionType || rubric.metadata.questionType,
+                questionId: rubric.metadata.questionId || questionNo.trim()
+            }
         };
+    }, [activeExamId, grade, questionNo, questionType, selectedExam?.name, subject]);
 
-        setRubricConfig(questionKey, fullConfig as any);
-        await saveRubric(JSON.stringify(fullConfig, null, 2), questionKey);
+    const persistRubric = useCallback(async (
+        rubric: RubricJSONV3,
+        options?: { lifecycleStatus?: 'draft' | 'published' }
+    ) => {
+        const normalizedRubric = normalizeRubricForPersistence(rubric);
+        const resolvedKey = selectedQuestionKey
+            || findExistingQuestionKey(normalizedRubric)
+            || buildManualQuestionKey(normalizedRubric);
 
-        toast.success("评分细则已保存！");
+        setRubricConfig(resolvedKey, normalizedRubric);
+        await saveRubric(
+            JSON.stringify(normalizedRubric, null, 2),
+            resolvedKey,
+            { lifecycleStatus: options?.lifecycleStatus || 'draft' }
+        );
+        await loadConfiguredQuestions();
 
-        // 保存后返回列表
-        setViewState('list');
-        setGeneratedRubric(null);
-        setQuestionNo('');
-        setQuestionImage(null);
-        setAnswerImage(null);
-        setTextInput('');
-    };
+        setSelectedQuestionKey(resolvedKey);
+        setGeneratedRubric(normalizedRubric);
+        return { normalizedRubric, resolvedKey };
+    }, [
+        buildManualQuestionKey,
+        findExistingQuestionKey,
+        loadConfiguredQuestions,
+        normalizeRubricForPersistence,
+        saveRubric,
+        selectedQuestionKey,
+        setRubricConfig
+    ]);
 
-    // 重新生成
-    const handleRegenerate = () => {
+    const handleSaveRubric = useCallback(async (rubric: RubricJSONV3) => {
+        try {
+            const { resolvedKey } = await persistRubric(rubric, { lifecycleStatus: 'draft' });
+            setRubricTemplateLifecycleStatus(resolvedKey, 'draft');
+            toast.success('评分细则已保存');
+
+            setViewState('list');
+            resetInputState();
+        } catch (error) {
+            console.error('[RubricPanel] Save rubric error:', error);
+            toast.error('保存失败，请重试');
+        }
+    }, [
+        persistRubric,
+        resetInputState
+    ]);
+
+    const handleSaveTemplate = useCallback(async (rubric: RubricJSONV3) => {
+        const templateValidation = validateRubricForTemplate(rubric);
+        if (templateValidation.errors.length > 0) {
+            toast.error(templateValidation.errors[0] || '模板校验未通过');
+            return;
+        }
+
+        try {
+            const { normalizedRubric: savedRubric, resolvedKey } = await persistRubric(rubric, { lifecycleStatus: 'draft' });
+            setRubricTemplateLifecycleStatus(resolvedKey, 'draft');
+            await createRubricTemplate(savedRubric, 'user');
+            await persistRubric(savedRubric, { lifecycleStatus: 'published' });
+            setRubricTemplateLifecycleStatus(resolvedKey, 'published');
+            toast.success('模板已保存到模板库');
+            setViewState('list');
+            resetInputState();
+        } catch (error) {
+            console.error('[RubricPanel] Save template error:', error);
+            const message = error instanceof Error ? error.message : '模板保存失败';
+            toast.error(message);
+            throw error;
+        }
+    }, [persistRubric, resetInputState]);
+
+    const handleRegenerate = useCallback(() => {
         setViewState('input');
-        setGeneratedRubric(null);
-    };
+        setGenerationError(null);
+    }, []);
 
-    const SUBJECTS = ['历史', '政治', '语文', '物理'];
+    const hasQuestionNo = questionNo.trim().length > 0;
+    const hasPrimaryInput = Boolean(answerImage);
+    const hasExam = Boolean(activeExamId);
 
-    // ========== 列表视图 ==========
     if (viewState === 'list') {
         return (
             <RubricListView
                 onCreateNew={handleCreateNew}
                 onSelectRubric={handleSelectRubric}
+                onUseTemplate={handleUseTemplate}
             />
         );
     }
 
-    // ========== 空状态（无细则时的默认视图）==========
-    // 这个逻辑已经在初始状态时处理，如果 hasRubrics 为 false，viewState 就是 'input'
-
-    // ========== 生成中状态 ==========
     if (viewState === 'generating') {
         return (
             <div className="flex flex-col h-full bg-white">
@@ -221,12 +417,12 @@ export default function RubricPanel({ onClose }: RubricPanelProps) {
                         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
                             <Zap className="w-3.5 h-3.5 text-white animate-pulse" />
                         </div>
-                        <h1 className="font-bold text-slate-800 text-sm">AI 正在分析...</h1>
+                        <h1 className="font-bold text-slate-800 text-sm">AI 正在生成评分细则</h1>
                     </div>
-                    <span className="text-[10px] text-indigo-600 font-medium">约 5-10 秒</span>
+                    <span className="text-[10px] text-indigo-600 font-medium">预计 5-10 秒</span>
                 </header>
 
-                <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+                <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6">
                     <div className="relative w-20 h-20">
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
@@ -235,14 +431,17 @@ export default function RubricPanel({ onClose }: RubricPanelProps) {
                         </div>
                     </div>
 
-                    <div className="text-center">
-                        <p className="text-sm font-medium text-slate-800">正在提取得分点...</p>
-                        <p className="text-xs text-slate-400 mt-1">Gemini 2.0 Flash 分析中</p>
+                    <div className="text-center max-w-[240px]">
+                        <p className="text-sm font-medium text-slate-800">{GENERATING_MESSAGES[generationStep]}</p>
+                        <p className="text-xs text-slate-400 mt-1">请保持页面稳定，避免频繁切换标签</p>
                     </div>
 
-                    <div className="w-full max-w-[200px]">
+                    <div className="w-full max-w-[220px]">
                         <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
-                            <div className="h-full w-full bg-gradient-to-r from-indigo-300 via-indigo-500 to-indigo-300 animate-pulse" />
+                            <div
+                                className="h-full bg-gradient-to-r from-indigo-400 via-violet-500 to-indigo-400 transition-all duration-500"
+                                style={{ width: `${generatingProgress}%` }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -250,7 +449,6 @@ export default function RubricPanel({ onClose }: RubricPanelProps) {
         );
     }
 
-    // ========== 结果预览状态 ==========
     if (viewState === 'result' && generatedRubric) {
         return (
             <RubricResultView
@@ -260,221 +458,259 @@ export default function RubricPanel({ onClose }: RubricPanelProps) {
                 questionNo={questionNo}
                 onSave={handleSaveRubric}
                 onRegenerate={handleRegenerate}
+                onSaveTemplate={handleSaveTemplate}
+                defaultDensity="compact"
             />
         );
     }
 
-    // ========== 输入状态（创建新细则）==========
     return (
-        <div className="flex flex-col h-full bg-white">
-            {/* Header */}
-            <header className="h-11 flex items-center justify-between px-4 border-b border-slate-100 shrink-0 bg-gradient-to-r from-indigo-50 to-violet-50">
-                <div className="flex items-center gap-2">
-                    {hasRubrics && (
-                        <button
-                            onClick={handleBackToList}
-                            className="p-1 text-slate-500 hover:text-slate-700 -ml-1"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                        </button>
-                    )}
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-                        <Zap className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <h1 className="font-bold text-slate-800 text-sm">AI 智能生成细则</h1>
+        <div className="flex h-full flex-col bg-[#F5F4F1]">
+            <header className="flex h-14 items-center border-b border-[#F0EFED] bg-white px-4">
+                <button
+                    onClick={handleBackToList}
+                    className="mr-2 flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#E5E4E1] bg-[#F5F4F1] text-[#4A4947]"
+                    aria-label="返回列表"
+                >
+                    <ChevronLeft className="h-[18px] w-[18px]" />
+                </button>
+                <div className="min-w-0">
+                    <h1 className="text-[14px] font-black text-[#1A1918]">AI 智能生成</h1>
+                    <p className="text-[9px] font-bold uppercase text-[#9C9B99]">AI Rubric Generator</p>
                 </div>
             </header>
 
-            {/* 主内容区 */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
-
-                {/* 第一行：考试 + 学科 + 题号 */}
-                <div className="space-y-1.5">
-                    <div className="flex items-center justify-between px-0.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">基本信息</span>
-                        <button className="text-[10px] text-indigo-500 hover:underline">管理考试 →</button>
-                    </div>
-                    <div className="flex gap-2">
-                        {/* 考试选择 */}
-                        <div className="flex-[2] relative">
-                            <select
-                                value={activeExamId || ''}
-                                onChange={(e) => {
-                                    if (e.target.value === 'new') {
-                                        setShowNewExamInput(true);
-                                    } else {
-                                        setActiveExamId(e.target.value);
-                                        setShowNewExamInput(false);
-                                    }
-                                }}
-                                className="w-full pl-8 pr-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium appearance-none focus:border-indigo-300 outline-none truncate"
-                            >
-                                <option value="">选择考试...</option>
-                                {exams.map(exam => (
-                                    <option key={exam.id} value={exam.id}>{exam.name}</option>
-                                ))}
-                                <option value="new">➕ 新建考试</option>
-                            </select>
-                            <Folder className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-
-                        {/* 学科选择 */}
-                        <div className="flex-1 relative">
-                            <select
-                                value={subject}
-                                onChange={e => setSubject(e.target.value)}
-                                className="w-full pl-7 pr-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-medium text-amber-700 appearance-none focus:border-amber-400 outline-none"
-                            >
-                                {SUBJECTS.map(s => (
-                                    <option key={s} value={s}>{s}</option>
-                                ))}
-                            </select>
-                            <BookOpen className="w-3.5 h-3.5 text-amber-500 absolute left-2 top-1/2 -translate-y-1/2" />
-                            <ChevronDown className="w-3 h-3 text-amber-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-
-                        {/* 题号输入 */}
-                        <div className="w-16 relative">
-                            <input
-                                type="text"
-                                placeholder="题号"
-                                value={questionNo}
-                                onChange={e => setQuestionNo(e.target.value)}
-                                className="w-full pl-7 pr-2 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-center text-indigo-700 focus:border-indigo-400 outline-none"
-                            />
-                            <Hash className="w-3.5 h-3.5 text-indigo-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <div className="flex-1 space-y-5 overflow-y-auto p-4">
+                {generationError && (
+                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-semibold text-red-700">{generationError}</p>
                         </div>
                     </div>
+                )}
 
-                    {/* 新建考试输入框 */}
-                    {showNewExamInput && (
-                        <div className="mt-2 flex gap-2">
-                            <input
-                                type="text"
-                                placeholder="输入考试名称，如：期末考试"
-                                className="flex-1 px-3 py-2 bg-white border border-indigo-200 rounded-lg text-sm focus:border-indigo-400 outline-none"
-                                value={newExamName}
-                                onChange={e => setNewExamName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleCreateExam()}
-                                autoFocus
-                            />
-                            <button
-                                onClick={handleCreateExam}
-                                className="px-3 py-2 bg-indigo-500 text-white text-xs font-bold rounded-lg hover:bg-indigo-600 shrink-0"
-                            >
-                                创建
-                            </button>
+                <section>
+                    <div className="mb-2 inline-flex items-center gap-1 rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[#4F46E5]">
+                        <Info className="h-3 w-3" />
+                        <h2 className="text-[11px] font-extrabold">配置基本信息</h2>
+                    </div>
+
+                    <div className="space-y-2 rounded-xl border border-[#E5E4E1] bg-[#F8F9FA] p-3">
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-extrabold uppercase text-[#9C9B99]">考试</label>
+                                <div className="relative">
+                                    <select
+                                        value={activeExamId || ''}
+                                        onChange={(e) => {
+                                            if (e.target.value === 'new') {
+                                                setShowNewExamInput(true);
+                                            } else {
+                                                setActiveExamId(e.target.value);
+                                                setShowNewExamInput(false);
+                                            }
+                                        }}
+                                        className="h-9 w-full appearance-none rounded-lg border border-[#E5E4E1] bg-white px-2.5 pr-7 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                    >
+                                        <option value="">选择考试</option>
+                                        {exams.map((exam) => (
+                                            <option key={exam.id} value={exam.id}>{exam.name}</option>
+                                        ))}
+                                        <option value="new">新建考试</option>
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-extrabold uppercase text-[#9C9B99]">年级</label>
+                                <div className="relative">
+                                    <select
+                                        value={grade}
+                                        onChange={(e) => setGrade(e.target.value)}
+                                        className="h-9 w-full appearance-none rounded-lg border border-[#E5E4E1] bg-white px-2.5 pr-7 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                    >
+                                        {GRADE_OPTIONS.map((item) => (
+                                            <option key={item} value={item}>{item}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                </div>
+                            </div>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-extrabold uppercase text-[#9C9B99]">科目</label>
+                                <div className="relative">
+                                    <select
+                                        value={subject}
+                                        onChange={(e) => {
+                                            const nextSubject = e.target.value;
+                                            const nextType = getQuestionTypeOptions(nextSubject)[0]?.value || defaultQuestionType;
+                                            setSubject(nextSubject);
+                                            setQuestionType(nextType);
+                                            setStrategyType(inferStrategyTypeByQuestionType(nextSubject, nextType));
+                                        }}
+                                        className="h-9 w-full appearance-none rounded-lg border border-[#E5E4E1] bg-white px-2.5 pr-7 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                    >
+                                        {SUBJECT_OPTIONS.map((item) => (
+                                            <option key={item.value} value={item.value}>{item.label}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-extrabold uppercase text-[#9C9B99]">题号</label>
+                                <input
+                                    value={questionNo}
+                                    onChange={(e) => setQuestionNo(e.target.value)}
+                                    className="h-9 w-full rounded-lg border border-[#E5E4E1] bg-white px-2.5 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-extrabold uppercase text-[#9C9B99]">题型</label>
+                                <div className="relative">
+                                    <select
+                                        value={questionType}
+                                        onChange={(e) => {
+                                            const nextType = e.target.value;
+                                            setQuestionType(nextType);
+                                            setStrategyType(inferStrategyTypeByQuestionType(subject, nextType, strategyType));
+                                        }}
+                                        className="h-9 w-full appearance-none rounded-lg border border-[#E5E4E1] bg-white px-2.5 pr-7 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                    >
+                                        {questionTypeOptions.map((item) => (
+                                            <option key={item.value} value={item.value}>{item.label}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-extrabold uppercase text-[#9C9B99]">策略</label>
+                                <div className="relative">
+                                    <select
+                                        value={strategyType}
+                                        onChange={(e) => setStrategyType(e.target.value as StrategyType)}
+                                        className="h-9 w-full appearance-none rounded-lg border border-[#E5E4E1] bg-white px-2.5 pr-7 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                    >
+                                        {RUBRIC_STRATEGY_OPTIONS.map((item) => (
+                                            <option key={item.value} value={item.value}>{item.label}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {showNewExamInput && (
+                            <div className="flex gap-2 pt-1">
+                                <input
+                                    value={newExamName}
+                                    onChange={(e) => setNewExamName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateExam()}
+                                    placeholder="输入考试名称"
+                                    className="h-9 flex-1 rounded-lg border border-blue-200 bg-white px-2.5 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                />
+                                <button
+                                    onClick={handleCreateExam}
+                                    className="h-9 rounded-lg bg-blue-500 px-3 text-[11px] font-bold text-white"
+                                >
+                                    创建
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                <section>
+                    <div className="mb-2 inline-flex items-center gap-1 rounded-md bg-[#F0FDF4] px-2 py-0.5 text-[#166534]">
+                        <ImageIcon className="h-3 w-3" />
+                        <h2 className="text-[11px] font-extrabold">上传视觉资料</h2>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <label className="group relative flex aspect-[1/1.1] cursor-pointer flex-col items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-[#E5E4E1] bg-[#F8FAFC] transition-all hover:border-blue-400 hover:bg-[#EFF6FF]">
+                            {questionImage ? (
+                                <>
+                                    <img src={questionImage} alt="试题图片" className="h-full w-full rounded-[18px] object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            setQuestionImage(null);
+                                        }}
+                                        className="absolute right-2 top-2 rounded-full bg-black/40 p-1 text-white"
+                                        aria-label="移除试题图片"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Camera className="h-5 w-5 text-[#94A3B8]" />
+                                    <span className="text-[10px] font-extrabold text-[#64748B]">试题照片</span>
+                                </>
+                            )}
+                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload('question')} />
+                        </label>
+
+                        <label className={`group relative flex aspect-[1/1.1] cursor-pointer flex-col items-center justify-center gap-2 rounded-[20px] border-2 transition-all ${answerImage
+                            ? 'border-blue-500 bg-[#EFF6FF]'
+                            : 'border-dashed border-[#E5E4E1] bg-[#F8FAFC] hover:border-blue-400 hover:bg-[#EFF6FF]'
+                            }`}>
+                            {answerImage ? (
+                                <>
+                                    <img src={answerImage} alt="答案图片" className="h-full w-full rounded-[18px] object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            setAnswerImage(null);
+                                        }}
+                                        className="absolute right-2 top-2 rounded-full bg-black/40 p-1 text-white"
+                                        aria-label="移除答案图片"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <FileCheck2 className="h-5 w-5 text-blue-500" />
+                                    <span className="text-[10px] font-extrabold text-blue-500">答案照片</span>
+                                </>
+                            )}
+                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload('answer')} />
+                        </label>
+                    </div>
+
+                    {!hasPrimaryInput && (
+                        <p className="mt-2 text-[10px] font-bold text-[#9C9B99]">请至少上传答案照片后再生成</p>
                     )}
-                </div>
+                </section>
 
-                {/* 第二行：题目图片 + 答案图片 并列 */}
-                <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-0.5">上传图片</span>
-                    <div className="flex gap-3">
-                        {/* 题目图片 */}
-                        {questionImage ? (
-                            <div className="flex-1 relative rounded-xl border border-indigo-200 overflow-hidden min-h-[120px]">
-                                <img src={questionImage} className="w-full h-full object-cover" alt="题目" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                                    <span className="text-[10px] text-white font-medium">题目图片</span>
-                                    <button
-                                        onClick={() => setQuestionImage(null)}
-                                        className="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center text-slate-600 hover:bg-white"
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                </div>
-                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-white" />
-                                </div>
-                            </div>
-                        ) : (
-                            <label className="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-slate-200 cursor-pointer min-h-[120px] hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors">
-                                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                                    <ImageIcon className="w-5 h-5 text-slate-400" />
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs font-medium text-slate-600">题目图片</p>
-                                    <p className="text-[10px] text-slate-400">可选</p>
-                                </div>
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload('question')} />
-                            </label>
-                        )}
-
-                        {/* 答案图片 */}
-                        {answerImage ? (
-                            <div className="flex-1 relative rounded-xl border border-violet-200 overflow-hidden min-h-[120px]">
-                                <img src={answerImage} className="w-full h-full object-cover" alt="答案" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                                    <span className="text-[10px] text-white font-medium">答案图片</span>
-                                    <button
-                                        onClick={() => setAnswerImage(null)}
-                                        className="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center text-slate-600 hover:bg-white"
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                </div>
-                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-white" />
-                                </div>
-                            </div>
-                        ) : (
-                            <label className="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-slate-200 cursor-pointer min-h-[120px] hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
-                                <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-violet-500" />
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs font-medium text-slate-600">答案图片</p>
-                                    <p className="text-[10px] text-violet-500 font-medium">推荐</p>
-                                </div>
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload('answer')} />
-                            </label>
-                        )}
-                    </div>
-                </div>
-
-                {/* 或者分隔线 */}
-                <div className="flex items-center gap-3 px-2">
-                    <div className="flex-1 h-px bg-slate-200" />
-                    <span className="text-[10px] text-slate-400 font-medium">或者</span>
-                    <div className="flex-1 h-px bg-slate-200" />
-                </div>
-
-                {/* 文本输入区 */}
-                <div className="space-y-1.5">
-                    <div className="flex items-center justify-between px-0.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">粘贴参考答案</span>
-                        <button className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-0.5">
-                            <Clipboard className="w-3.5 h-3.5" />
-                            粘贴
-                        </button>
-                    </div>
-                    <textarea
-                        value={textInput}
-                        onChange={e => setTextInput(e.target.value)}
-                        placeholder={`粘贴参考答案文本，例如：\n（1）根本原因：封建专制制度阻碍资本主义发展（2分）\n（2）特点：改革不彻底、保留封建残余（2分）`}
-                        className="w-full h-24 p-3 bg-white rounded-xl border border-slate-200 text-xs outline-none resize-none focus:border-indigo-300 placeholder:text-slate-300"
-                    />
-                </div>
+                {!hasExam && (
+                    <p className="rounded-lg border border-[#FEF3C7] bg-[#FFFBEB] px-3 py-2 text-[10px] font-semibold text-[#92400E]">
+                        未选择考试将以未分组状态保存
+                    </p>
+                )}
             </div>
 
-            {/* 底部 AI 生成按钮 - 添加安全区域避免被导航栏遮挡 */}
-            <div className="p-4 pb-20 bg-white border-t border-slate-100 shrink-0">
+            <div className="border-t border-[#F0EFED] bg-white p-4 pb-20">
                 <button
                     onClick={handleGenerate}
-                    disabled={(!textInput.trim() && !answerImage) || !questionNo}
-                    className="w-full py-4 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 text-white rounded-2xl shadow-lg shadow-indigo-500/30 text-sm font-bold flex items-center justify-center gap-2.5 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!hasQuestionNo || !hasPrimaryInput}
+                    className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#A855F7] to-[#7C3AED] text-[14px] font-black text-white shadow-[0_4px_15px_rgba(124,58,237,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                        <Zap className="w-4 h-4" />
-                    </div>
-                    <span>AI 一键生成评分细则</span>
+                    <Sparkles className="h-[18px] w-[18px]" />
+                    一键生成评分细则
                 </button>
-                <p className="text-center text-[10px] text-slate-400 mt-2">支持 Gemini 2.0 Flash · 预计耗时 5-10 秒</p>
+                <p className="mt-2 text-center text-[9px] font-bold text-[#9C9B99]">AI 智能识别图片内容 · 生成评分后可自由微调</p>
             </div>
         </div>
     );

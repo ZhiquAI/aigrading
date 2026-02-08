@@ -6,6 +6,8 @@
  */
 
 import { StudentResult } from '../types';
+import { rubricToMarkdown } from '../utils/rubric-converter';
+import type { RubricJSONV3 } from '../types/rubric-v3';
 
 // 后端 API 地址
 // @ts-ignore - Vite 环境变量
@@ -218,6 +220,8 @@ export interface ProxyGradeResult {
     score: number;
     maxScore: number;
     comment: string;
+    confidence?: number;
+    needsReview?: boolean;
     breakdown: {
         label: string;
         score: number;
@@ -301,6 +305,8 @@ export async function gradeWithProxy(
                 score: result.score,
                 maxScore: result.maxScore,
                 comment: result.comment,
+                confidence: result.confidence,
+                needsReview: result.needsReview,
                 breakdown: result.breakdown.map(b => ({
                     label: b.label,
                     score: b.score,
@@ -375,9 +381,15 @@ export async function checkActivationStatus(): Promise<{
     status?: string;
 }> {
     const deviceId = getDeviceId();
+    const activationCode = getActivationCode();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/activation/verify?deviceId=${deviceId}`, {
+        const query = new URLSearchParams({ deviceId });
+        if (activationCode) {
+            query.set('code', activationCode);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/activation/verify?${query.toString()}`, {
             method: 'GET'
         });
 
@@ -400,16 +412,21 @@ export async function checkActivationStatus(): Promise<{
 
 // 通过后端代理生成评分细则
 // 返回 Markdown 格式（兼容旧版），同时存储 JSON 到全局变量供评分使用
-let lastGeneratedRubricJSON: import('../types').RubricJSON | null = null;
+let lastGeneratedRubricJSON: RubricJSONV3 | null = null;
 
-export function getLastGeneratedRubricJSON(): import('../types').RubricJSON | null {
+export function getLastGeneratedRubricJSON(): RubricJSONV3 | null {
     return lastGeneratedRubricJSON;
 }
 
 // 手动设置导入的 RubricJSON（用于导入功能）
-export function setImportedRubricJSON(rubricJSON: import('../types').RubricJSON): void {
+export function setImportedRubricJSON(rubricJSON: RubricJSONV3): void {
     lastGeneratedRubricJSON = rubricJSON;
-    console.log('[Proxy] Imported RubricJSON, answerPoints:', rubricJSON.answerPoints?.length);
+    const pointCount = rubricJSON.strategyType === 'rubric_matrix'
+        ? rubricJSON.content.dimensions.length
+        : rubricJSON.strategyType === 'sequential_logic'
+            ? rubricJSON.content.steps.length
+            : rubricJSON.content.points.length;
+    console.log('[Proxy] Imported RubricJSON v3, points:', pointCount);
 }
 
 export async function generateRubricWithProxy(
@@ -440,13 +457,18 @@ export async function generateRubricWithProxy(
         const data = await response.json();
 
         if (data.success) {
-            // 存储 JSON 结构用于后续评分
-            if (data.data.rubricJSON) {
-                lastGeneratedRubricJSON = data.data.rubricJSON;
-                console.log('[Proxy] Rubric JSON saved, answerPoints:', data.data.rubricJSON.answerPoints?.length);
+            const rubricPayload = data.data?.rubric || data.rubric || data.data;
+            if (rubricPayload && typeof rubricPayload === 'object') {
+                lastGeneratedRubricJSON = rubricPayload;
+                const markdown = rubricToMarkdown(rubricPayload);
+                return markdown;
             }
-            // 返回 Markdown 格式（兼容旧版）
-            return data.data.rubric;
+            if (data.data?.rubricJSON) {
+                lastGeneratedRubricJSON = data.data.rubricJSON;
+                const markdown = rubricToMarkdown(data.data.rubricJSON);
+                return markdown;
+            }
+            return data.data?.rubric || '';
         }
 
         throw new Error(data.message || '生成评分细则失败');
@@ -632,25 +654,45 @@ export interface RubricRecord {
     rubric: string;
     updatedAt: string;
     examId?: string | null;
+    lifecycleStatus?: 'draft' | 'published';
+}
+
+export interface SaveRubricResult {
+    success: boolean;
+    conflict?: boolean;
+    status?: number;
+    message?: string;
+    serverRubric?: RubricJSONV3;
+    clientRubric?: RubricJSONV3;
+}
+
+function parseRubricPayload(rubric: string | Record<string, unknown>): Record<string, unknown> | null {
+    try {
+        return typeof rubric === 'string' ? JSON.parse(rubric) : rubric;
+    } catch {
+        return null;
+    }
 }
 
 /**
  * 保存评分细则到后端服务器
  */
-export async function saveRubricToServer(questionKey: string, rubric: string, examId?: string | null): Promise<boolean> {
-    if (!questionKey || !rubric?.trim()) {
-        console.warn('[Proxy] saveRubricToServer: 参数无效');
-        return false;
+export async function saveRubricToServerWithResult(
+    questionKey: string,
+    rubric: string | Record<string, unknown>,
+    examId?: string | null,
+    lifecycleStatus: 'draft' | 'published' = 'draft'
+): Promise<SaveRubricResult> {
+    if (!questionKey || !rubric || (typeof rubric === 'string' && !rubric.trim())) {
+        console.warn('[Proxy] saveRubricToServerWithResult: 参数无效');
+        return { success: false, message: '参数无效' };
     }
 
     try {
-        // 解析内容，如果是 JSON 字符串则解析，如果是对象则直接使用
-        let rubricObj = {};
-        try {
-            rubricObj = typeof rubric === 'string' ? JSON.parse(rubric) : rubric;
-        } catch (e) {
-            console.warn('[Proxy] saveRubricToServer: rubric 格式非法');
-            return false;
+        const rubricObj = parseRubricPayload(rubric);
+        if (!rubricObj) {
+            console.warn('[Proxy] saveRubricToServerWithResult: rubric 格式非法');
+            return { success: false, message: 'rubric 格式非法' };
         }
 
         const response = await fetch(`${API_BASE_URL}/api/rubric`, {
@@ -663,7 +705,8 @@ export async function saveRubricToServer(questionKey: string, rubric: string, ex
             body: JSON.stringify({
                 ...rubricObj,
                 questionKey, // 显式传递 key，后端优先使用
-                examId       // 显式传递考试 ID
+                examId,      // 显式传递考试 ID
+                lifecycleStatus
             })
         });
 
@@ -671,15 +714,40 @@ export async function saveRubricToServer(questionKey: string, rubric: string, ex
 
         if (data.success) {
             console.log('[Proxy] 评分细则已同步到服务器:', questionKey);
-            return true;
+            return { success: true, status: response.status };
+        }
+
+        if (response.status === 409) {
+            return {
+                success: false,
+                conflict: true,
+                status: 409,
+                message: data?.error || 'conflict',
+                serverRubric: data?.serverRubric as RubricJSONV3 | undefined,
+                clientRubric: data?.clientRubric as RubricJSONV3 | undefined
+            };
         }
 
         console.warn('[Proxy] 评分细则同步失败:', data.message);
-        return false;
+        return {
+            success: false,
+            status: response.status,
+            message: data?.message || data?.error || '保存失败'
+        };
     } catch (error) {
-        console.error('[Proxy] saveRubricToServer error:', error);
-        return false;
+        console.error('[Proxy] saveRubricToServerWithResult error:', error);
+        return { success: false, message: error instanceof Error ? error.message : '保存失败' };
     }
+}
+
+export async function saveRubricToServer(
+    questionKey: string,
+    rubric: string,
+    examId?: string | null,
+    lifecycleStatus: 'draft' | 'published' = 'draft'
+): Promise<boolean> {
+    const result = await saveRubricToServerWithResult(questionKey, rubric, examId, lifecycleStatus);
+    return result.success;
 }
 
 /**
@@ -740,7 +808,8 @@ export async function loadAllRubricsFromServer(examId?: string): Promise<RubricR
                 questionKey: r.questionId,
                 rubric: '', // 列表不返回详情
                 updatedAt: r.updatedAt,
-                examId: r.examId
+                examId: r.examId,
+                lifecycleStatus: r.lifecycleStatus === 'published' ? 'published' : 'draft'
             }));
         }
 
@@ -758,10 +827,13 @@ export async function deleteRubricFromServer(questionKey: string): Promise<boole
     if (!questionKey) return false;
 
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/api/rubric?deviceId=${encodeURIComponent(getDeviceId())}&questionKey=${encodeURIComponent(questionKey)}`,
-            { method: 'DELETE' }
-        );
+        const response = await fetch(`${API_BASE_URL}/api/rubric?questionKey=${encodeURIComponent(questionKey)}`, {
+            method: 'DELETE',
+            headers: {
+                'x-activation-code': getActivationCode() || '',
+                'x-device-id': getDeviceId()
+            }
+        });
 
         const data = await response.json();
 
@@ -776,4 +848,3 @@ export async function deleteRubricFromServer(questionKey: string): Promise<boole
         return false;
     }
 }
-
