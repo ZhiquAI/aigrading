@@ -1,7 +1,13 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Calendar, CheckCircle2, FileText, Layers, Library, Pencil, Plus, Rocket, Search, Sparkles } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Calendar, CheckCircle2, FileText, Library, Pencil, Plus, Rocket, Search, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { toast } from '@/components/Toast';
+import {
+    fetchRubricTemplates,
+    updateRubricTemplateLifecycle,
+    type RubricTemplate,
+    type TemplateLifecycleStatus
+} from '@/services/rubric-templates';
 import { coerceRubricToV3 } from '@/utils/rubric-convert';
 import type { RubricJSONV3, StrategyType } from '@/types/rubric-v3';
 import {
@@ -9,14 +15,10 @@ import {
     getQuestionTypeOptions,
     getStrategyLabel,
     getSubjectBadgeClass,
-    inferStrategyTypeByQuestionType
+    inferStrategyTypeByQuestionType,
+    type RubricSubjectOption
 } from './rubric-config';
 import { validateRubricForTemplate } from './rubric-validator';
-import {
-    getRubricTemplateLifecycleStatus,
-    setRubricTemplateLifecycleStatus,
-    type RubricTemplateLifecycleStatus
-} from './rubric-template-status';
 
 interface RubricListViewProps {
     onCreateNew: () => void;
@@ -27,7 +29,7 @@ interface RubricListViewProps {
 export interface RubricTemplateSeed {
     id: string;
     source: 'preset' | 'custom';
-    lifecycleStatus: RubricTemplateLifecycleStatus;
+    lifecycleStatus: TemplateLifecycleStatus;
     subject: string;
     questionType: string;
     strategyType: StrategyType;
@@ -42,6 +44,7 @@ interface TemplateCard extends RubricTemplateSeed {
     pointCount: number;
     totalScore: number;
     footerNote: string;
+    rubric: RubricJSONV3 | null;
 }
 
 const ALL_SUBJECT_TAB = '全部';
@@ -107,89 +110,86 @@ function getPointLabel(strategyType: StrategyType): string {
     return strategyType === 'rubric_matrix' ? '评分维度' : '采分点';
 }
 
-function toTemplateCardsFromLibrary(
-    rubricLibrary: Array<{ id: string }>,
-    rubricData: Record<string, unknown>,
-    examNameById: Map<string, string>
-): TemplateCard[] {
-    const cards: TemplateCard[] = [];
+function parseRubricTemplate(template: RubricTemplate, subjectOption?: RubricSubjectOption): RubricJSONV3 | null {
+    if (!template.metadata || !template.content) return null;
 
-    for (const item of rubricLibrary || []) {
-        const raw = rubricData?.[item.id];
-        if (!raw) continue;
+    const fallbackSubject = (template.subject || subjectOption?.value || '历史').trim();
+    const fallbackQuestionType = (template.questionType
+        || subjectOption?.questionTypes?.[0]?.value
+        || getQuestionTypeOptions(fallbackSubject)[0]?.value
+        || '材料题').trim();
+    const strategyType = (template.strategyType || inferStrategyTypeByQuestionType(fallbackSubject, fallbackQuestionType)) as StrategyType;
 
-        try {
-            const rubric = coerceRubricToV3(raw).rubric as RubricJSONV3;
-            const subject = (rubric.metadata.subject || RUBRIC_SUBJECT_OPTIONS[0]?.value || '历史').trim();
-            const fallbackType = getQuestionTypeOptions(subject)[0]?.value || '材料题';
-            const questionType = (rubric.metadata.questionType || fallbackType).trim();
-            const strategyType = rubric.strategyType || inferStrategyTypeByQuestionType(subject, questionType);
-            const templateTitle = (rubric.metadata.title || `${subject}-${questionType}通用评分模板`).trim();
-            const examId = rubric.metadata.examId || null;
-            const examName = (rubric.metadata.examName || '').trim() || (examId ? examNameById.get(examId) || null : null);
-            const stats = computeRubricStats(rubric);
-
-            cards.push({
-                id: `custom:${item.id}`,
-                source: 'custom',
-                lifecycleStatus: getRubricTemplateLifecycleStatus(item.id, 'published'),
-                subject,
-                questionType,
-                strategyType,
-                templateTitle,
-                examId,
-                examName,
-                questionKey: item.id,
-                subtitle: '自定义模板',
-                ...stats
-            });
-        } catch {
-            continue;
-        }
+    try {
+        const normalized = coerceRubricToV3({
+            version: '3.0',
+            metadata: {
+                ...(template.metadata || {}),
+                subject: (template.metadata?.subject || fallbackSubject).trim(),
+                questionType: (template.metadata?.questionType || fallbackQuestionType).trim()
+            },
+            strategyType,
+            content: template.content,
+            constraints: [],
+            createdAt: template.createdAt,
+            updatedAt: template.updatedAt
+        }).rubric;
+        return normalized;
+    } catch {
+        return null;
     }
-
-    return cards;
 }
 
-function buildPresetTemplateCards(existingCustomCards: TemplateCard[]): TemplateCard[] {
-    const customKeys = new Set(
-        existingCustomCards.map((card) => `${card.subject}|${card.questionType}|${card.strategyType}`)
-    );
+function toTemplateCard(
+    template: RubricTemplate,
+    examNameById: Map<string, string>
+): TemplateCard {
+    const subjectOption = RUBRIC_SUBJECT_OPTIONS.find((item) => item.value === (template.subject || '').trim());
+    const fallbackSubject = (template.subject || subjectOption?.value || '历史').trim();
+    const fallbackQuestionType = (template.questionType
+        || subjectOption?.questionTypes?.[0]?.value
+        || getQuestionTypeOptions(fallbackSubject)[0]?.value
+        || '材料题').trim();
 
-    const presetCards: TemplateCard[] = [];
+    const rubric = parseRubricTemplate(template, subjectOption);
+    const subject = (rubric?.metadata.subject || fallbackSubject).trim();
+    const questionType = (rubric?.metadata.questionType || fallbackQuestionType).trim();
+    const strategyType = (rubric?.strategyType
+        || (template.strategyType as StrategyType)
+        || inferStrategyTypeByQuestionType(subject, questionType));
+    const templateTitle = (rubric?.metadata.title || `${subject}-${questionType}通用评分模板`).trim();
 
-    for (const subject of RUBRIC_SUBJECT_OPTIONS) {
-        for (const questionType of subject.questionTypes) {
-            const cardKey = `${subject.value}|${questionType.value}|${questionType.strategyType}`;
-            if (customKeys.has(cardKey)) continue;
-            const fallbackStats = fallbackStatsByStrategy(questionType.strategyType);
+    const examId = rubric?.metadata.examId || null;
+    const examName = (rubric?.metadata.examName || '').trim() || (examId ? examNameById.get(examId) || null : null);
+    const stats = rubric ? computeRubricStats(rubric) : fallbackStatsByStrategy(strategyType);
+    const source = template.scope === 'system' ? 'preset' : 'custom';
 
-            presetCards.push({
-                id: `preset:${subject.value}:${questionType.value}`,
-                source: 'preset',
-                lifecycleStatus: 'published',
-                subject: subject.value,
-                questionType: questionType.value,
-                strategyType: questionType.strategyType,
-                templateTitle: `${subject.label}-${questionType.label}通用评分模板`,
-                examId: null,
-                examName: null,
-                subtitle: '系统模板',
-                ...fallbackStats
-            });
-        }
-    }
-
-    return presetCards;
+    return {
+        id: template.id,
+        source,
+        lifecycleStatus: template.lifecycleStatus === 'published' ? 'published' : 'draft',
+        subject,
+        questionType,
+        strategyType,
+        templateTitle,
+        examId,
+        examName,
+        questionKey: template.questionKey || undefined,
+        subtitle: source === 'custom' ? '自定义模板' : '系统模板',
+        ...stats,
+        rubric
+    };
 }
 
 export default function RubricListView({ onCreateNew, onSelectRubric, onUseTemplate }: RubricListViewProps) {
-    const { rubricLibrary, rubricData, exams, activeExamId } = useAppStore();
+    const { exams, activeExamId } = useAppStore();
+    const [templates, setTemplates] = useState<RubricTemplate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeSubject, setActiveSubject] = useState<string>(ALL_SUBJECT_TAB);
     const [examFilter, setExamFilter] = useState<'all' | 'current' | 'unassigned'>('all');
     const [statusFilter, setStatusFilter] = useState<TemplateStatusFilter>('published');
-    const [statusVersion, setStatusVersion] = useState(0);
 
     const currentExamName = useMemo(
         () => exams.find((exam) => exam.id === activeExamId)?.name || '未选择',
@@ -209,36 +209,53 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
         []
     );
 
-    const allTemplates = useMemo(() => {
-        const customCards = toTemplateCardsFromLibrary(rubricLibrary || [], rubricData || {}, examNameById);
-        const presetCards = buildPresetTemplateCards(customCards);
-        return [...customCards, ...presetCards];
-    }, [examNameById, rubricData, rubricLibrary, statusVersion]);
-
-    const handlePublishTemplate = useCallback((template: TemplateCard) => {
-        if (!template.questionKey) return;
-        const raw = rubricData?.[template.questionKey];
-        if (!raw) {
-            toast.error('未找到草稿细则，无法发布');
-            return;
-        }
+    const loadTemplates = useCallback(async () => {
+        setLoading(true);
+        setLoadError(null);
 
         try {
-            const rubric = coerceRubricToV3(raw).rubric;
-            const validation = validateRubricForTemplate(rubric);
+            const result = await fetchRubricTemplates({ scope: 'all' });
+            setTemplates(result);
+        } catch (error) {
+            console.error('[RubricListView] load templates error:', error);
+            setLoadError(error instanceof Error ? error.message : '模板加载失败');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadTemplates();
+    }, [loadTemplates]);
+
+    const allTemplates = useMemo(
+        () => templates.map((template) => toTemplateCard(template, examNameById)),
+        [templates, examNameById]
+    );
+
+    const handlePublishTemplate = useCallback(async (template: TemplateCard) => {
+        if (template.lifecycleStatus === 'published') return;
+        if (!template.id) return;
+
+        if (template.rubric) {
+            const validation = validateRubricForTemplate(template.rubric);
             if (validation.errors.length > 0) {
                 toast.error(validation.errors[0] || '模板校验未通过');
                 return;
             }
+        }
 
-            setRubricTemplateLifecycleStatus(template.questionKey, 'published');
-            setStatusVersion((prev) => prev + 1);
+        try {
+            await updateRubricTemplateLifecycle(template.id, 'published');
+            setTemplates((prev) => prev.map((item) => (
+                item.id === template.id ? { ...item, lifecycleStatus: 'published' } : item
+            )));
             toast.success('草稿已发布为模板');
         } catch (error) {
             console.error('[RubricListView] publish template error:', error);
-            toast.error('发布失败，请重试');
+            toast.error(error instanceof Error ? error.message : '发布失败，请重试');
         }
-    }, [rubricData]);
+    }, []);
 
     const filteredTemplates = useMemo(() => {
         const search = searchQuery.trim().toLowerCase();
@@ -389,14 +406,34 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto bg-[#F8F9FA] p-4">
-                {filteredTemplates.length === 0 && (
+                {loading && (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
+                        <h2 className="text-sm font-bold text-slate-700">模板加载中...</h2>
+                    </div>
+                )}
+
+                {!loading && loadError && (
+                    <div className="rounded-2xl border border-dashed border-red-300 bg-red-50 p-6 text-center">
+                        <h2 className="text-sm font-bold text-red-700">模板加载失败</h2>
+                        <p className="mt-1 text-xs text-red-500">{loadError}</p>
+                        <button
+                            type="button"
+                            onClick={() => void loadTemplates()}
+                            className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-600"
+                        >
+                            重试
+                        </button>
+                    </div>
+                )}
+
+                {!loading && !loadError && filteredTemplates.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
                         <h2 className="text-sm font-bold text-slate-700">没有匹配的模板</h2>
                         <p className="mt-1 text-xs text-slate-400">切换学科或更换关键词试试</p>
                     </div>
                 )}
 
-                {filteredTemplates.map((template) => {
+                {!loading && !loadError && filteredTemplates.map((template) => {
                     const examLabel = template.source === 'preset' ? '通用模板' : (template.examName || '未分组');
                     const isCurrentExamTemplate = Boolean(activeExamId && template.source === 'custom' && template.examId === activeExamId);
                     return (
@@ -452,17 +489,17 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
 
                             <div className="flex items-center justify-between border-t border-dashed border-[#F0EFED] pt-3">
                                 <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold text-[#9C9B99]">
-                                    {template.source === 'preset' ? <Layers className="h-3 w-3 shrink-0" /> : <Calendar className="h-3 w-3 shrink-0" />}
+                                    <Calendar className="h-3 w-3 shrink-0" />
                                     <span className="truncate">{template.source === 'preset' ? template.footerNote : examLabel}</span>
                                 </div>
-                                {template.questionKey ? (
+                                {template.source === 'custom' ? (
                                     <div className="flex items-center gap-1">
                                         {template.lifecycleStatus === 'draft' && (
                                             <button
                                                 type="button"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
-                                                    handlePublishTemplate(template);
+                                                    void handlePublishTemplate(template);
                                                 }}
                                                 className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-black text-emerald-700 transition-colors hover:bg-emerald-100"
                                                 aria-label="发布草稿模板"
@@ -471,17 +508,21 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                                                 发布
                                             </button>
                                         )}
-                                        <button
-                                            type="button"
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                onSelectRubric(template.questionKey!);
-                                            }}
-                                            className="rounded-md p-1 text-slate-400 transition-colors hover:text-blue-600"
-                                            aria-label="编辑模板"
-                                        >
-                                            <Pencil className="h-3.5 w-3.5" />
-                                        </button>
+                                        {template.questionKey ? (
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    onSelectRubric(template.questionKey!);
+                                                }}
+                                                className="rounded-md p-1 text-slate-400 transition-colors hover:text-blue-600"
+                                                aria-label="编辑模板"
+                                            >
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </button>
+                                        ) : (
+                                            <FileText className="h-3.5 w-3.5 text-slate-300" />
+                                        )}
                                     </div>
                                 ) : (
                                     <FileText className="h-3.5 w-3.5 text-slate-300" />

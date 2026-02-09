@@ -220,3 +220,155 @@ After running `npx tsx prisma/seed.ts`:
 - `BASIC-AAAA-BBBB-CCCC` - Basic (1000 uses, reusable)
 - `PRO-XXXX-YYYY-ZZZZ` - Pro (3000 uses, reusable)
 - `PERM-AAAA-BBBB-CCCC` - Permanent (999999 uses, reusable)
+
+## 14. Troubleshooting & Lessons Learned
+
+### ⚠️ Zustand Getter 陷阱 (2026-02-05)
+
+**问题现象**：导入评分细则后，编辑界面不显示数据，`currentQuestionKey` 始终为空。
+
+**根本原因**：在 Zustand store 中使用 getter 定义计算属性时，直接解构会失效。
+
+```typescript
+// ❌ 错误：store 中定义 getter
+export const useAppStore = create((set, get) => ({
+    get currentQuestionKey() {
+        return get().manualQuestionKey || get().detectedQuestionKey;
+    }
+}));
+
+// ❌ 错误：组件中直接解构 getter
+const { currentQuestionKey } = useAppStore(); // 返回 undefined 或函数本身！
+```
+
+**解决方案**：
+
+```typescript
+// ✅ 正确：在组件中手动计算
+const { manualQuestionKey, detectedQuestionKey } = useAppStore();
+const currentQuestionKey = manualQuestionKey || detectedQuestionKey;
+
+// ✅ 或使用 selector
+const currentQuestionKey = useAppStore(state => 
+    state.manualQuestionKey || state.detectedQuestionKey
+);
+```
+
+**最佳实践**：
+- Zustand 中避免使用 getter 定义计算属性
+- 计算属性应在组件内使用 `useMemo` 或直接计算
+- 调试时使用 `useAppStore.getState()` 检查实际状态
+
+---
+
+### 🔄 数据字段一致性问题
+
+**问题现象**：导入的评分细则在编辑时得分点为空。
+
+**根本原因**：代码中同时存在 `answerPoints` 和 `points` 两个字段：
+- 导入逻辑只保存了 `points`
+- 编辑组件优先读取 `answerPoints`
+
+**解决方案**：导入时同时保存两个字段，确保兼容性：
+```typescript
+const rubricConfig = {
+    answerPoints: points,
+    points: points,  // 同时保存两个字段
+    // ...
+};
+```
+
+**最佳实践**：
+- 定义数据结构时统一字段命名，避免同义字段共存
+- 如果必须兼容旧数据，在读取时做 fallback，在写入时同步维护
+
+---
+
+### 📦 Chrome 扩展存储 API 差异
+
+**问题现象**：开发环境正常，生产环境（Chrome 扩展）数据丢失。
+
+**根本原因**：
+- 开发环境：使用 `localStorage`（同步 API）
+- 生产环境：使用 `chrome.storage.local`（异步 API）
+
+**解决方案**：封装统一的 storage 抽象层：
+```typescript
+const storage = {
+    async getItem(key: string) {
+        if (chrome?.storage?.local) {
+            return new Promise(resolve => chrome.storage.local.get(key, r => resolve(r[key])));
+        }
+        return localStorage.getItem(key);
+    },
+    async setItem(key: string, value: string) {
+        if (chrome?.storage?.local) {
+            return chrome.storage.local.set({ [key]: value });
+        }
+        localStorage.setItem(key, value);
+    }
+};
+```
+
+---
+
+### 🔗 API 调用架构混乱
+
+**问题现象**：切换 AI 服务商困难，错误处理不一致。
+
+**根本原因**：多个 AI 服务商（Gemini、智谱、CherryIN）的调用逻辑分散在各个组件中。
+
+**解决方案**：建立统一的 `ai-router` 层，所有 AI 调用通过路由器分发：
+```typescript
+// ai-router.ts
+export async function callAI(prompt: string, options: AIOptions) {
+    const provider = getActiveProvider();
+    switch (provider) {
+        case 'gemini': return geminiService.call(prompt, options);
+        case 'zhipu': return zhipuService.call(prompt, options);
+        default: throw new Error('Unknown provider');
+    }
+}
+```
+
+**最佳实践**：
+- 外部服务调用统一走服务层，组件不直接调用 API
+- 错误处理和重试逻辑集中在服务层
+
+---
+
+### 🚦 自动批改中断与恢复
+
+**问题现象**：批改大量试卷时遭遇 API 限流或网络中断，进度丢失。
+
+**解决方案**：
+1. **智能限流**：根据 API 返回的 429 状态动态调整请求间隔
+2. **会话恢复**：将批改进度存储到 localStorage，支持断点续批
+3. **错误重试**：网络错误自动重试 3 次，间隔递增
+
+**最佳实践**：
+- 长时间任务必须支持中断恢复
+- 向用户反馈当前进度和预计剩余时间
+
+---
+
+### 🎨 UI 空状态设计
+
+**问题现象**：功能按钮只放在 header，用户在空白页不知如何操作。
+
+**解决方案**：空状态页面提供明确的行动入口：
+```tsx
+{isEmpty && (
+    <div className="empty-state">
+        <p>还没有评分细则</p>
+        <div className="flex gap-3">
+            <Button onClick={handleCreate}>AI 创建</Button>
+            <Button onClick={handleImport}>导入 JSON</Button>
+        </div>
+    </div>
+)}
+```
+
+**最佳实践**：
+- 空状态不仅要解释"为什么是空的"，还要告诉用户"如何开始"
+- 主要行动按钮应该在用户视线焦点处，而非隐藏在 header

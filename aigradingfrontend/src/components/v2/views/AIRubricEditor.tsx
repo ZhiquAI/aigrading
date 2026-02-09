@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { refineRubric } from '@/services/rubric-service';
-import type { RubricJSON, AnswerPoint } from '@/types/rubric';
+import type { RubricJSONV3 } from '@/types/rubric-v3';
 
 interface RubricPoint {
     id: string;
@@ -81,24 +81,29 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
         setIsThinking(true);
 
         try {
-            // 将当前 points 转换为 RubricJSON 格式
-            const currentRubric: RubricJSON = {
-                version: '2.0',
-                questionId: questionKey,
-                title: questionKey,
-                totalScore: points.reduce((sum, p) => sum + p.score, 0),
-                scoringStrategy: {
-                    type: 'all',
-                    allowAlternative: false,
-                    strictMode: false
+            // 将当前 points 转换为 RubricJSON v3 格式
+            const currentRubric: RubricJSONV3 = {
+                version: '3.0',
+                metadata: {
+                    questionId: questionKey,
+                    title: questionKey
                 },
-                answerPoints: points.map(p => ({
-                    id: p.id,
-                    content: p.content,
-                    keywords: p.keywords,
-                    score: p.score
-                })),
-                gradingNotes: [],
+                strategyType: 'point_accumulation',
+                content: {
+                    scoringStrategy: {
+                        type: 'all',
+                        allowAlternative: false,
+                        strictMode: false
+                    },
+                    points: points.map((point) => ({
+                        id: point.id,
+                        content: point.content,
+                        keywords: point.keywords,
+                        score: point.score
+                    })),
+                    totalScore: points.reduce((sum, point) => sum + point.score, 0)
+                },
+                constraints: [],
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -107,11 +112,22 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
             const refinedRubric = await refineRubric(currentRubric, userMessage);
 
             // 更新得分点
-            const newPoints: RubricPoint[] = refinedRubric.answerPoints.map((ap: AnswerPoint) => ({
-                id: ap.id,
-                content: ap.content,
-                score: ap.score,
-                keywords: ap.keywords || []
+            const rawPoints = refinedRubric.strategyType === 'sequential_logic'
+                ? refinedRubric.content.steps
+                : refinedRubric.strategyType === 'point_accumulation'
+                    ? refinedRubric.content.points
+                    : refinedRubric.content.dimensions.map((dimension, index) => ({
+                        id: dimension.id || `dim-${index + 1}`,
+                        content: dimension.name,
+                        score: dimension.weight || Math.max(...dimension.levels.map((level) => level.score)),
+                        keywords: [] as string[]
+                    }));
+
+            const newPoints: RubricPoint[] = rawPoints.map((point) => ({
+                id: point.id,
+                content: point.content,
+                score: point.score,
+                keywords: point.keywords || []
             }));
 
             setPoints(newPoints);
@@ -124,7 +140,15 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
             } else if (newPoints.length < points.length) {
                 response += ` 减少了 ${changeCount} 个得分点。`;
             }
-            response += ` 当前总分: ${refinedRubric.totalScore}分。`;
+            const total = refinedRubric.strategyType === 'rubric_matrix'
+                ? refinedRubric.content.totalScore
+                    || refinedRubric.content.dimensions.reduce((sum, dim) => sum + (dim.weight || 0), 0)
+                : refinedRubric.strategyType === 'sequential_logic'
+                    ? refinedRubric.content.totalScore
+                        || refinedRubric.content.steps.reduce((sum, point) => sum + point.score, 0)
+                    : refinedRubric.content.totalScore
+                        || refinedRubric.content.points.reduce((sum, point) => sum + point.score, 0);
+            response += ` 当前总分: ${total}分。`;
 
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),

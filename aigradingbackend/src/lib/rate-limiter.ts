@@ -36,6 +36,10 @@ const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
         windowMs: 60 * 1000,  // 1 分钟
         maxRequests: 10        // 10 次
     },
+    admin: {
+        windowMs: 60 * 1000,  // 1 分钟
+        maxRequests: 30        // 30 次
+    },
     default: {
         windowMs: 60 * 1000,  // 1 分钟
         maxRequests: 100       // 100 次
@@ -155,7 +159,7 @@ const limiters: Map<string, RateLimiter> = new Map();
  * 获取指定类型的限制器
  * @param type 限制器类型: 'ai' | 'auth' | 'default'
  */
-export function getRateLimiter(type: 'ai' | 'auth' | 'default' = 'default'): RateLimiter {
+export function getRateLimiter(type: 'ai' | 'auth' | 'admin' | 'default' = 'default'): RateLimiter {
     let limiter = limiters.get(type);
     if (!limiter) {
         const config = RATE_LIMIT_CONFIGS[type] || RATE_LIMIT_CONFIGS.default;
@@ -197,7 +201,7 @@ export function getClientId(request: Request): string {
  */
 export function checkRateLimit(
     request: Request,
-    type: 'ai' | 'auth' | 'default' = 'default'
+    type: 'ai' | 'auth' | 'admin' | 'default' = 'default'
 ): RateLimitResult & { clientId: string } {
     const clientId = getClientId(request);
     const limiter = getRateLimiter(type);

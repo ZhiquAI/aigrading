@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import AdminPageHeader from '../_components/AdminPageHeader';
+import AdminCard from '../_components/AdminCard';
 
 export default function SettingsPage() {
     const [adminKey, setAdminKey] = useState('');
@@ -18,42 +20,49 @@ export default function SettingsPage() {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">系统设置</h1>
+            <AdminPageHeader title="系统设置" />
 
             <div className="space-y-6">
                 {/* 安全设置 */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <AdminCard className="p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">安全设置</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-gray-500 text-sm mb-2">
+                            <label htmlFor="admin-password" className="block text-gray-500 text-sm mb-2">
                                 管理员密码
                             </label>
                             <input
+                                id="admin-password"
+                                name="adminPassword"
                                 type="password"
                                 value={adminKey}
                                 onChange={(e) => setAdminKey(e.target.value)}
                                 placeholder="输入新密码（留空不修改）"
                                 className="w-full max-w-md px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                autoComplete="new-password"
                             />
                         </div>
                     </div>
-                </div>
+                </AdminCard>
 
                 {/* 通知设置 */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <AdminCard className="p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">通知设置</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-gray-500 text-sm mb-2">
+                            <label htmlFor="notify-email" className="block text-gray-500 text-sm mb-2">
                                 通知邮箱
                             </label>
                             <input
+                                id="notify-email"
+                                name="notifyEmail"
                                 type="email"
                                 value={notifyEmail}
                                 onChange={(e) => setNotifyEmail(e.target.value)}
                                 placeholder="接收通知的邮箱地址"
                                 className="w-full max-w-md px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                autoComplete="email"
+                                spellCheck={false}
                             />
                         </div>
                         <div className="space-y-2">
@@ -71,15 +80,16 @@ export default function SettingsPage() {
                             </label>
                         </div>
                     </div>
-                </div>
+                </AdminCard>
 
                 {/* 保存按钮 */}
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-xl transition-all"
+                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors"
+                    type="button"
                 >
-                    {saving ? '保存中...' : '保存设置'}
+                    {saving ? '保存中…' : '保存设置'}
                 </button>
             </div>
         </div>

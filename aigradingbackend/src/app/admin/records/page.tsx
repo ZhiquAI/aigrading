@@ -1,15 +1,42 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Download, RefreshCw, Search } from 'lucide-react';
+import AdminPageHeader from '../_components/AdminPageHeader';
+import AdminFilterBar from '../_components/AdminFilterBar';
+import { adminTokens } from '../_styles/tokens';
 import RecordsTable from './components/RecordsTable';
 import RecordDetailModal from './components/RecordDetailModal';
 
-export default function RecordsPage() {
+function RecordsPageContent() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRecord, setSelectedRecord] = useState<any>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [dateRange, setDateRange] = useState('all'); // all, today, week
+    const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') ?? '');
+    const [dateRange, setDateRange] = useState(() => searchParams.get('range') ?? 'all'); // all, today, week
+
+    useEffect(() => {
+        const q = searchParams.get('q') ?? '';
+        const range = searchParams.get('range') ?? 'all';
+        if (q !== searchTerm) setSearchTerm(q);
+        if (range !== dateRange) setDateRange(range);
+    }, [searchParams, searchTerm, dateRange]);
+
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (searchTerm) params.set('q', searchTerm);
+        if (dateRange !== 'all') params.set('range', dateRange);
+        const next = params.toString();
+        const current = searchParams.toString();
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [searchTerm, dateRange, searchParams, router, pathname]);
 
     // 使用 useCallback 避免 useEffect 依赖变化导致死循环
     const fetchRecords = useCallback(async () => {
@@ -94,54 +121,65 @@ export default function RecordsPage() {
     }, [fetchRecords]);
 
     return (
-        <div className="max-w-6xl mx-auto">
-            {/* 顶栏 */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">批改记录</h1>
-                    <p className="text-gray-500 text-sm mt-1">查看所有学生的 AI 批改详情</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={fetchRecords}
-                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="刷新"
-                    >
-                        🔄
-                    </button>
-                    {/* 导出按钮 */}
-                    <button
-                        onClick={handleExport}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium"
-                    >
-                        <span>📥</span> 导出 CSV
-                    </button>
-                </div>
-            </div>
+        <div className={adminTokens.page}>
+            <AdminPageHeader
+                title="批改记录"
+                subtitle="查看所有学生的 AI 批改详情"
+                actions={(
+                    <>
+                        <button
+                            onClick={fetchRecords}
+                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="刷新"
+                            aria-label="刷新记录"
+                            type="button"
+                        >
+                            <RefreshCw className="w-4 h-4" aria-hidden />
+                        </button>
+                        <button
+                            onClick={handleExport}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium"
+                            type="button"
+                        >
+                            <Download className="w-4 h-4" aria-hidden />
+                            导出 CSV
+                        </button>
+                    </>
+                )}
+            />
 
-            {/* 筛选栏 */}
-            <div className="flex flex-wrap gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <AdminFilterBar>
                 <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 flex-1 min-w-[200px]">
-                    <span className="text-gray-400">🔍</span>
+                    <label htmlFor="record-search" className="sr-only">搜索学生姓名</label>
+                    <Search className="w-4 h-4 text-gray-400" aria-hidden />
                     <input
+                        id="record-search"
+                        name="studentName"
                         type="text"
-                        placeholder="搜索学生姓名..."
+                        placeholder="搜索学生姓名…"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-transparent border-none focus:ring-0 text-sm w-full p-0 text-gray-900 placeholder-gray-400"
+                        autoComplete="off"
+                        aria-label="搜索学生姓名"
                     />
                 </div>
 
-                <select
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value)}
-                    className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
-                >
-                    <option value="all">所有日期</option>
-                    <option value="today">今天</option>
-                    <option value="week">最近7天</option>
-                </select>
-            </div>
+                <div className="flex items-center">
+                    <label htmlFor="record-date-range" className="sr-only">日期范围</label>
+                    <select
+                        id="record-date-range"
+                        value={dateRange}
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
+                        aria-label="按日期筛选"
+                    >
+                        <option value="all">所有日期</option>
+                        <option value="today">今天</option>
+                        <option value="week">最近7天</option>
+                    </select>
+                </div>
+            </AdminFilterBar>
 
             {/* 记录列表 */}
             <RecordsTable
@@ -158,5 +196,13 @@ export default function RecordsPage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function RecordsPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">加载中...</div>}>
+            <RecordsPageContent />
+        </Suspense>
     );
 }

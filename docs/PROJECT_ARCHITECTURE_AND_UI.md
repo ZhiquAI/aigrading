@@ -150,6 +150,7 @@ aigradingbackend/
 |------|------|------|
 | `/api/activate` | POST | 验证激活码、分配配额 |
 | `/api/rubric` | GET/POST/DELETE | 评分细则 CRUD（含 `lifecycleStatus: draft \| published`） |
+| `/api/rubric/templates` | GET/POST/PATCH/DELETE | 模板库 CRUD（服务端单一真相，含 `lifecycleStatus`） |
 | `/api/records` | GET/POST | 批改记录同步 |
 | `/api/exams` | GET/POST/PUT/DELETE | 考试管理 |
 | `/api/ai/grade` | POST | AI 批改（代理模式） |
@@ -157,7 +158,10 @@ aigradingbackend/
 #### 本次数据层变更（2026-02-08）
 
 - `DeviceRubric` 新增字段：`lifecycleStatus`（默认 `draft`）
+- `RubricTemplate` 新增字段：`questionKey`、`lifecycleStatus`（默认 `draft`）
 - `/api/rubric`：GET/POST 返回并持久化生命周期状态
+- `/api/rubric/templates`：返回模板生命周期，支持 `PATCH` 更新发布状态
+- 防误发布：已发布模板对应细则被编辑并保存草稿时，模板自动回退 `draft`
 - 前端同步：`saveRubricToServer` 增加 `lifecycleStatus` 参数
 
 ```bash
@@ -197,9 +201,11 @@ npx prisma db push
 
 | 场景 | 策略 |
 |------|------|
+| 细则入口 | 先进入引导页：`创建细则` / `导入细则` / `进入模板库` |
 | 评分细则保存 | **本地优先** → 异步同步到后端（携带 `lifecycleStatus`） |
 | 评分细则加载 | 内存缓存 → 本地存储 → 后端拉取（合并服务端状态） |
-| 模板流程 | `生成` → `编辑保存(草稿)` → `发布模板(已发布)` |
+| 模板列表 | 仅使用 `/api/rubric/templates`（服务端单一真相） |
+| 模板流程 | `生成` → `编辑保存(草稿)` → `发布模板(已发布)`；发布后再编辑自动回退草稿 |
 | 批改记录 | 实时同步到后端（仅正式会员） |
 
 ---
@@ -300,6 +306,20 @@ interface RubricJSONV3 {
 │     📋              ✏️               📊               ⚙️      │
 └─────────────────────────────────────────────────────────────┘
      阅卷前            阅卷中            阅卷后          随时
+```
+
+#### 评分细则子流程（新版）
+
+```
+引导页
+  ├─ 创建细则（AI 生成）
+  ├─ 导入细则（Rubric v3 JSON）
+  └─ 进入模板库（服务端模板）
+
+创建/导入完成
+  └─ 结果页微调并保存草稿
+        └─ 发布为模板（published）
+              └─ 后续编辑自动回退 draft
 ```
 
 #### 界面布局

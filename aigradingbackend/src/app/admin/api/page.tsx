@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { Lightbulb } from 'lucide-react';
+import AdminPageHeader from '../_components/AdminPageHeader';
+import AdminCard from '../_components/AdminCard';
 
 interface ApiProvider {
     id: string;
@@ -64,23 +67,26 @@ export default function ApiPage() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">API 管理</h1>
-                <button
-                    onClick={testAll}
-                    disabled={testing !== null}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-xl transition-all"
-                >
-                    {testing ? '测试中...' : '一键检测'}
-                </button>
-            </div>
+            <AdminPageHeader
+                title="API 管理"
+                actions={(
+                    <button
+                        onClick={testAll}
+                        disabled={testing !== null}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors"
+                        type="button"
+                    >
+                        {testing ? '测试中…' : '一键检测'}
+                    </button>
+                )}
+            />
 
             {/* API 列表 */}
             <div className="space-y-4">
                 {providers.map((p) => (
-                    <div
+                    <AdminCard
                         key={p.id}
-                        className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
+                        className="p-6"
                     >
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
@@ -104,9 +110,10 @@ export default function ApiPage() {
                                 <button
                                     onClick={() => testApi(p.id)}
                                     disabled={testing !== null}
-                                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-all disabled:opacity-50"
+                                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors disabled:opacity-50"
+                                    type="button"
                                 >
-                                    {testing === p.id ? '测试中' : '测试'}
+                                    {testing === p.id ? '测试中…' : '测试'}
                                 </button>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input
@@ -114,8 +121,9 @@ export default function ApiPage() {
                                         checked={p.enabled}
                                         onChange={() => toggleProvider(p.id)}
                                         className="sr-only peer"
+                                        aria-label={`${p.name} 启用状态`}
                                     />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-indigo-600"></div>
                                 </label>
                             </div>
                         </div>
@@ -137,16 +145,17 @@ export default function ApiPage() {
                                 </span>
                             </span>
                         </div>
-                    </div>
+                    </AdminCard>
                 ))}
             </div>
 
             {/* 说明 */}
-            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-amber-700 text-sm">
-                    💡 提示：启用多个 API 后，系统会按优先级顺序尝试，当主 API 失败时自动切换到备用 API。
+            <AdminCard className="mt-6 p-4 bg-amber-50 border-amber-200">
+                <p className="text-amber-700 text-sm flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 mt-0.5" aria-hidden />
+                    <span>提示：启用多个 API 后，系统会按优先级顺序尝试，当主 API 失败时自动切换到备用 API。</span>
                 </p>
-            </div>
+            </AdminCard>
         </div>
     );
 }

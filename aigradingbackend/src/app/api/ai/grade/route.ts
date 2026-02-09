@@ -1,13 +1,15 @@
 /**
  * AI 批改代理 API
- * 接收批改请求，优先调用 Gemini API，失败时回退到智谱 API
+ * 接收批改请求，执行“AI 判定 + 代码算分”
  * 使用配额系统管理使用次数
  */
 
 import { prisma } from '@/lib/prisma';
-import { gradeWithZhipu, GradeRequest } from '@/lib/zhipu';
-import { gradeWithGPT } from '@/lib/gpt';
-import { gradeWithGemini, isGeminiAvailable } from '@/lib/gemini';
+import { judgeWithZhipu } from '@/lib/zhipu';
+import { judgeWithGPT } from '@/lib/gpt';
+import { judgeWithGemini, isGeminiAvailable } from '@/lib/gemini';
+import { scoreRubric } from '@/lib/score-engine';
+import { validateRubricV3 } from '@/lib/rubric-v3';
 
 import { apiSuccess, apiError, apiServerError, apiRateLimited, ErrorCode } from '@/lib/api-response';
 import { checkRateLimit } from '@/lib/rate-limiter';
@@ -100,7 +102,7 @@ async function deductQuota(id: string, type: 'code' | 'device', deviceId: string
 
 /**
  * POST /api/ai/grade
- * 批改学生答案（优先使用 Gemini，失败时回退到智谱）
+ * 批改学生答案（仅支持 Rubric v3）
  */
 export async function POST(request: Request) {
     const reqLogger = createRequestLogger(request);
@@ -147,61 +149,68 @@ export async function POST(request: Request) {
             return apiError('配额已用完，请购买更多配额', 403);
         }
 
-        // 构建批改请求
-        const gradeRequest: GradeRequest = {
-            imageBase64,
-            rubric,
-            studentName,
-            questionNo
-        };
+        // 解析评分细则（严格 v3）
+        let rubricPayload: unknown = rubric;
+        if (typeof rubricPayload === 'string') {
+            try {
+                rubricPayload = JSON.parse(rubricPayload);
+            } catch {
+                return apiError('评分细则必须为合法 JSON', 400, ErrorCode.RUBRIC_FORMAT_INVALID);
+            }
+        }
+        const rubricValidation = validateRubricV3(rubricPayload);
+        if (!rubricValidation.valid || !rubricValidation.rubric) {
+            return apiError(
+                `评分细则必须为 Rubric v3 格式: ${rubricValidation.errors.join(', ')}`,
+                400,
+                ErrorCode.RUBRIC_FORMAT_INVALID
+            );
+        }
+        const rubricV3 = rubricValidation.rubric;
 
         // 策略选择
-        const validStrategies = ['flash', 'pro', 'reasoning'];
-        // @ts-ignore
-        const gradeStrategy = validStrategies.includes(strategy) ? strategy : 'flash';
+        type GradeStrategy = 'flash' | 'pro' | 'reasoning';
+        const validStrategies = new Set<GradeStrategy>(['flash', 'pro', 'reasoning']);
+        const gradeStrategy: GradeStrategy = validStrategies.has(strategy as GradeStrategy)
+            ? (strategy as GradeStrategy)
+            : 'flash';
 
-        let result;
+        let result: ReturnType<typeof scoreRubric> | null = null;
         let provider: string = 'unknown';
         const aiStartTime = Date.now();
 
-        // 优先级：GPTSAPI (GPT-4o) → Claude (Puter) → Zhipu (GLM-4) → Gemini
+        // 优先级：GPTSAPI (GPT-4o) → Zhipu (GLM-4) → Gemini
         try {
-            console.log(`[Grade API] 尝试 GPTSAPI 中转, 策略: ${gradeStrategy}, 模型: gpt-4o`);
-            // @ts-ignore
-            result = await gradeWithGPT(gradeRequest, gradeStrategy);
-            provider = 'gptsapi';
-            console.log(`[Grade API] ✓ GPTSAPI 成功，耗时: ${Date.now() - aiStartTime}ms`);
+            console.log(`[Grade API] 判定模式: GPTSAPI, 策略: ${gradeStrategy}`);
+            const judge = await judgeWithGPT({ imageBase64, rubric: rubricV3, studentName }, gradeStrategy);
+            result = scoreRubric(rubricV3, judge.judge);
+            provider = 'gptsapi-judge';
         } catch (gptError: any) {
-            console.warn(`[Grade API] GPTSAPI 失败 (${Date.now() - aiStartTime}ms):`, gptError.message);
-
-            // 2. 回退到智谱 (国产直连)
+            console.warn('[Grade API] GPT Judge 失败:', gptError.message);
             try {
-                console.log('[Grade API] 回退到智谱 GLM-4.7');
-                result = await gradeWithZhipu(gradeRequest);
-                provider = 'zhipu';
-                console.log(`[Grade API] ✓ 智谱成功，总耗时: ${Date.now() - aiStartTime}ms`);
+                console.log('[Grade API] 回退到智谱判定');
+                const judge = await judgeWithZhipu({ imageBase64, rubric: rubricV3, studentName });
+                result = scoreRubric(rubricV3, judge.judge);
+                provider = 'zhipu-judge';
             } catch (zhipuError: any) {
-                console.warn(`[Grade API] 智谱失败 (${Date.now() - aiStartTime}ms):`, zhipuError.message);
-
-                // 3. 回退到 Gemini 直连
+                console.warn('[Grade API] 智谱 Judge 失败:', zhipuError.message);
                 if (isGeminiAvailable()) {
                     try {
-                        console.log(`[Grade API] 尝试 Gemini 直连, 策略: ${gradeStrategy}`);
-                        // @ts-ignore
-                        result = await gradeWithGemini(gradeRequest, gradeStrategy);
-                        provider = 'gemini-direct';
-                        console.log(`[Grade API] ✓ Gemini 直连成功，耗时: ${Date.now() - aiStartTime}ms`);
+                        console.log('[Grade API] 回退到 Gemini 判定');
+                        const judge = await judgeWithGemini({ imageBase64, rubric: rubricV3, studentName }, gradeStrategy);
+                        result = scoreRubric(rubricV3, judge.judge);
+                        provider = 'gemini-judge';
                     } catch (geminiError: any) {
-                        console.error(`[Grade API] Gemini 直连失败 (${Date.now() - aiStartTime}ms):`, geminiError.message);
+                        console.error('[Grade API] Gemini Judge 失败:', geminiError.message);
                     }
                 }
             }
         }
 
-        // 如果所有服务都失败
+        // 如果所有判定服务都失败
         if (!result) {
             console.error(`[Grade API] 所有 AI 服务均失败，总耗时: ${Date.now() - aiStartTime}ms`);
-            throw new Error('所有 AI 服务暂时不可用，请稍后重试');
+            throw new Error('AI 判定服务暂时不可用，请稍后重试');
         }
 
         // 扣减配额
@@ -211,6 +220,15 @@ export async function POST(request: Request) {
         const updatedQuota = quotaInfo.type === 'code'
             ? await prisma.activationCode.findUnique({ where: { id: quotaInfo.id } })
             : await prisma.deviceQuota.findUnique({ where: { deviceId: quotaInfo.id } });
+
+        // 规范 comment 字段（判定模式使用 breakdown 汇总）
+        const commentText = Array.isArray(result.breakdown)
+            ? [
+                '| 项目 | 得分 | 说明 |',
+                '|---|---|---|',
+                ...result.breakdown.map((item) => `| ${item.label} | ${item.score}/${item.max} | ${item.comment || ''} |`)
+            ].join('\n')
+            : null;
 
         // 如果有激活码，异步存储批改记录
         if (activationCode && result) {
@@ -224,7 +242,7 @@ export async function POST(request: Request) {
                     examNo: examNo || null,
                     score: Number(result.score) || 0,
                     maxScore: Number(result.maxScore) || 0,
-                    comment: result.comment || null,
+                    comment: commentText,
                     breakdown: result.breakdown
                         ? (typeof result.breakdown === 'string' ? result.breakdown : JSON.stringify(result.breakdown))
                         : null
@@ -238,6 +256,7 @@ export async function POST(request: Request) {
 
         return apiSuccess({
             ...result,
+            comment: commentText,
             provider,
             remaining: updatedQuota?.remaining || 0,
             totalUsed: updatedQuota?.used || 0

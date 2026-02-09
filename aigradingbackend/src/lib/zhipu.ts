@@ -4,6 +4,8 @@
  */
 
 import crypto from 'crypto';
+import { RubricJSONV3 } from './rubric-v3';
+import { buildJudgePrompt, parseJudgeResult, JudgeResult } from './rubric-judge';
 
 const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 const ZHIPU_API_KEY = process.env.ZHIPU_API_KEY || '';
@@ -76,10 +78,19 @@ export interface GradeResult {
     }[];
 }
 
+export interface JudgeRequest {
+    imageBase64: string;
+    rubric: RubricJSONV3;
+    studentName?: string;
+}
+
 // 批改 Prompt 模板 - 支持 JSON 结构化评分细则（与 GPT-4o 同步）
 function buildGradingPrompt(rubric: string, studentName?: string): string {
     // 检测是否为 JSON 格式的评分细则
-    const isJSONRubric = rubric.trim().startsWith('{') || rubric.includes('"answerPoints"');
+    const isJSONRubric = rubric.trim().startsWith('{')
+        || rubric.includes('"strategyType"')
+        || rubric.includes('"version":"3.0"')
+        || rubric.includes('"version": "3.0"');
 
     if (isJSONRubric) {
         // JSON 结构化评分模式 - 逐点精准匹配
@@ -91,7 +102,7 @@ ${rubric}
 ${studentName ? `【学生姓名】：${studentName}` : ''}
 
 【评分规则】
-1. 逐一检查 answerPoints 中的每个得分点，并在 breakdown 中回复对应的编号 ID。
+1. 逐一检查评分细则中的每个得分项（points/steps/dimensions），并在 breakdown 中回复对应编号 ID。
 2. 根据 keywords 关键词匹配学生答案（允许同义表述）。
 3. **填空题严格模式**（重要）：
    - 如果评分细则中指明是“填空题”（题目标题或阅卷提示中包含“填空”字样），且 **strictMode 为 true**：
@@ -100,7 +111,7 @@ ${studentName ? `【学生姓名】：${studentName}` : ''}
    - pick_n: 最多计算 maxPoints 个得分点
    - all: 全部答对才得满分
    - weighted: 按各点分值计分
-5. 参考 gradingNotes 中的阅卷提示进行评分。
+5. 参考 constraints 中的阅卷提示进行评分。
 
 【输出格式】
 返回 JSON，breakdown 必须包含每个得分点的评分信息：
@@ -243,6 +254,53 @@ export async function generateRubricWithZhipu(
         console.error('Zhipu rubric generation error:', error);
         throw error;
     }
+}
+
+/**
+ * 使用智谱进行评分判定（仅输出判定 JSON）
+ */
+export async function judgeWithZhipu(
+    request: JudgeRequest
+): Promise<{ judge: JudgeResult; model?: string }> {
+    if (!ZHIPU_API_KEY) {
+        throw new Error('智谱 API Key 未配置');
+    }
+
+    const prompt = buildJudgePrompt(request.rubric);
+    const imageBase64 = request.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+    const payload = {
+        model: 'glm-4v-flash',
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    { type: 'text', text: prompt },
+                    { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+                ]
+            }
+        ],
+        temperature: 0.2,
+        max_tokens: 4096
+    };
+
+    const response = await fetch(ZHIPU_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${generateZhipuToken()}`
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        throw new Error(`智谱 API 调用失败: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    const judge = parseJudgeResult(content);
+    return { judge, model: payload.model };
 }
 
 /**

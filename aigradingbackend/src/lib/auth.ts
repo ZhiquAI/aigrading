@@ -1,39 +1,28 @@
 /**
- * JWT 认证工具函数 - 增强版
- * 
+ * JWT 认证工具函数
+ *
  * 功能:
  * - Access Token (短期, 15分钟)
  * - Refresh Token (长期, 7天)
- * - Token 黑名单 (登出失效)
+ * - Token Rotation 由数据库负责撤销
  */
 
 import jwt from 'jsonwebtoken';
+import { requireAuthEnv } from '@/lib/env';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET + '-refresh';
+const { JWT_SECRET, JWT_REFRESH_SECRET } = requireAuthEnv();
 
-// Token 过期时间
-const ACCESS_TOKEN_EXPIRY = 15 * 60;           // 15 分钟
-const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 天
+// Token 过期时间（秒）
+export const ACCESS_TOKEN_EXPIRY = 15 * 60;           // 15 分钟
+export const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 天
 
 // JWT 负载类型
 export interface JwtPayload {
     userId: string;
     email: string;
+    role: 'ADMIN' | 'TEACHER' | 'GUEST';
     type?: 'access' | 'refresh';
 }
-
-// Token 黑名单 (内存存储，生产环境可用 Redis)
-const tokenBlacklist = new Set<string>();
-
-// 定期清理黑名单中过期的 token (每小时)
-setInterval(() => {
-    // 黑名单中的 token 最多保留 7 天
-    // 实际实现需要存储过期时间，这里简化处理
-    if (tokenBlacklist.size > 10000) {
-        tokenBlacklist.clear();
-    }
-}, 60 * 60 * 1000);
 
 /**
  * 生成 Access Token (短期)
@@ -73,26 +62,15 @@ export function signTokenPair(payload: Omit<JwtPayload, 'type'>): {
 }
 
 /**
- * 兼容旧版：生成单一 Token (7天有效期)
- * @deprecated 使用 signTokenPair 替代
- */
-export function signToken(payload: Omit<JwtPayload, 'type'>): string {
-    return jwt.sign(payload, JWT_SECRET, {
-        expiresIn: REFRESH_TOKEN_EXPIRY,
-    });
-}
-
-/**
  * 验证 Access Token
  * @returns 解码后的负载，如果无效则返回 null
  */
 export function verifyAccessToken(token: string): JwtPayload | null {
     try {
-        // 检查黑名单
-        if (tokenBlacklist.has(token)) {
+        const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+        if (decoded.type !== 'access') {
             return null;
         }
-        const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
         return decoded;
     } catch {
         return null;
@@ -104,10 +82,6 @@ export function verifyAccessToken(token: string): JwtPayload | null {
  */
 export function verifyRefreshToken(token: string): JwtPayload | null {
     try {
-        // 检查黑名单
-        if (tokenBlacklist.has(token)) {
-            return null;
-        }
         const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as JwtPayload;
         if (decoded.type !== 'refresh') {
             return null;
@@ -116,35 +90,6 @@ export function verifyRefreshToken(token: string): JwtPayload | null {
     } catch {
         return null;
     }
-}
-
-/**
- * 兼容旧版：验证 Token
- */
-export function verifyToken(token: string): JwtPayload | null {
-    try {
-        if (tokenBlacklist.has(token)) {
-            return null;
-        }
-        const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-        return decoded;
-    } catch {
-        return null;
-    }
-}
-
-/**
- * 将 Token 加入黑名单 (登出时使用)
- */
-export function blacklistToken(token: string): void {
-    tokenBlacklist.add(token);
-}
-
-/**
- * 检查 Token 是否在黑名单中
- */
-export function isTokenBlacklisted(token: string): boolean {
-    return tokenBlacklist.has(token);
 }
 
 /**

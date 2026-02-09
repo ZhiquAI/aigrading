@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth-guard';
 
 /**
  * GET /api/admin/quota/by-code
@@ -7,10 +8,9 @@ import { prisma } from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
     try {
-        // 验证管理员token
-        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-        if (!token) {
-            return NextResponse.json({ success: false, message: '未授权' }, { status: 401 });
+        const auth = requireAdmin(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const { searchParams } = new URL(request.url);

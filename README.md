@@ -1,121 +1,109 @@
 # AI 智能批改助手
 
-一个基于 AI 的智能批改系统，帮助教师高效批改历史主观题。
+一款基于 AI 的智能阅卷工具，帮助教师高效批改历史主观题。
+
+## ✨ 核心特性
+
+- 🤖 **AI 智能评分**：支持 Gemini、OpenAI 兼容 API、智谱 AI 多模型
+- 📋 **结构化评分细则**：可视化编辑器 + JSON 格式 + AI 自动生成
+- 🔄 **跨设备同步**：激活码体系 + 云端数据同步
+- 📊 **数据分析**：批改记录统计 + 学情分析
+- 🎯 **多平台适配**：智学网、好分数等主流阅卷平台
 
 ## 📁 项目结构
 
 ```
 ai-grading/
-├── ai-grading-frontend/    # Chrome扩展程序
-│   ├── components/         # React组件
-│   ├── services/           # API服务
-│   ├── public/            # 静态资源
-│   └── ...
-└── ai-grading-backend/     # Next.js后端管理系统
-    ├── src/               # 源代码
-    ├── prisma/            # 数据库schema
-    └── ...
+├── aigradingfrontend/      # Chrome 扩展程序
+│   ├── components/         # React 组件
+│   ├── services/           # 服务层（AI、同步、存储）
+│   ├── stores/             # Zustand 状态管理
+│   └── types.ts            # 类型定义
+├── aigradingbackend/       # Next.js 后端 API
+│   ├── src/app/api/        # API 路由
+│   ├── src/lib/            # 核心逻辑
+│   └── prisma/             # 数据库 Schema
+└── docs/                   # 项目文档
 ```
 
 ## 🚀 快速开始
 
-### 前端（Chrome扩展）
+### 环境要求
+
+- Node.js >= 18
+- npm >= 9
+- PostgreSQL（生产环境）
+
+### 后端启动
 
 ```bash
-cd ai-grading-frontend
-
-# 安装依赖
+cd aigradingbackend
 npm install
+cp .env.example .env       # 配置数据库和 API Keys
+npx prisma db push         # 同步数据库 Schema
+npm run dev                # 启动开发服务器 (localhost:3000)
+```
 
-# 开发构建
-npm run dev
+### 前端启动
 
-# 生产构建
-npm run build
+```bash
+cd aigradingfrontend
+npm install
+npm run dev                # 开发模式
+npm run build              # 构建扩展
 ```
 
 加载扩展：
-1. 打开 Chrome 浏览器
-2. 访问 `chrome://extensions/`
-3. 开启"开发者模式"
-4. 点击"加载已解压的扩展程序"
-5. 选择 `ai-grading-frontend/dist` 目录
-
-### 后端（管理系统）
-
-```bash
-cd ai-grading-backend
-
-# 安装依赖
-npm install
-
-# 配置数据库（首次运行）
-npx prisma db push
-
-# 启动开发服务器
-npm run dev
-```
-
-访问管理后台：http://localhost:3000/admin
-
-## 🎯 功能特点
-
-### Chrome扩展
-- ✅ 智能识别答题卡
-- ✅ AI批改主观题
-- ✅ 多种评分策略（快速/精准/深度推理）
-- ✅ 激活码系统
-- ✅ 额度管理
-- ✅ 批改记录
-
-### 管理后台
-- ✅ 数据统计看板
-- ✅ 激活码管理
-- ✅ 设备管理
-- ✅ 使用日志
-- ✅ JWT认证
-
-## 📚 技术栈
-
-**前端**:
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- Zustand (状态管理)
-
-**后端**:
-- Next.js 14
-- Prisma ORM
-- PostgreSQL
-- JWT认证
-
-**AI服务**:
-- Google Gemini
-- OpenAI兼容API
-- 智谱AI
+1. 打开 Chrome → `chrome://extensions/`
+2. 开启「开发者模式」
+3. 点击「加载已解压的扩展程序」→ 选择 `dist/` 目录
 
 ## 📖 文档
 
-详细文档请查看各子项目的README：
-- [前端文档](./ai-grading-frontend/README.md)
-- [后端文档](./ai-grading-backend/README.md)
+| 文档 | 说明 |
+|------|------|
+| [架构与 UI 设计](./docs/PROJECT_ARCHITECTURE_AND_UI.md) | 技术架构、数据模型、UI 设计理念 |
+| [部署指南](./docs/DEPLOYMENT.md) | 生产环境部署步骤 |
+| [VPS 部署](./docs/VPS_DEPLOYMENT_GUIDE.md) | 服务器部署详细指南 |
 
-## 🔧 开发
+## 🔧 开发指南
 
-### 环境要求
-- Node.js >= 18
-- npm >= 9
-- PostgreSQL (后端)
+### 技术栈
 
-### 配置文件
-- 前端：无需配置文件，使用本地存储
-- 后端：复制 `.env.example` 为 `.env` 并配置数据库连接
+**前端**：React 18 + TypeScript + Vite 5 + Tailwind CSS 4 + Zustand
+
+**后端**：Next.js 14 (App Router) + Prisma ORM + PostgreSQL
+
+**AI**：Gemini 2.0 Flash (主) / OpenRouter / 智谱 GLM-4V (备用)
+
+### 常用命令
+
+```bash
+# 后端
+npm run dev              # 开发服务器
+npx prisma studio        # 数据库可视化管理
+npx prisma db push       # 同步 Schema
+
+# 前端
+npm run dev              # 开发服务器
+npm run build            # 构建生产版本
+npm run lint             # 代码检查
+```
+
+### 测试激活码
+
+运行 `npx tsx prisma/seed.ts` 后可用：
+
+| 激活码 | 类型 | 配额 |
+|--------|------|------|
+| `TEST-1111-2222-3333` | 试用 | 300 次 |
+| `BASIC-AAAA-BBBB-CCCC` | 基础 | 1000 次 |
+| `PRO-XXXX-YYYY-ZZZZ` | 专业 | 3000 次 |
 
 ## 📄 许可证
 
 MIT
 
-## 🙏 致谢
+---
 
-感谢所有为这个项目做出贡献的人！
+> 🔗 更多技术细节请查阅 [架构文档](./docs/PROJECT_ARCHITECTURE_AND_UI.md)

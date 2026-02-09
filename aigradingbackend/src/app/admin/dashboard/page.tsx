@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { BarChart3, BatteryCharging, ClipboardList, KeyRound } from 'lucide-react';
+import AdminCard from '../_components/AdminCard';
+import AdminPageHeader from '../_components/AdminPageHeader';
 
 export default function DashboardPage() {
     const [stats, setStats] = useState<any>(null);
@@ -43,43 +46,43 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">数据概览</h1>
-                    <p className="text-gray-500 text-sm mt-1">欢迎回来，这是您的系统实时运行快照</p>
-                </div>
-                <div className="text-xs text-gray-400">
-                    最后更新: {new Date().toLocaleTimeString()}
-                </div>
-            </div>
+            <AdminPageHeader
+                title="数据概览"
+                subtitle="欢迎回来，这是您的系统实时运行快照"
+                actions={(
+                    <div className="text-xs text-gray-400 tabular-nums">
+                        最后更新: {new Date().toLocaleTimeString()}
+                    </div>
+                )}
+            />
 
             {/* 核心指标 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title="今日批改"
                     value={stats?.todayUsage || 0}
-                    icon="✍️"
+                    icon={<ClipboardList className="w-5 h-5" aria-hidden />}
                     color="text-blue-600"
                     bgColor="bg-blue-50"
                 />
                 <StatCard
                     title="总激活码"
                     value={stats?.totalCodes || 0}
-                    icon="🔑"
+                    icon={<KeyRound className="w-5 h-5" aria-hidden />}
                     color="text-purple-600"
                     bgColor="bg-purple-50"
                 />
                 <StatCard
                     title="活跃配额"
                     value={Math.round(stats?.totalQuotaRemaining || 0)}
-                    icon="🔋"
+                    icon={<BatteryCharging className="w-5 h-5" aria-hidden />}
                     color="text-green-600"
                     bgColor="bg-green-50"
                 />
                 <StatCard
                     title="总阅卷量"
                     value={stats?.totalUsage || 0}
-                    icon="📊"
+                    icon={<BarChart3 className="w-5 h-5" aria-hidden />}
                     color="text-orange-600"
                     bgColor="bg-orange-50"
                 />
@@ -93,7 +96,7 @@ export default function DashboardPage() {
                         <Link href="/admin/records" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">查看全部</Link>
                     </div>
                     {/* 活跃激活码排行 */}
-                    <div className="bg-white border border-gray-200 rounded-[32px] overflow-hidden shadow-sm">
+                    <AdminCard className="rounded-[32px] overflow-hidden">
                         <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900">活跃激活码排行</h2>
@@ -123,15 +126,15 @@ export default function DashboardPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-4 text-right text-gray-600">
-                                                <span className="font-medium text-gray-900">{code.used}</span>
+                                                <span className="font-medium text-gray-900 tabular-nums">{code.used}</span>
                                                 <span className="text-gray-400 mx-1">/</span>
-                                                <span>{code.quota}</span>
+                                                <span className="tabular-nums">{code.quota}</span>
                                             </td>
                                             <td className="px-8 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-3">
                                                     <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-indigo-500 transition-all"
+                                                            className="h-full bg-indigo-500 transition-[width]"
                                                             style={{ width: `${Math.min(100, Math.round((code.used / code.quota) * 100))}%` }}
                                                         />
                                                     </div>
@@ -152,9 +155,9 @@ export default function DashboardPage() {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </AdminCard>
 
-                    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                    <AdminCard className="overflow-hidden">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-gray-50 text-gray-400 font-medium">
                                 <tr>
@@ -168,9 +171,9 @@ export default function DashboardPage() {
                                 {stats?.latestRecords?.map((record: any) => (
                                     <tr key={record.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-gray-900">{record.studentName}</td>
-                                        <td className="px-6 py-4 text-indigo-600 font-bold">{record.score} / {record.maxScore}</td>
+                                        <td className="px-6 py-4 text-indigo-600 font-bold tabular-nums">{record.score} / {record.maxScore}</td>
                                         <td className="px-6 py-4"><span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{record.activationCode}</span></td>
-                                        <td className="px-6 py-4 text-gray-400">{new Date(record.createdAt).toLocaleTimeString()}</td>
+                                        <td className="px-6 py-4 text-gray-400 tabular-nums">{new Date(record.createdAt).toLocaleTimeString()}</td>
                                     </tr>
                                 ))}
                                 {(!stats?.latestRecords || stats.latestRecords.length === 0) && (
@@ -180,38 +183,38 @@ export default function DashboardPage() {
                                 )}
                             </tbody>
                         </table>
-                    </div>
+                    </AdminCard>
                 </div>
 
                 {/* API 状态 */}
                 <div className="space-y-6">
                     <div className="space-y-4">
                         <h2 className="text-lg font-bold text-gray-900">配额消耗统计</h2>
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-4">
+                        <AdminCard className="p-6 space-y-4">
                             {stats?.quotaStatsByType?.map((item: any) => (
                                 <div key={item.type} className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600 font-medium capitalize">{item.type} ({item.count}个)</span>
-                                        <span className="text-gray-400">{item.usageRate}% 已用</span>
+                                        <span className="text-gray-400 tabular-nums">{item.usageRate}% 已用</span>
                                     </div>
                                     <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-indigo-600 h-full transition-all duration-1000"
+                                            className="bg-indigo-600 h-full transition-[width] duration-1000"
                                             style={{ width: `${item.usageRate}%` }}
                                         />
                                     </div>
-                                    <div className="flex justify-between text-[10px] text-gray-400">
+                                    <div className="flex justify-between text-[10px] text-gray-400 tabular-nums">
                                         <span>剩余: {item.remainingQuota}</span>
                                         <span>总额: {item.totalQuota}</span>
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </AdminCard>
                     </div>
 
                     <div className="space-y-4">
                         <h2 className="text-lg font-bold text-gray-900">服务状态</h2>
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-6">
+                        <AdminCard className="p-6 space-y-6">
                             <StatusItem label="Gemini API" status="online" delay="2.4s" />
                             <StatusItem label="智谱 GLM-4" status="online" delay="1.8s" />
                             <StatusItem label="SQLite DB" status="online" delay="2ms" />
@@ -221,7 +224,7 @@ export default function DashboardPage() {
                                     进阶 API 管理 →
                                 </Link>
                             </div>
-                        </div>
+                        </AdminCard>
                     </div>
                 </div>
             </div>
@@ -229,19 +232,31 @@ export default function DashboardPage() {
     );
 }
 
-function StatCard({ title, value, icon, color, bgColor }: any) {
+function StatCard({
+    title,
+    value,
+    icon,
+    color,
+    bgColor,
+}: {
+    title: string;
+    value: number;
+    icon: ReactNode;
+    color: string;
+    bgColor: string;
+}) {
     return (
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <AdminCard className="p-6 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-gray-500 text-sm font-medium">{title}</p>
-                    <h3 className="text-3xl font-bold text-gray-900 mt-2">{value}</h3>
+                    <h3 className="text-3xl font-bold text-gray-900 mt-2 tabular-nums">{value}</h3>
                 </div>
                 <div className={`${bgColor} ${color} w-12 h-12 rounded-xl flex items-center justify-center text-xl`}>
                     {icon}
                 </div>
             </div>
-        </div>
+        </AdminCard>
     );
 }
 
@@ -252,7 +267,7 @@ function StatusItem({ label, status, delay }: any) {
                 <div className={`w-2.5 h-2.5 rounded-full ${status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
                 <span className="text-sm font-medium text-gray-700">{label}</span>
             </div>
-            <span className="text-xs text-gray-400 font-mono">{delay}</span>
+            <span className="text-xs text-gray-400 font-mono tabular-nums">{delay}</span>
         </div>
     );
 }

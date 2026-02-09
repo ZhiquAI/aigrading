@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import AdminCard from '../../_components/AdminCard';
 
 interface ActivationCode {
     id: string;
@@ -24,6 +25,7 @@ interface CodeListProps {
 export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [batchLoading, setBatchLoading] = useState(false);
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev =>
@@ -68,9 +70,14 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
         }
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        // 可以添加一个即时 Toast 提示，这里先简化
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedCode(text);
+            setTimeout(() => setCopiedCode(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
     };
 
     const getTypeColor = (type: string) => {
@@ -108,7 +115,7 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <AdminCard className="overflow-hidden">
             {/* 批量操作工具栏 */}
             {selectedIds.length > 0 && (
                 <div className="bg-indigo-50 px-6 py-3 border-b border-indigo-100 flex items-center justify-between animate-in slide-in-from-top duration-300">
@@ -160,6 +167,7 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
                                     checked={selectedIds.length > 0 && selectedIds.length === codes.length}
                                     onChange={toggleSelectAll}
                                     className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    aria-label="选择全部激活码"
                                 />
                             </th>
                             <th className="px-6 py-4">激活码</th>
@@ -179,6 +187,7 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
                                         checked={selectedIds.includes(code.id)}
                                         onChange={() => toggleSelect(code.id)}
                                         className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        aria-label={`选择激活码 ${code.code}`}
                                     />
                                 </td>
                                 <td className="px-6 py-4">
@@ -197,7 +206,7 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
                                                 style={{ width: `${(code.remaining / code.quota) * 100}%` }}
                                             />
                                         </div>
-                                        <span className="text-gray-600">
+                                        <span className="text-gray-600 tabular-nums">
                                             {code.remaining}/{code.quota}
                                         </span>
                                     </div>
@@ -207,15 +216,18 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
                                         {code.remaining <= 0 ? '已耗尽' : (code.status === 'active' ? '正常' : '已禁用')}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-gray-500">
+                                <td className="px-6 py-4 text-gray-500 tabular-nums">
                                     {new Date(code.createdAt).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <button
                                         onClick={() => copyToClipboard(code.code)}
-                                        className="text-indigo-600 hover:text-indigo-700 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                                        className={`font-medium text-xs px-3 py-1.5 rounded-lg transition-all ${copiedCode === code.code
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700'
+                                            }`}
                                     >
-                                        复制
+                                        {copiedCode === code.code ? '已复制' : '复制'}
                                     </button>
                                 </td>
                             </tr>
@@ -223,6 +235,6 @@ export default function CodeList({ codes, loading, onRefresh }: CodeListProps) {
                     </tbody>
                 </table>
             </div>
-        </div>
+        </AdminCard>
     );
 }

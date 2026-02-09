@@ -1,28 +1,47 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Download, Search, Sparkles } from 'lucide-react';
+import AdminPageHeader from '../_components/AdminPageHeader';
+import AdminFilterBar from '../_components/AdminFilterBar';
+import { adminTokens } from '../_styles/tokens';
 import CodeList from './components/CodeList';
 import CreateCodeModal from './components/CreateCodeModal';
-import { ChevronUp, ChevronDown, Search, Filter, BarChart3, List } from 'lucide-react';
 
-type ViewMode = 'list' | 'stats';
+const FILTER_OPTIONS = ['all', 'unused', 'used'];
 
-export default function CodesPage() {
+function CodesPageContent() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
     const [codes, setCodes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [filter, setFilter] = useState('all'); // all, unused, used
-    const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState<ViewMode>('list');
+    const [filter, setFilter] = useState(() => {
+        const value = searchParams.get('filter') ?? 'all';
+        return FILTER_OPTIONS.includes(value) ? value : 'all';
+    }); // all, unused, used
+    const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') ?? '');
 
-    // 统计视图状态
-    const [statsData, setStatsData] = useState<any>(null);
-    const [statsLoading, setStatsLoading] = useState(false);
-    const [page, setPage] = useState(1);
-    const [sortBy, setSortBy] = useState('used');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [filterType, setFilterType] = useState('all');
-    const [searchCode, setSearchCode] = useState('');
+    useEffect(() => {
+        const nextFilter = searchParams.get('filter') ?? 'all';
+        const nextQuery = searchParams.get('q') ?? '';
+        if (nextFilter !== filter) setFilter(nextFilter);
+        if (nextQuery !== searchTerm) setSearchTerm(nextQuery);
+    }, [searchParams, filter, searchTerm]);
+
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (filter !== 'all') params.set('filter', filter);
+        if (searchTerm) params.set('q', searchTerm);
+        const next = params.toString();
+        const current = searchParams.toString();
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [filter, searchTerm, searchParams, router, pathname]);
 
     const fetchCodes = useCallback(async () => {
         setLoading(true);
@@ -45,62 +64,6 @@ export default function CodesPage() {
             setLoading(false);
         }
     }, [filter, searchTerm]);
-
-    // 加载统计数据
-    const fetchStatsData = useCallback(async () => {
-        setStatsLoading(true);
-        try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: '50',
-                sortBy,
-                sortOrder,
-                ...(filterType !== 'all' && { filterType }),
-                ...(searchCode && { search: searchCode })
-            });
-
-            const res = await fetch(`/api/admin/quota/by-code?${params}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                }
-            });
-            const result = await res.json();
-            if (result.success) {
-                setStatsData(result.data);
-            }
-        } catch (error) {
-            console.error('Fetch stats data error:', error);
-        } finally {
-            setStatsLoading(false);
-        }
-    }, [page, sortBy, sortOrder, filterType, searchCode]);
-
-    useEffect(() => {
-        if (viewMode === 'stats') {
-            fetchStatsData();
-        }
-    }, [viewMode, fetchStatsData]);
-
-    const handleSort = (column: string) => {
-        if (sortBy === column) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(column);
-            setSortOrder('desc');
-        }
-        setPage(1);
-    };
-
-    const getTypeColor = (type: string) => {
-        const colors: Record<string, string> = {
-            trial: 'bg-purple-100 text-purple-700',
-            basic: 'bg-blue-100 text-blue-700',
-            standard: 'bg-green-100 text-green-700',
-            pro: 'bg-orange-100 text-orange-700',
-            permanent: 'bg-red-100 text-red-700',
-        };
-        return colors[type] || 'bg-gray-100 text-gray-700';
-    };
 
     const handleExportCodes = async () => {
         const params = new URLSearchParams({ filter });
@@ -140,61 +103,68 @@ export default function CodesPage() {
     }, [fetchCodes]);
 
     return (
-        <div className="max-w-6xl mx-auto">
-            {/* 顶栏 */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">激活码管理</h1>
-                    <p className="text-gray-500 text-sm mt-1">管理系统的所有激活码、充值卡及机构授权</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={handleExportCodes}
-                        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-sm"
-                    >
-                        <span>📥</span>
-                        <span>导出 CSV</span>
-                    </button>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
-                    >
-                        <span>✨</span>
-                        <span className="font-medium">生成激活码</span>
-                    </button>
-                </div>
-            </div>
+        <div className={adminTokens.page}>
+            <AdminPageHeader
+                title="激活码管理"
+                subtitle="管理系统的所有激活码、充值卡及机构授权"
+                actions={(
+                    <>
+                        <button
+                            onClick={handleExportCodes}
+                            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-sm"
+                            type="button"
+                        >
+                            <Download className="w-4 h-4" aria-hidden />
+                            <span>导出 CSV</span>
+                        </button>
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                            type="button"
+                        >
+                            <Sparkles className="w-4 h-4" aria-hidden />
+                            <span className="font-medium">生成激活码</span>
+                        </button>
+                    </>
+                )}
+            />
 
-            {/* 筛选栏 */}
-            <div className="flex flex-wrap gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <AdminFilterBar>
                 <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 flex-1 min-w-[200px]">
-                    <span className="text-gray-400">🔍</span>
+                    <label htmlFor="code-search" className="sr-only">搜索激活码</label>
+                    <Search className="w-4 h-4 text-gray-400" aria-hidden />
                     <input
+                        id="code-search"
+                        name="search"
                         type="text"
-                        placeholder="搜索激活码..."
+                        placeholder="搜索激活码…"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-transparent border-none focus:ring-0 text-sm w-full p-0 text-gray-900 placeholder-gray-400"
+                        autoComplete="off"
+                        aria-label="搜索激活码"
                     />
                 </div>
 
                 <div className="flex gap-2">
-                    {['all', 'unused', 'used'].map((f) => (
+                    {FILTER_OPTIONS.map((option) => (
                         <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f
+                            key={option}
+                            onClick={() => setFilter(option)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === option
                                 ? 'bg-gray-900 text-white'
                                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                                 }`}
+                            type="button"
+                            aria-pressed={filter === option}
                         >
-                            {f === 'all' && '全部'}
-                            {f === 'unused' && '未使用'}
-                            {f === 'used' && '已使用'}
+                            {option === 'all' && '全部'}
+                            {option === 'unused' && '未使用'}
+                            {option === 'used' && '已使用'}
                         </button>
                     ))}
                 </div>
-            </div>
+            </AdminFilterBar>
 
             {/* 列表 */}
             <CodeList codes={codes} loading={loading} onRefresh={fetchCodes} />
@@ -209,5 +179,13 @@ export default function CodesPage() {
                 }}
             />
         </div>
+    );
+}
+
+export default function CodesPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">加载中...</div>}>
+            <CodesPageContent />
+        </Suspense>
     );
 }

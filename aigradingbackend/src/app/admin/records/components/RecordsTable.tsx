@@ -1,5 +1,7 @@
 'use client';
 
+import AdminCard from '../../_components/AdminCard';
+
 interface GradingRecord {
     id: string;
     activationCode: string;
@@ -39,7 +41,7 @@ export default function RecordsTable({ records, loading, onViewDetail }: Records
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <AdminCard className="overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-gray-50 text-gray-500 font-medium">
@@ -55,7 +57,7 @@ export default function RecordsTable({ records, loading, onViewDetail }: Records
                     <tbody className="divide-y divide-gray-100">
                         {records.map((record) => (
                             <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 text-gray-500">
+                                <td className="px-6 py-4 text-gray-500 tabular-nums">
                                     {new Date(record.createdAt).toLocaleString()}
                                 </td>
                                 <td className="px-6 py-4">
@@ -69,7 +71,7 @@ export default function RecordsTable({ records, loading, onViewDetail }: Records
                                 <td className="px-6 py-4">
                                     Q{record.questionNo || '?'}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 tabular-nums">
                                     <span className={`font-bold ${record.score === record.maxScore ? 'text-green-600' :
                                         record.score === 0 ? 'text-red-500' : 'text-blue-600'
                                         }`}>
@@ -90,6 +92,6 @@ export default function RecordsTable({ records, loading, onViewDetail }: Records
                     </tbody>
                 </table>
             </div>
-        </div>
+        </AdminCard>
     );
 }

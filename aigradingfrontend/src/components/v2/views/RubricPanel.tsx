@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
     AlertTriangle,
     Camera,
@@ -7,7 +7,9 @@ import {
     FileCheck2,
     Image as ImageIcon,
     Info,
+    Library,
     Sparkles,
+    Upload,
     X,
     Zap
 } from 'lucide-react';
@@ -29,7 +31,7 @@ import {
 import { validateRubricForTemplate } from './rubric-validator';
 import { setRubricTemplateLifecycleStatus } from './rubric-template-status';
 
-type ViewState = 'list' | 'input' | 'generating' | 'result';
+type ViewState = 'welcome' | 'list' | 'input' | 'generating' | 'result';
 
 const GENERATING_MESSAGES = [
     '正在识别题干结构...',
@@ -57,9 +59,11 @@ export default function RubricPanel() {
     const defaultSubject = SUBJECT_OPTIONS[0]?.value || '历史';
     const defaultQuestionType = getQuestionTypeOptions(defaultSubject)[0]?.value || '材料题';
 
-    const [viewState, setViewState] = useState<ViewState>('list');
+    const [viewState, setViewState] = useState<ViewState>('welcome');
+    const [inputBackTarget, setInputBackTarget] = useState<'welcome' | 'list'>('welcome');
     const [generatedRubric, setGeneratedRubric] = useState<RubricJSONV3 | null>(null);
     const [selectedQuestionKey, setSelectedQuestionKey] = useState<string | null>(null);
+    const importInputRef = useRef<HTMLInputElement>(null);
 
     const [showNewExamInput, setShowNewExamInput] = useState(false);
     const [newExamName, setNewExamName] = useState('');
@@ -148,12 +152,60 @@ export default function RubricPanel() {
         return `manual:${safeExam}:${safeSubject}:${safeQuestionNo}`;
     }, [activeExamId, questionNo, subject]);
 
-    const handleCreateNew = useCallback(() => {
+    const openInput = useCallback((backTarget: 'welcome' | 'list') => {
         setSelectedQuestionKey(null);
         setGeneratedRubric(null);
+        setInputBackTarget(backTarget);
         setViewState('input');
         resetInputState();
     }, [resetInputState]);
+
+    const handleCreateNew = useCallback(() => {
+        openInput('list');
+    }, [openInput]);
+
+    const handleCreateFromGuide = useCallback(() => {
+        openInput('welcome');
+    }, [openInput]);
+
+    const handleOpenTemplateList = useCallback(() => {
+        setViewState('list');
+    }, []);
+
+    const handleImportRubricFromGuide = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const raw = JSON.parse((e.target?.result as string) || '{}');
+                const normalized = coerceRubricToV3(raw).rubric;
+                setGeneratedRubric(normalized);
+                setSelectedQuestionKey(null);
+                setQuestionNo(normalized.metadata.questionId || '');
+                setSubject(normalized.metadata.subject || defaultSubject);
+                setGrade(normalized.metadata.grade || GRADE_OPTIONS[2]);
+                const nextType = normalized.metadata.questionType
+                    || getQuestionTypeOptions(normalized.metadata.subject || defaultSubject)[0]?.value
+                    || defaultQuestionType;
+                setQuestionType(nextType);
+                setStrategyType(
+                    normalized.strategyType
+                    || inferStrategyTypeByQuestionType(normalized.metadata.subject || defaultSubject, nextType)
+                );
+                setActiveExamId(normalized.metadata.examId || null);
+                setInputBackTarget('welcome');
+                setViewState('result');
+                toast.success('已导入评分细则，可继续编辑后保存');
+            } catch (error) {
+                console.error('[RubricPanel] Import rubric error:', error);
+                toast.error('导入失败：仅支持 Rubric v3 JSON');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }, [defaultQuestionType, defaultSubject, setActiveExamId]);
 
     const handleUseTemplate = useCallback((template: RubricTemplateSeed) => {
         setSelectedQuestionKey(null);
@@ -170,6 +222,7 @@ export default function RubricPanel() {
         if (template.examId) {
             setActiveExamId(template.examId);
         }
+        setInputBackTarget('list');
         setViewState('input');
         toast.success(`已应用模板：${template.subject} · ${template.questionType}`);
     }, [setActiveExamId]);
@@ -201,8 +254,8 @@ export default function RubricPanel() {
     }, [defaultQuestionType, defaultSubject, rubricData, setActiveExamId]);
 
     const handleBackToList = useCallback(() => {
-        setViewState('list');
-    }, []);
+        setViewState(inputBackTarget);
+    }, [inputBackTarget]);
 
     const handleCreateExam = useCallback(async () => {
         if (!newExamName.trim()) return;
@@ -376,7 +429,10 @@ export default function RubricPanel() {
         try {
             const { normalizedRubric: savedRubric, resolvedKey } = await persistRubric(rubric, { lifecycleStatus: 'draft' });
             setRubricTemplateLifecycleStatus(resolvedKey, 'draft');
-            await createRubricTemplate(savedRubric, 'user');
+            await createRubricTemplate(savedRubric, 'user', {
+                questionKey: resolvedKey,
+                lifecycleStatus: 'published'
+            });
             await persistRubric(savedRubric, { lifecycleStatus: 'published' });
             setRubricTemplateLifecycleStatus(resolvedKey, 'published');
             toast.success('模板已保存到模板库');
@@ -398,6 +454,78 @@ export default function RubricPanel() {
     const hasQuestionNo = questionNo.trim().length > 0;
     const hasPrimaryInput = Boolean(answerImage);
     const hasExam = Boolean(activeExamId);
+
+    if (viewState === 'welcome') {
+        return (
+            <div className="flex h-full flex-col bg-[#F5F4F1]">
+                <header className="flex h-14 items-center border-b border-[#F0EFED] bg-white px-4">
+                    <div className="min-w-0">
+                        <h1 className="text-[15px] font-black tracking-tight text-[#1A1918]">评分细则工作台</h1>
+                        <p className="text-[10px] font-bold text-[#9C9B99]">先创建或导入细则，再发布为模板</p>
+                    </div>
+                </header>
+
+                <div className="flex-1 space-y-4 overflow-y-auto p-4 pb-20">
+                    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-4 shadow-sm">
+                        <h2 className="text-[13px] font-black text-[#1A1918]">开始你的评分细则流程</h2>
+                        <p className="mt-1 text-[11px] font-semibold text-[#78716C]">
+                            推荐流程：生成评分细则 → 人工微调 → 保存为模板
+                        </p>
+                    </section>
+
+                    <button
+                        type="button"
+                        onClick={handleCreateFromGuide}
+                        className="group flex w-full items-start gap-3 rounded-2xl border border-[#D6E4FF] bg-gradient-to-br from-[#EEF4FF] to-[#F8FAFF] p-4 text-left shadow-[0_6px_18px_rgba(59,130,246,0.12)]"
+                    >
+                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500 text-white">
+                            <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="text-[14px] font-black text-[#1E3A8A]">创建评分细则</h3>
+                            <p className="mt-1 text-[11px] font-semibold text-[#475569]">上传题目与答案图片，AI 自动生成可编辑细则</p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => importInputRef.current?.click()}
+                        className="group flex w-full items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 text-left shadow-sm"
+                    >
+                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F3F4F6] text-[#4B5563]">
+                            <Upload className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="text-[14px] font-black text-[#1F2937]">导入已有细则</h3>
+                            <p className="mt-1 text-[11px] font-semibold text-[#6B7280]">导入 Rubric v3 JSON，直接进入编辑与保存</p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleOpenTemplateList}
+                        className="group flex w-full items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 text-left shadow-sm"
+                    >
+                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
+                            <Library className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="text-[14px] font-black text-[#312E81]">进入模板库</h3>
+                            <p className="mt-1 text-[11px] font-semibold text-[#6B7280]">查看系统模板与已保存模板，按学科快速复用</p>
+                        </div>
+                    </button>
+
+                    <input
+                        ref={importInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={handleImportRubricFromGuide}
+                        className="hidden"
+                    />
+                </div>
+            </div>
+        );
+    }
 
     if (viewState === 'list') {
         return (

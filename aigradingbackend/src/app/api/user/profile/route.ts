@@ -4,33 +4,24 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { verifyToken, extractToken } from '@/lib/auth';
-import { apiSuccess, apiUnauthorized, apiNotFound, apiServerError } from '@/lib/api-response';
+import { requireUser } from '@/lib/auth-guard';
+import { apiSuccess, apiNotFound, apiServerError } from '@/lib/api-response';
 
 export async function GET(request: Request) {
     try {
-        // 获取 Token
-        const authHeader = request.headers.get('authorization');
-        const token = extractToken(authHeader);
-
-        if (!token) {
-            return apiUnauthorized();
-        }
-
-        // 验证 Token
-        const payload = verifyToken(token);
-
-        if (!payload) {
-            return apiUnauthorized();
+        const auth = requireUser(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         // 查询用户
         const user = await prisma.user.findUnique({
-            where: { id: payload.userId },
+            where: { id: auth.userId },
             select: {
                 id: true,
                 email: true,
                 name: true,
+                role: true,
                 createdAt: true,
             },
         });

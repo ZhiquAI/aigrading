@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth-guard';
 
 export async function GET(request: NextRequest) {
     try {
-        const authHeader = request.headers.get('authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
-            return NextResponse.json({ success: false, message: '未授权' }, { status: 401 });
+        const auth = requireAdmin(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const { searchParams } = new URL(request.url);

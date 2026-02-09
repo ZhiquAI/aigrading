@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import EasyEdit, { Types } from 'react-easy-edit';
 import { Check, X, Pencil, Plus, Trash2 } from 'lucide-react';
 
-interface AnswerPoint {
+interface RubricPointPreview {
     id: string;
     content: string;
     keywords: string[];
@@ -22,7 +22,7 @@ interface QuickEditDemoProps {
 
 export default function QuickEditDemo({ onClose }: QuickEditDemoProps) {
     // 模拟评分细则数据
-    const [answerPoints, setAnswerPoints] = useState<AnswerPoint[]>([
+    const [previewPoints, setPreviewPoints] = useState<RubricPointPreview[]>([
         {
             id: '1',
             content: '经济动因分析',
@@ -48,7 +48,7 @@ export default function QuickEditDemo({ onClose }: QuickEditDemoProps) {
 
     // 更新得分点内容
     const handleSaveContent = (id: string, value: string) => {
-        setAnswerPoints(prev =>
+        setPreviewPoints(prev =>
             prev.map(p => p.id === id ? { ...p, content: value } : p)
         );
     };
@@ -57,7 +57,7 @@ export default function QuickEditDemo({ onClose }: QuickEditDemoProps) {
     const handleSaveScore = (id: string, value: string) => {
         const numValue = parseFloat(value);
         if (!isNaN(numValue) && numValue >= 0) {
-            setAnswerPoints(prev =>
+            setPreviewPoints(prev =>
                 prev.map(p => p.id === id ? { ...p, maxScore: numValue } : p)
             );
         }
@@ -66,7 +66,7 @@ export default function QuickEditDemo({ onClose }: QuickEditDemoProps) {
     // 添加关键词
     const handleAddKeyword = (id: string, keyword: string) => {
         if (!keyword.trim()) return;
-        setAnswerPoints(prev =>
+        setPreviewPoints(prev =>
             prev.map(p => p.id === id
                 ? { ...p, keywords: [...p.keywords, keyword.trim()] }
                 : p
@@ -76,7 +76,7 @@ export default function QuickEditDemo({ onClose }: QuickEditDemoProps) {
 
     // 删除关键词
     const handleRemoveKeyword = (id: string, keywordIndex: number) => {
-        setAnswerPoints(prev =>
+        setPreviewPoints(prev =>
             prev.map(p => p.id === id
                 ? { ...p, keywords: p.keywords.filter((_, i) => i !== keywordIndex) }
                 : p
@@ -105,7 +105,7 @@ export default function QuickEditDemo({ onClose }: QuickEditDemoProps) {
 
             {/* 得分点列表 */}
             <div className="space-y-3">
-                {answerPoints.map((point) => (
+                {previewPoints.map((point) => (
                     <div
                         key={point.id}
                         className="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-200 transition-colors"

@@ -6,6 +6,13 @@
 import { callOpenAIStream, createOpenAIConfig } from './openaiService';
 import { getAppConfig } from './geminiService';
 import type { StudentResult } from '../types';
+import {
+    logGradingStart,
+    logGradingChunk,
+    logGradingComplete,
+    logGradingError,
+    debugLog
+} from './debug-utils';
 
 /**
  * 流式批改学生答案
@@ -25,8 +32,21 @@ export async function gradeStudentAnswerStream(
         throw new Error('请先在设置中配置 API Key');
     }
 
+    // 🔍 调试：记录批改开始
+    const imageSize = studentImageBase64.length * 0.75; // base64 约为原始大小的 4/3
+    logGradingStart('rubric', imageSize);
+    debugLog('grading', '📋 配置信息', {
+        provider: config.provider,
+        model: config.modelName,
+        endpoint: config.endpoint?.substring(0, 50) + '...'
+    });
+
     // 检测是否为 JSON 格式的评分细则
-    const isJSONRubric = rubricText.trim().startsWith('{') || rubricText.includes('"answerPoints"');
+    const isJSONRubric = rubricText.trim().startsWith('{')
+        || rubricText.includes('"strategyType"')
+        || rubricText.includes('"version":"3.0"')
+        || rubricText.includes('"version": "3.0"');
+    debugLog('rubric', `评分细则格式: ${isJSONRubric ? 'JSON' : 'Markdown'}`);
 
     let userPrompt: string;
     if (isJSONRubric) {
@@ -37,9 +57,9 @@ export async function gradeStudentAnswerStream(
 ${rubricText}
 
 【评分要求】
-1. 逐一检查 answerPoints 中的每个得分点
+1. 逐一检查评分细则中的每个得分项（points/steps/dimensions）
 2. 根据 keywords 关键词匹配学生答案
-3. 填空题必须精确匹配，半开放题意思相符即可，开放题言之有理即可
+3. 填空题必须精确匹配，材料分析题意思相符即可，开放性题目言之有理即可
 
 【输出格式】
 返回 JSON：
@@ -117,10 +137,13 @@ ${rubricText}
                 studentImageBase64
             );
 
+            let chunkIndex = 0;
             for await (const chunk of streamGenerator) {
                 fullText += chunk;
                 onChunk(chunk);  // 实时回调，更新UI
+                logGradingChunk(chunkIndex++, chunk.length);  // 🔍 调试
             }
+            debugLog('grading', `📦 共收到 ${chunkIndex} 个 chunks`);
         }
 
         // 调试信息
@@ -205,12 +228,16 @@ ${rubricText}
             breakdown: result.breakdown || []
         };
 
+        // 🔍 调试：记录批改完成
+        logGradingComplete({ score: studentResult.score, maxScore: studentResult.maxScore });
+
         // 异步消费额度（不阻塞）
         consumeQuotaAsync();
 
         return studentResult;
     } catch (error) {
-        console.error('[gradeStudentAnswerStream] Error:', error);
+        // 🔍 调试：记录批改错误
+        logGradingError(error);
         console.error('[gradeStudentAnswerStream] 完整响应:', fullText);
         throw error;
     }

@@ -8,6 +8,8 @@ import ModernLayout from './src/components/v2/layout/ModernLayout';
 import { MandatoryActivationGate } from './src/components/v2/onboarding/MandatoryActivationGate';
 import { getUsageInfo as fetchUsageFromBackend } from './services/proxyService';
 import { OnboardingGuide, shouldShowOnboarding } from './components/OnboardingGuide';
+// 🔧 调试工具 - 在控制台输入 aiDebug.help() 查看使用方法
+import './services/debug-utils';
 
 // vConsole 全局单例 - 仅在开发环境下初始化一次
 // 放在模块顶层，避免 HMR 时重复创建/销毁导致闪烁

@@ -5,7 +5,8 @@
 
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { signToken } from '@/lib/auth';
+import { signTokenPair } from '@/lib/auth';
+import { storeRefreshToken } from '@/lib/refresh-token';
 import { apiSuccess, apiError, apiServerError } from '@/lib/api-response';
 
 export async function POST(request: Request) {
@@ -34,11 +35,15 @@ export async function POST(request: Request) {
             return apiError('邮箱或密码错误', 401);
         }
 
-        // 生成 Token
-        const token = signToken({
+        // 生成 Token 对
+        const tokens = signTokenPair({
             userId: user.id,
             email: user.email,
+            role: user.role,
         });
+
+        // 持久化 refresh token
+        await storeRefreshToken(user.id, tokens.refreshToken);
 
         return apiSuccess(
             {
@@ -46,8 +51,11 @@ export async function POST(request: Request) {
                     id: user.id,
                     email: user.email,
                     name: user.name,
+                    role: user.role,
                 },
-                token,
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                expiresIn: tokens.expiresIn,
             },
             '登录成功'
         );

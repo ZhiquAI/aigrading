@@ -1,0 +1,41 @@
+name: Deploy Backend to Cloud
+
+on:
+  push:
+    branches:
+      - main  # 或者是你的主分支名称，比如 master
+    paths:
+      - 'aigradingbackend/**' # 只有后端代码变动时才触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}     # 你的服务器 IP: 47.242.35.64
+          username: ${{ secrets.SERVER_USER }} # 你的服务器用户名: 通常是 root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # 你的 SSH 私钥
+          port: 22
+          script: |
+            echo "🚀 开始远程部署..."
+            # 1. 进入项目根目录
+            cd /root/ai-grading
+            
+            # 2. 拉取最新代码
+            git pull origin main
+            
+            # 3. 进入后端目录
+            cd aigradingbackend
+            
+            # 4. 确保部署脚本可执行
+            chmod +x deploy.sh
+            
+            # 5. 执行部署脚本
+            ./deploy.sh
+            
+            echo "✅ 云端已成功同步并重启！"

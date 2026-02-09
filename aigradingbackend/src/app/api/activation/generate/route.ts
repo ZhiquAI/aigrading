@@ -6,6 +6,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiCreated, apiError, apiServerError } from '@/lib/api-response';
+import { requireAdmin } from '@/lib/auth-guard';
 
 // 套餐配额映射
 const QUOTA_MAP: Record<string, number> = {
@@ -29,10 +30,9 @@ function generateCode(): string {
  */
 export async function POST(request: Request) {
     try {
-        // 简单的管理密钥验证
-        const authHeader = request.headers.get('x-admin-key');
-        if (authHeader !== process.env.ADMIN_KEY && authHeader !== 'admin123') {
-            return apiError('无权限', 403);
+        const auth = requireAdmin(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const body = await request.json();
@@ -101,10 +101,9 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
     try {
-        // 简单的管理密钥验证
-        const authHeader = request.headers.get('x-admin-key');
-        if (authHeader !== process.env.ADMIN_KEY && authHeader !== 'admin123') {
-            return apiError('无权限', 403);
+        const auth = requireAdmin(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const { searchParams } = new URL(request.url);

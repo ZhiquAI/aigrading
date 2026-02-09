@@ -18,6 +18,37 @@ class Logger {
         this.serviceName = serviceName;
     }
 
+    private sanitize(input: any): any {
+        if (input === null || input === undefined) return input;
+        if (Array.isArray(input)) {
+            return input.map((item) => this.sanitize(item));
+        }
+        if (typeof input !== 'object') {
+            return input;
+        }
+
+        const sensitiveKeys = new Set([
+            'authorization',
+            'password',
+            'token',
+            'accesstoken',
+            'refreshtoken',
+            'jwt',
+            'apikey',
+            'secret'
+        ]);
+
+        const output: Record<string, any> = {};
+        for (const [key, value] of Object.entries(input)) {
+            if (sensitiveKeys.has(key.toLowerCase())) {
+                output[key] = '[REDACTED]';
+            } else {
+                output[key] = this.sanitize(value);
+            }
+        }
+        return output;
+    }
+
     private log(level: LogLevel, message: string, data?: any, context?: LogContext) {
         const timestamp = new Date().toISOString();
         const isProduction = process.env.NODE_ENV === 'production';
@@ -28,8 +59,8 @@ class Logger {
             service: context?.service || this.serviceName,
             traceId: context?.traceId,
             message,
-            data,
-            ...context
+            data: this.sanitize(data),
+            ...this.sanitize(context || {})
         };
 
         if (isProduction) {

@@ -1,11 +1,10 @@
 /**
- * AI 评分细则生成 API v2
- * 直接输出 RubricJSON v2 格式
+ * AI 评分细则生成 API（仅输出 RubricJSON v3）
  */
 
 import { NextRequest } from 'next/server';
-import { apiSuccess, apiError, apiServerError } from '@/lib/api-response';
-import { RubricJSON, validateRubricJSON } from '@/lib/rubric-types';
+import { apiSuccess, apiError, apiServerError, ErrorCode } from '@/lib/api-response';
+import { validateRubricV3, RubricJSONV3 } from '@/lib/rubric-v3';
 import { getRubricSystemPrompt } from '@/lib/config-service';
 import { generateRubricWithZhipu } from '@/lib/zhipu';
 
@@ -67,7 +66,7 @@ async function callGPTsAPI(
 /**
  * 解析并验证 JSON
  */
-function parseAndValidate(jsonString: string): RubricJSON {
+function parseAndValidate(jsonString: string): RubricJSONV3 {
     // 提取 JSON
     const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -81,12 +80,11 @@ function parseAndValidate(jsonString: string): RubricJSON {
     parsed.createdAt = now;
     parsed.updatedAt = now;
 
-    // 验证
-    const validation = validateRubricJSON(parsed);
+    // 验证（严格 v3）
+    const validation = validateRubricV3(parsed);
     if (!validation.valid) {
         throw new Error(`格式错误: ${validation.errors.join(', ')}`);
     }
-
     return validation.rubric!;
 }
 
@@ -117,7 +115,7 @@ ${answerText}
 
 【题目 ID】${questionId || '未知'}
 
-请仔细分析参考答案的结构,识别各小题的题型(填空题/半开放题/开放题),并生成对应的评分细则。`;
+请仔细分析参考答案的结构,识别各小题的题型(客观题/材料分析题/开放性题目),并生成对应的评分细则。`;
             console.log('[Rubric AI] Mode: Text input');
         } else {
             // 图片模式
@@ -166,10 +164,18 @@ ${answerText}
 
         // 如果提供了 questionId,覆盖
         if (questionId) {
-            rubric.questionId = questionId;
+            rubric.metadata.questionId = questionId;
         }
 
-        console.log(`[Rubric AI] Generated: ${rubric.questionId}, ${rubric.answerPoints.length} points`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const content = rubric.content as any;
+        const pointCount = rubric.strategyType === 'rubric_matrix'
+            ? content.dimensions?.length ?? 0
+            : rubric.strategyType === 'sequential_logic'
+                ? content.steps?.length ?? 0
+                : content.points?.length ?? 0;
+
+        console.log(`[Rubric AI] Generated: ${rubric.metadata.questionId}, ${pointCount} points`);
 
         return apiSuccess({
             rubric,
@@ -179,7 +185,7 @@ ${answerText}
     } catch (error) {
         console.error('[Rubric AI] Error:', error);
         if (error instanceof Error) {
-            return apiServerError(error.message);
+            return apiError(error.message, 400, ErrorCode.RUBRIC_FORMAT_INVALID);
         }
         return apiServerError('评分细则生成失败');
     }

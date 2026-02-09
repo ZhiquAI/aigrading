@@ -139,6 +139,8 @@ model RubricTemplate {
   id           String   @id @default(cuid())
   scope        String   @default("user") // system | user
   activationCode String? // user scope 时关联激活码
+  questionKey  String?  // 关联评分细则 questionKey（用户模板）
+  lifecycleStatus String @default("draft") // draft | published
   subject      String?
   grade        String?
   questionType String?
@@ -151,6 +153,8 @@ model RubricTemplate {
 
   @@index([scope])
   @@index([activationCode])
+  @@index([questionKey])
+  @@index([lifecycleStatus])
   @@index([subject])
   @@index([grade])
   @@index([questionType])

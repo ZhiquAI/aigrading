@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -13,8 +14,11 @@ import {
     Legend,
     ArcElement,
 } from 'chart.js';
-import { Bar, Line, Doughnut } from 'react-chartjs-2';
+import { Line, Doughnut } from 'react-chartjs-2';
 import { ChevronUp, ChevronDown, Search, Filter } from 'lucide-react';
+import AdminCard from '../_components/AdminCard';
+import AdminPageHeader from '../_components/AdminPageHeader';
+import AdminFilterBar from '../_components/AdminFilterBar';
 
 // 注册 Chart.js 插件
 ChartJS.register(
@@ -31,20 +35,108 @@ ChartJS.register(
 
 type ViewMode = 'chart' | 'table';
 
-export default function QuotaUsagePage() {
+type SortableColumn =
+    | 'code'
+    | 'type'
+    | 'quota'
+    | 'used'
+    | 'remaining'
+    | 'gradingCount'
+    | 'rubricCount'
+    | 'createdAt';
+
+const SORTABLE_COLUMNS: SortableColumn[] = [
+    'code',
+    'type',
+    'quota',
+    'used',
+    'remaining',
+    'gradingCount',
+    'rubricCount',
+    'createdAt',
+];
+
+const DEFAULT_SORT: SortableColumn = 'used';
+const DEFAULT_SORT_ORDER: 'asc' | 'desc' = 'desc';
+const DEFAULT_DAYS = '30';
+const ALLOWED_DAYS = ['7', '30', '90'];
+const ALLOWED_TYPES = ['all', 'trial', 'basic', 'standard', 'pro', 'permanent'];
+
+function QuotaUsagePageContent() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [days, setDays] = useState('30');
-    const [viewMode, setViewMode] = useState<ViewMode>('chart');
+    const [days, setDays] = useState(() => {
+        const initial = searchParams.get('days') ?? DEFAULT_DAYS;
+        return ALLOWED_DAYS.includes(initial) ? initial : DEFAULT_DAYS;
+    });
+    const [viewMode, setViewMode] = useState<ViewMode>(() =>
+        searchParams.get('view') === 'table' ? 'table' : 'chart'
+    );
 
     // 表格视图状态
     const [tableData, setTableData] = useState<any>(null);
     const [tableLoading, setTableLoading] = useState(false);
-    const [page, setPage] = useState(1);
-    const [sortBy, setSortBy] = useState('used');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [filterType, setFilterType] = useState('all');
-    const [searchCode, setSearchCode] = useState('');
+    const [page, setPage] = useState(() => {
+        const value = Number(searchParams.get('page') ?? 1);
+        return Number.isFinite(value) && value > 0 ? value : 1;
+    });
+    const [sortBy, setSortBy] = useState<SortableColumn>(() => {
+        const value = searchParams.get('sort') as SortableColumn | null;
+        return value && SORTABLE_COLUMNS.includes(value) ? value : DEFAULT_SORT;
+    });
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
+        const value = searchParams.get('order');
+        return value === 'asc' || value === 'desc' ? value : DEFAULT_SORT_ORDER;
+    });
+    const [filterType, setFilterType] = useState(() => {
+        const value = searchParams.get('type') ?? 'all';
+        return ALLOWED_TYPES.includes(value) ? value : 'all';
+    });
+    const [searchCode, setSearchCode] = useState(() => searchParams.get('q') ?? '');
+
+    useEffect(() => {
+        const view = searchParams.get('view') === 'table' ? 'table' : 'chart';
+        const daysParam = searchParams.get('days') ?? DEFAULT_DAYS;
+        const daysValue = ALLOWED_DAYS.includes(daysParam) ? daysParam : DEFAULT_DAYS;
+        const pageParam = Number(searchParams.get('page') ?? 1);
+        const pageValue = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+        const sortParam = searchParams.get('sort') as SortableColumn | null;
+        const sortValue = sortParam && SORTABLE_COLUMNS.includes(sortParam) ? sortParam : DEFAULT_SORT;
+        const orderParam = searchParams.get('order');
+        const orderValue = orderParam === 'asc' || orderParam === 'desc' ? orderParam : DEFAULT_SORT_ORDER;
+        const typeParam = searchParams.get('type') ?? 'all';
+        const typeValue = ALLOWED_TYPES.includes(typeParam) ? typeParam : 'all';
+        const queryValue = searchParams.get('q') ?? '';
+
+        if (view !== viewMode) setViewMode(view);
+        if (daysValue !== days) setDays(daysValue);
+        if (pageValue !== page) setPage(pageValue);
+        if (sortValue !== sortBy) setSortBy(sortValue);
+        if (orderValue !== sortOrder) setSortOrder(orderValue);
+        if (typeValue !== filterType) setFilterType(typeValue);
+        if (queryValue !== searchCode) setSearchCode(queryValue);
+    }, [searchParams, viewMode, days, page, sortBy, sortOrder, filterType, searchCode]);
+
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (viewMode !== 'chart') params.set('view', viewMode);
+        if (days !== DEFAULT_DAYS) params.set('days', days);
+        if (page !== 1) params.set('page', page.toString());
+        if (sortBy !== DEFAULT_SORT) params.set('sort', sortBy);
+        if (sortOrder !== DEFAULT_SORT_ORDER) params.set('order', sortOrder);
+        if (filterType !== 'all') params.set('type', filterType);
+        if (searchCode) params.set('q', searchCode);
+
+        const next = params.toString();
+        const current = searchParams.toString();
+        if (next !== current) {
+            router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        }
+    }, [viewMode, days, page, sortBy, sortOrder, filterType, searchCode, searchParams, router, pathname]);
 
     // 加载图表统计数据
     useEffect(() => {
@@ -105,7 +197,7 @@ export default function QuotaUsagePage() {
         fetchTableData();
     }, [page, sortBy, sortOrder, filterType, searchCode, viewMode]);
 
-    const handleSort = (column: string) => {
+    const handleSort = (column: SortableColumn) => {
         if (sortBy === column) {
             setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
         } else {
@@ -129,41 +221,41 @@ export default function QuotaUsagePage() {
     if (viewMode === 'table') {
         return (
             <div className="space-y-6">
-                {/* 标题栏 */}
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">激活码用量统计</h1>
-                        <p className="text-gray-500 text-sm mt-1">按激活码查看详细使用情况</p>
-                    </div>
-                    <div className="flex gap-3">
-                        {/* 视图切换 */}
+                <AdminPageHeader
+                    title="激活码用量统计"
+                    subtitle="按激活码查看详细使用情况"
+                    actions={(
                         <div className="flex bg-white border border-gray-200 rounded-lg p-1">
                             <button
                                 onClick={() => setViewMode('chart')}
-                                className={`px-4 py-2 text-xs font-medium rounded-md transition-colors ${viewMode === 'chart' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
+                                className="px-4 py-2 text-xs font-medium rounded-md transition-colors text-gray-500 hover:text-gray-700"
+                                type="button"
+                                aria-pressed={false}
                             >
                                 图表视图
                             </button>
                             <button
                                 onClick={() => setViewMode('table')}
-                                className={`px-4 py-2 text-xs font-medium rounded-md transition-colors ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
+                                className="px-4 py-2 text-xs font-medium rounded-md transition-colors bg-indigo-600 text-white shadow-sm"
+                                type="button"
+                                aria-pressed={true}
                             >
                                 表格视图
                             </button>
                         </div>
-                    </div>
-                </div>
+                    )}
+                />
 
-                {/* 筛选栏 */}
-                <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-wrap gap-4 items-center">
+                <AdminFilterBar>
                     <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-gray-400" />
+                        <Filter className="w-4 h-4 text-gray-400" aria-hidden />
+                        <label htmlFor="quota-filter" className="sr-only">按类型筛选</label>
                         <select
+                            id="quota-filter"
                             value={filterType}
                             onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
                             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            aria-label="按类型筛选"
                         >
                             <option value="all">全部类型</option>
                             <option value="trial">试用码</option>
@@ -174,19 +266,23 @@ export default function QuotaUsagePage() {
                         </select>
                     </div>
                     <div className="flex items-center gap-2 flex-1 max-w-md">
-                        <Search className="w-4 h-4 text-gray-400" />
+                        <Search className="w-4 h-4 text-gray-400" aria-hidden />
+                        <label htmlFor="quota-search" className="sr-only">搜索激活码</label>
                         <input
+                            id="quota-search"
+                            name="searchCode"
                             type="text"
-                            placeholder="搜索激活码..."
+                            placeholder="搜索激活码…"
                             value={searchCode}
                             onChange={(e) => { setSearchCode(e.target.value); setPage(1); }}
                             className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            autoComplete="off"
+                            aria-label="搜索激活码"
                         />
                     </div>
-                </div>
+                </AdminFilterBar>
 
-                {/* 数据表格 */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <AdminCard dense className="overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
@@ -202,21 +298,42 @@ export default function QuotaUsagePage() {
                                         { key: 'rubricCount', label: '细则数' },
                                         { key: 'status', label: '状态' },
                                         { key: 'createdAt', label: '创建时间' },
-                                    ].map((col) => (
-                                        <th
-                                            key={col.key}
-                                            onClick={() => ['code', 'type', 'quota', 'used', 'remaining', 'gradingCount', 'rubricCount', 'createdAt'].includes(col.key) ? handleSort(col.key) : null}
-                                            className={`px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${['code', 'type', 'quota', 'used', 'remaining', 'gradingCount', 'rubricCount', 'createdAt'].includes(col.key) ? 'cursor-pointer hover:bg-gray-100' : ''
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                {col.label}
-                                                {sortBy === col.key && (
-                                                    sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                    ].map((col) => {
+                                        const isSortable = SORTABLE_COLUMNS.includes(col.key as SortableColumn);
+                                        const isActive = sortBy === col.key;
+                                        const ariaSort = isSortable
+                                            ? isActive
+                                                ? sortOrder === 'asc'
+                                                    ? 'ascending'
+                                                    : 'descending'
+                                                : 'none'
+                                            : undefined;
+
+                                        return (
+                                            <th
+                                                key={col.key}
+                                                aria-sort={ariaSort}
+                                                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                            >
+                                                {isSortable ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSort(col.key as SortableColumn)}
+                                                        className="flex items-center gap-1 cursor-pointer hover:text-gray-900"
+                                                    >
+                                                        {col.label}
+                                                        {isActive && (
+                                                            sortOrder === 'asc'
+                                                                ? <ChevronUp className="w-3 h-3" aria-hidden />
+                                                                : <ChevronDown className="w-3 h-3" aria-hidden />
+                                                        )}
+                                                    </button>
+                                                ) : (
+                                                    <span>{col.label}</span>
                                                 )}
-                                            </div>
-                                        </th>
-                                    ))}
+                                            </th>
+                                        );
+                                    })}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -245,13 +362,13 @@ export default function QuotaUsagePage() {
                                                     {code.type.toUpperCase()}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium tabular-nums">
                                                 {code.quota.toLocaleString()}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                            <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
                                                 {code.used.toLocaleString()}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                            <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
                                                 {code.remaining.toLocaleString()}
                                             </td>
                                             <td className="px-4 py-3 text-sm">
@@ -263,13 +380,13 @@ export default function QuotaUsagePage() {
                                                             style={{ width: `${code.usageRate}%` }}
                                                         />
                                                     </div>
-                                                    <span className="text-gray-600">{code.usageRate}%</span>
+                                                    <span className="text-gray-600 tabular-nums">{code.usageRate}%</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                            <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
                                                 {code.gradingCount?.toLocaleString() || 0}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                            <td className="px-4 py-3 text-sm text-gray-600 tabular-nums">
                                                 {code.rubricCount?.toLocaleString() || 0}
                                             </td>
                                             <td className="px-4 py-3 text-sm">
@@ -278,7 +395,7 @@ export default function QuotaUsagePage() {
                                                     {code.status === 'active' ? '激活' : '禁用'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-500">
+                                            <td className="px-4 py-3 text-sm text-gray-500 tabular-nums">
                                                 {new Date(code.createdAt).toLocaleDateString('zh-CN')}
                                             </td>
                                         </tr>
@@ -299,23 +416,25 @@ export default function QuotaUsagePage() {
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
                                     className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    type="button"
                                 >
                                     上一页
                                 </button>
-                                <span className="px-3 py-1.5 text-sm text-gray-600">
+                                <span className="px-3 py-1.5 text-sm text-gray-600 tabular-nums">
                                     第 {page} / {tableData.pagination.totalPages} 页
                                 </span>
                                 <button
                                     onClick={() => setPage(p => p + 1)}
                                     disabled={page >= tableData.pagination.totalPages}
                                     className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    type="button"
                                 >
                                     下一页
                                 </button>
                             </div>
                         </div>
                     )}
-                </div>
+                </AdminCard>
             </div>
         );
     }
@@ -377,24 +496,26 @@ export default function QuotaUsagePage() {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">配额统计</h1>
-                    <p className="text-gray-500 text-sm mt-1">监控激活码消耗速率与资源分配情况</p>
-                </div>
-                <div className="flex bg-white border border-gray-200 rounded-lg p-1">
-                    {['7', '30', '90'].map((d) => (
-                        <button
-                            key={d}
-                            onClick={() => setDays(d)}
-                            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${days === d ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            {d === '7' ? '最近7天' : d === '30' ? '最近30天' : '最近90天'}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <AdminPageHeader
+                title="配额统计"
+                subtitle="监控激活码消耗速率与资源分配情况"
+                actions={(
+                    <div className="flex bg-white border border-gray-200 rounded-lg p-1">
+                        {['7', '30', '90'].map((d) => (
+                            <button
+                                key={d}
+                                onClick={() => setDays(d)}
+                                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${days === d ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                type="button"
+                                aria-pressed={days === d}
+                            >
+                                {d === '7' ? '最近7天' : d === '30' ? '最近30天' : '最近90天'}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            />
 
             {/* 统计卡片 */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -406,7 +527,7 @@ export default function QuotaUsagePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* 趋势图 */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <AdminCard className="lg:col-span-2 p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-6">消耗与发放趋势</h3>
                     <div className="h-80">
                         <Line
@@ -433,10 +554,10 @@ export default function QuotaUsagePage() {
                             }}
                         />
                     </div>
-                </div>
+                </AdminCard>
 
                 {/* 配额构成 */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <AdminCard className="p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-6 font-sans">配额构成 (总额)</h3>
                     <div className="h-64 flex items-center justify-center">
                         <Doughnut
@@ -450,7 +571,7 @@ export default function QuotaUsagePage() {
                     </div>
                     <div className="mt-4 space-y-2">
                         {stats?.typeDistribution?.map((d: any, i: number) => (
-                            <div key={d.type} className="flex justify-between text-xs text-gray-500">
+                            <div key={d.type} className="flex justify-between text-xs text-gray-500 tabular-nums">
                                 <span className="flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: typeData.datasets[0].backgroundColor[i] }} />
                                     {d.type.toUpperCase()}
@@ -459,18 +580,18 @@ export default function QuotaUsagePage() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </AdminCard>
             </div>
 
             {/* 消耗率分析 */}
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            <AdminCard className="p-8 rounded-3xl">
                 <h3 className="text-lg font-bold text-gray-900 mb-6">各卡型消耗分析</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {stats?.typeDistribution?.map((d: any) => (
                         <div key={d.type} className="space-y-3">
                             <div className="flex justify-between items-end">
                                 <span className="text-sm font-bold text-gray-900">{d.type.toUpperCase()}</span>
-                                <span className="text-xs text-gray-400">已用 {Math.round((d.usedQuota / d.totalQuota) * 100) || 0}%</span>
+                                <span className="text-xs text-gray-400 tabular-nums">已用 {Math.round((d.usedQuota / d.totalQuota) * 100) || 0}%</span>
                             </div>
                             <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
                                 <div
@@ -485,20 +606,39 @@ export default function QuotaUsagePage() {
                         </div>
                     ))}
                 </div>
-            </div>
+            </AdminCard>
         </div>
     );
 }
 
-function MiniCard({ title, value, label, color = "text-gray-900" }: any) {
+function MiniCard({
+    title,
+    value,
+    label,
+    color = 'text-gray-900',
+}: {
+    title: string;
+    value?: string | number;
+    label: string;
+    color?: string;
+}) {
     return (
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <AdminCard className="p-6">
             <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">{title}</p>
-            <div className={`text-2xl font-black mt-1 ${color}`}>{value}</div>
+            <div className={`text-2xl font-black mt-1 ${color} tabular-nums`}>{value}</div>
             <p className="text-gray-400 text-xs mt-2 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                 {label}
             </p>
-        </div>
+        </AdminCard>
     );
 }
+
+export default function QuotaUsagePage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">加载中...</div>}>
+            <QuotaUsagePageContent />
+        </Suspense>
+    );
+}
+

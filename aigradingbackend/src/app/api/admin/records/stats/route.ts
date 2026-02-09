@@ -25,6 +25,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth-guard';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface ScoreDistribution {
@@ -54,6 +55,11 @@ interface StatsResponse {
 
 export async function GET(request: NextRequest): Promise<NextResponse<StatsResponse>> {
     try {
+        const auth = requireAdmin(request);
+        if (auth instanceof Response) {
+            return auth as NextResponse<StatsResponse>;
+        }
+
         const { searchParams } = new URL(request.url);
 
         // 解析查询参数

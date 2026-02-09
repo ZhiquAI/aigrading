@@ -58,12 +58,25 @@ export function middleware(request: NextRequest) {
     const origin = request.headers.get('origin');
     const isAllowed = isOriginAllowed(origin);
 
-    // 1. 速率限制检查 (非管理员路径)
-    if (request.nextUrl.pathname.startsWith('/api/') && !request.nextUrl.pathname.startsWith('/api/admin/')) {
-        const rateCheck = checkRateLimit(request);
-        if (!rateCheck.allowed) {
-            reqLogger.warn('Rate limit exceeded', { clientId: rateCheck.clientId, path: request.nextUrl.pathname });
-            return createRateLimitResponse(rateCheck);
+    // 1. 速率限制检查（按路径区分）
+    const path = request.nextUrl.pathname;
+    if (path.startsWith('/api/')) {
+        // AI 端点内部已有更严格限流，避免双重限流
+        if (path.startsWith('/api/ai/')) {
+            // skip
+        } else {
+            let rateType: 'ai' | 'auth' | 'default' | 'admin' = 'default';
+            if (path.startsWith('/api/admin/')) {
+                rateType = 'admin';
+            } else if (path.startsWith('/api/auth/')) {
+                rateType = 'auth';
+            }
+
+            const rateCheck = checkRateLimit(request, rateType);
+            if (!rateCheck.allowed) {
+                reqLogger.warn('Rate limit exceeded', { clientId: rateCheck.clientId, path });
+                return createRateLimitResponse(rateCheck);
+            }
         }
     }
 
@@ -75,12 +88,12 @@ export function middleware(request: NextRequest) {
         });
     }
 
-    // 处理 CORS
-    if (isAllowed || process.env.NODE_ENV === 'development') {
+    // 处理 CORS（仅在有 origin 时设置）
+    if (origin && (isAllowed || process.env.NODE_ENV === 'development')) {
         const response = NextResponse.next();
 
         // 设置 CORS 头
-        response.headers.set('Access-Control-Allow-Origin', origin || '*');
+        response.headers.set('Access-Control-Allow-Origin', origin);
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         response.headers.set('Access-Control-Allow-Headers',
             'Content-Type, X-Device-ID, X-Activation-Code, Authorization, x-device-id, x-activation-code');

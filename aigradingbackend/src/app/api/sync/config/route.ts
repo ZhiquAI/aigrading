@@ -5,18 +5,8 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { verifyToken, extractToken } from '@/lib/auth';
-import { apiSuccess, apiUnauthorized, apiError, apiServerError } from '@/lib/api-response';
-
-// 获取当前用户 ID 的辅助函数
-async function getCurrentUserId(request: Request): Promise<string | null> {
-    const authHeader = request.headers.get('authorization');
-    const token = extractToken(authHeader);
-    if (!token) return null;
-
-    const payload = verifyToken(token);
-    return payload?.userId || null;
-}
+import { requireUser } from '@/lib/auth-guard';
+import { apiSuccess, apiError, apiServerError } from '@/lib/api-response';
 
 /**
  * GET /api/sync/config
@@ -25,9 +15,9 @@ async function getCurrentUserId(request: Request): Promise<string | null> {
  */
 export async function GET(request: Request) {
     try {
-        const userId = await getCurrentUserId(request);
-        if (!userId) {
-            return apiUnauthorized();
+        const auth = requireUser(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const { searchParams } = new URL(request.url);
@@ -37,7 +27,7 @@ export async function GET(request: Request) {
             // 获取指定配置
             const config = await prisma.config.findUnique({
                 where: {
-                    userId_key: { userId, key }
+                    userId_key: { userId: auth.userId, key }
                 },
                 select: {
                     key: true,
@@ -54,7 +44,7 @@ export async function GET(request: Request) {
         } else {
             // 获取所有配置
             const configs = await prisma.config.findMany({
-                where: { userId },
+                where: { userId: auth.userId },
                 select: {
                     key: true,
                     value: true,
@@ -78,9 +68,9 @@ export async function GET(request: Request) {
  */
 export async function PUT(request: Request) {
     try {
-        const userId = await getCurrentUserId(request);
-        if (!userId) {
-            return apiUnauthorized();
+        const auth = requireUser(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const body = await request.json();
@@ -93,13 +83,13 @@ export async function PUT(request: Request) {
         // 使用 upsert：存在则更新，不存在则创建
         const config = await prisma.config.upsert({
             where: {
-                userId_key: { userId, key }
+                userId_key: { userId: auth.userId, key }
             },
             update: {
                 value: typeof value === 'string' ? value : JSON.stringify(value)
             },
             create: {
-                userId,
+                userId: auth.userId,
                 key,
                 value: typeof value === 'string' ? value : JSON.stringify(value)
             },
@@ -124,9 +114,9 @@ export async function PUT(request: Request) {
  */
 export async function DELETE(request: Request) {
     try {
-        const userId = await getCurrentUserId(request);
-        if (!userId) {
-            return apiUnauthorized();
+        const auth = requireUser(request);
+        if (auth instanceof Response) {
+            return auth;
         }
 
         const { searchParams } = new URL(request.url);
@@ -137,7 +127,7 @@ export async function DELETE(request: Request) {
         }
 
         await prisma.config.deleteMany({
-            where: { userId, key }
+            where: { userId: auth.userId, key }
         });
 
         return apiSuccess(null, '配置已删除');

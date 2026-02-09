@@ -97,7 +97,10 @@ export async function gradeWithEdge(
     const model = options?.model || 'gemini-2.0-flash-exp';
 
     // 检测是否为 JSON 格式的评分细则
-    const isJSONRubric = rubric.trim().startsWith('{') || rubric.includes('"answerPoints"');
+    const isJSONRubric = rubric.trim().startsWith('{')
+        || rubric.includes('"strategyType"')
+        || rubric.includes('"version":"3.0"')
+        || rubric.includes('"version": "3.0"');
 
     let userPrompt: string;
     if (isJSONRubric) {
@@ -107,7 +110,7 @@ export async function gradeWithEdge(
 ${rubric}
 
 【评分规则】
-1. 逐一检查 answerPoints 中的每个得分点
+1. 逐一检查评分细则中的每个得分项（points/steps/dimensions）
 2. 根据 keywords 关键词匹配学生答案（允许同义表述）
 3. 根据 scoringStrategy 计算最终得分
 

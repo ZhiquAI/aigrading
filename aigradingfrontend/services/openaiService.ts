@@ -6,6 +6,7 @@
  */
 
 import { StudentResult, AppConfig } from '../types';
+import { logAPIRequest, logAPIResponse, logAPIError, startTimer, endTimer } from './debug-utils';
 
 // ==================== 默认配置 ====================
 
@@ -124,9 +125,9 @@ export async function callOpenAI(
         headers['X-Title'] = 'AI Grading Assistant';
     }
 
-    console.log('[OpenAI] Calling endpoint:', endpoint);
-    console.log('[OpenAI] Model:', modelName);
-    console.log('[OpenAI] Headers:', Object.keys(headers));
+    // 🔍 调试日志
+    logAPIRequest(endpoint, 'POST', { model: modelName, hasImage: !!imageBase64 });
+    startTimer(`openai-${modelName}`);
 
     let response: Response;
     try {
@@ -137,13 +138,13 @@ export async function callOpenAI(
         });
     } catch (fetchError) {
         // 网络层错误 (CORS, 连接失败等)
-        console.error('[OpenAI] Fetch network error:', fetchError);
-        console.error('[OpenAI] Error type:', (fetchError as Error).constructor.name);
-        console.error('[OpenAI] Error message:', (fetchError as Error).message);
+        endTimer(`openai-${modelName}`);
+        logAPIError(endpoint, fetchError);
         throw new Error(`网络请求失败: ${(fetchError as Error).message}`);
     }
 
-    console.log('[OpenAI] Response status:', response.status);
+    const duration = endTimer(`openai-${modelName}`);
+    logAPIResponse(endpoint, response.status, undefined, duration);
 
     if (!response.ok) {
         const errorBody = await response.json().catch(() => ({ message: response.statusText }));

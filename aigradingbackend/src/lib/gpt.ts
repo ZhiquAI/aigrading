@@ -3,6 +3,8 @@
  * 使用 OpenAI 格式调用 GPTSAPI 或其他 OpenAI 兼容服务
  */
 
+import { RubricJSONV3 } from './rubric-v3';
+import { buildJudgePrompt, parseJudgeResult, JudgeResult } from './rubric-judge';
 // 从环境变量读取配置
 const GPT_API_URL = process.env.GPT_API_URL || 'https://api.gptsapi.net/v1/chat/completions';
 const GPT_API_KEY = process.env.GPT_API_KEY || '';
@@ -55,10 +57,19 @@ export interface GradeResult {
     }[];
 }
 
+export interface JudgeRequest {
+    imageBase64: string;
+    rubric: RubricJSONV3;
+    studentName?: string;
+}
+
 // 批改 Prompt 模板 - 支持 JSON 结构化评分细则
 function buildGradingPrompt(rubric: string, studentName?: string): string {
     // 检测是否为 JSON 格式的评分细则
-    const isJSONRubric = rubric.trim().startsWith('{') || rubric.includes('"answerPoints"');
+    const isJSONRubric = rubric.trim().startsWith('{')
+        || rubric.includes('"strategyType"')
+        || rubric.includes('"version":"3.0"')
+        || rubric.includes('"version": "3.0"');
 
     if (isJSONRubric) {
         // JSON 结构化评分模式 - 逐点精准匹配
@@ -70,7 +81,7 @@ ${rubric}
 ${studentName ? `【学生姓名】：${studentName}` : ''}
 
 【评分规则】
-1. 逐一检查 answerPoints 中的每个得分点，并在 breakdown 中回复对应的编号 ID。
+1. 逐一检查评分细则中的每个得分项（points/steps/dimensions），并在 breakdown 中回复对应编号 ID。
 2. 根据 keywords 关键词匹配学生答案（允许同义表述）。
 3. **填空题严格模式**（重要）：
    - 如果评分细则中指明是“填空题”（题目标题或阅卷提示中包含“填空”字样），且 **strictMode 为 true**：
@@ -80,7 +91,7 @@ ${studentName ? `【学生姓名】：${studentName}` : ''}
    - all: 全部答对才得满分
    - weighted: 按各点分值计分
 5. 如果 allowAlternative 为 true，接受言之成理的等效答案。
-6. 参考 gradingNotes 中的阅卷提示进行评分。
+6. 参考 constraints 中的阅卷提示进行评分。
 
 【输出格式】
 返回 JSON，breakdown 必须包含每个得分点的评分信息：
@@ -292,6 +303,31 @@ export async function gradeWithGPT(
             console.error(`[GPT] 回退模式也失败: ${fallbackError.message}`);
             throw fallbackError;
         }
+    }
+}
+
+/**
+ * 使用 GPT 进行评分判定（仅输出判定 JSON）
+ */
+export async function judgeWithGPT(
+    request: JudgeRequest,
+    strategy: GradingStrategy = 'pro'
+): Promise<{ judge: JudgeResult; model?: string; strategy?: string }> {
+    if (!GPT_API_KEY) {
+        throw new Error('GPT API Key 未配置');
+    }
+
+    const prompt = buildJudgePrompt(request.rubric);
+    const imageBase64 = request.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const config = getStrategyConfig(strategy);
+
+    try {
+        const content = await callGPTAPI(config.model, prompt, imageBase64, config.timeout);
+        const judge = parseJudgeResult(content);
+        return { judge, model: config.model, strategy };
+    } catch (error: any) {
+        console.error(`[GPT] Judge failed: ${error.message}`);
+        throw error;
     }
 }
 

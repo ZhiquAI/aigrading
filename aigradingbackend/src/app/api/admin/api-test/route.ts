@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-guard';
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = requireAdmin(request);
+        if (auth instanceof Response) {
+            return auth;
+        }
+
         const { provider } = await request.json();
 
         // 测试不同的 API 提供商

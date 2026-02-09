@@ -22,7 +22,8 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
-import { Tab } from '@/types';
+import { Tab, type PageContext, type StudentResult } from '@/types';
+import { gradeWithProxy } from '@/services/proxyService';
 import { Button } from '@/components/ui';
 import { toast } from '@/components/Toast';
 import RubricDrawer from './RubricDrawer';
@@ -81,7 +82,10 @@ export default function GradingViewV2() {
     } = useAppStore();
 
     const [isDetecting, setIsDetecting] = useState(true);
-    const [currentScore, setCurrentScore] = useState(8.5);
+    const [currentScore, setCurrentScore] = useState(0);
+    const [maxScore, setMaxScore] = useState(10);
+    const [gradingResult, setGradingResult] = useState<StudentResult | null>(null);
+    const [pageContext, setPageContext] = useState<PageContext | null>(null);
     const [isIntervening, setIsInteracting] = useState(false);
 
     // Auto Mode Countdown
@@ -194,29 +198,92 @@ export default function GradingViewV2() {
     };
 
     // --- Actions ---
+    const REVIEW_CONFIDENCE_THRESHOLD = 0.6;
 
-    const startGrading = () => {
+    const requestPageContext = (): Promise<PageContext | null> => new Promise((resolve) => {
+        if (typeof chrome === 'undefined' || !chrome.tabs) {
+            resolve(null);
+            return;
+        }
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const tabId = tabs[0]?.id;
+            if (!tabId) {
+                resolve(null);
+                return;
+            }
+            chrome.tabs.sendMessage(tabId, { type: 'REQUEST_PAGE_DATA' }, (response?: { success: boolean; data?: PageContext; error?: string }) => {
+                if (chrome.runtime.lastError || !response?.success || !response.data) {
+                    resolve(null);
+                    return;
+                }
+                resolve(response.data);
+            });
+        });
+    });
+
+    const startGrading = async () => {
         if (!isRubricConfigured) return;
+        if (!rubricContent) {
+            toast.error('未检测到评分细则内容');
+            return;
+        }
+
         setStatus('thinking');
-        setTimeout(() => {
+        setIsInteracting(false);
+        setGradingResult(null);
+
+        try {
+            const ctx = await requestPageContext();
+            if (!ctx?.answerImageBase64) {
+                toast.error('未检测到答题卡，请确认页面已加载');
+                setStatus('idle');
+                return;
+            }
+
+            const result = await gradeWithProxy(
+                ctx.answerImageBase64,
+                rubricContent,
+                ctx.studentName,
+                ctx.questionNo || undefined,
+                'pro',
+                { questionKey: ctx.questionKey || undefined, examNo: ctx.examNo }
+            );
+
+            setPageContext(ctx);
+            setGradingResult(result);
+            setCurrentScore(result.score);
+            setMaxScore(result.maxScore || 10);
+
+            const reviewRequired = !!result.needsReview
+                || (typeof result.confidence === 'number' && result.confidence < REVIEW_CONFIDENCE_THRESHOLD);
+            setIsInteracting(reviewRequired);
             setStatus('result');
-            setIsInteracting(false); // Reset interaction state for new result
-        }, 2000);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : '阅卷失败';
+            console.error('[GradingViewV2] Grading error:', err);
+            toast.error(message);
+            setStatus('error');
+        }
     };
 
     const confirmSubmit = () => {
+        if (!gradingResult) {
+            toast.error('暂无可提交的评分结果');
+            return;
+        }
         // Save to History
         addHistoryRecord({
-            questionNo: '15',
-            questionKey: currentQuestionKey || '15',
+            questionNo: pageContext?.questionNo || '未识别',
+            questionKey: pageContext?.questionKey || currentQuestionKey || 'unknown',
             score: currentScore,
-            maxScore: 10,
-            comment: '逻辑清晰，对核心概念"经济动因"的阐述非常准确。建议补充更多具体历史案例以增强论证深度。',
-            breakdown: [
-                { label: '经济动因分析', score: 4, max: 4, comment: '准确提到了资本主义萌芽和商品经济发展的关键点。' },
-                { label: '社会阶层变动', score: 2.5, max: 4, comment: '提到了资产阶级兴起，但未涉及封建贵族的衰落。' },
-                { label: '卷面表达规范', score: 2, max: 2, comment: '书写极其工整，条理清晰。' }
-            ]
+            maxScore: maxScore,
+            comment: gradingResult.comment,
+            breakdown: gradingResult.breakdown.map((item) => ({
+                label: item.label,
+                score: item.score,
+                max: item.max,
+                comment: item.comment
+            }))
         });
 
         toast.success("评分已提交并同步");
@@ -225,7 +292,10 @@ export default function GradingViewV2() {
 
     const adjustScore = (delta: number) => {
         setIsInteracting(true);
-        setCurrentScore(prev => Math.max(0, prev + delta));
+        setCurrentScore(prev => {
+            const next = prev + delta;
+            return Math.min(Math.max(0, next), Math.max(1, maxScore));
+        });
     };
 
     // Thinking Messages Loop
@@ -238,6 +308,12 @@ export default function GradingViewV2() {
         "正在生成人性化的教师评语...",
         "正在准备同步至网页打分框..."
     ];
+
+    const scoreRatio = maxScore > 0 ? Math.min(1, currentScore / maxScore) : 0;
+    const reviewRequired = !!gradingResult && (
+        gradingResult.needsReview
+        || (typeof gradingResult.confidence === 'number' && gradingResult.confidence < REVIEW_CONFIDENCE_THRESHOLD)
+    );
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -478,6 +554,15 @@ export default function GradingViewV2() {
                             </div>
                         )}
 
+                        {reviewRequired && (
+                            <div className="mb-4 bg-amber-50 border border-amber-100 rounded-2xl p-4 text-[11px] text-amber-700">
+                                ⚠️ 该结果置信度较低，需要人工复核，自动提交已暂停。
+                                {typeof gradingResult?.confidence === 'number' && (
+                                    <span className="ml-2 text-[10px] text-amber-500">置信度 {(gradingResult.confidence * 100).toFixed(0)}%</span>
+                                )}
+                            </div>
+                        )}
+
                         {/* Sync Badge & Mode Switcher Row */}
                         <div className="flex items-center justify-center gap-3 mb-4">
                             <div className={`
@@ -518,11 +603,11 @@ export default function GradingViewV2() {
                                 <div>
                                     <div className="flex items-baseline gap-1 group-hover:scale-105 transition-transform origin-left">
                                         <span className="text-5xl font-black tracking-tighter">{currentScore}</span>
-                                        <span className="text-xl text-slate-500 font-medium">/ 10</span>
+                                        <span className="text-xl text-slate-500 font-medium">/ {maxScore}</span>
                                     </div>
                                 </div>
                                 <div className="absolute top-2 right-12 md:top-4 md:right-24 z-20 pointer-events-none select-none">
-                                    <GradeStamp score={currentScore} maxScore={10} />
+                                    <GradeStamp score={currentScore} maxScore={maxScore} />
                                 </div>
                                 <div className="relative flex items-center gap-3">
                                     <div className="flex flex-col gap-1.5">
@@ -536,16 +621,16 @@ export default function GradingViewV2() {
                                     <div className="w-16 h-16 relative flex items-center justify-center ring-4 ring-indigo-500/20 rounded-full backdrop-blur-sm">
                                         <svg className="w-full h-full transform -rotate-90 absolute">
                                             <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" className="text-slate-800" />
-                                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" stroke-dasharray="175" stroke-dashoffset={175 - (currentScore / 10) * 175} className="text-indigo-400" stroke-linecap="round" />
+                                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" stroke-dasharray="175" stroke-dashoffset={175 - scoreRatio * 175} className="text-indigo-400" stroke-linecap="round" />
                                         </svg>
-                                        <span className="text-[10px] font-black relative">{Math.round(currentScore * 10)}%</span>
+                                        <span className="text-[10px] font-black relative">{Math.round(scoreRatio * 100)}%</span>
                                     </div>
                                 </div>
                             </div>
                             <div className="mt-6 pt-4 border-t border-white/10">
                                 <p className="text-xs text-slate-300 leading-relaxed italic">
                                     <span className="text-indigo-300 font-bold not-italic mr-1">AI 点评:</span>
-                                    逻辑清晰，对核心概念"经济动因"的阐述非常准确。建议补充更多具体历史案例以增强论证深度。
+                                    {gradingResult?.comment || '暂无评语'}
                                 </p>
                             </div>
                         </div>
@@ -553,22 +638,23 @@ export default function GradingViewV2() {
                         {/* Breakdown List */}
                         <div className="space-y-3">
                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">评分维度解析</div>
-                            {[
-                                { title: '经济动因分析', score: 4, full: 4, comment: '准确提到了资本主义萌芽和商品经济发展的关键点。' },
-                                { title: '社会阶层变动', score: 2.5, full: 4, comment: '提到了资产阶级兴起，但未涉及封建贵族的衰落。' },
-                                { title: '卷面表达规范', score: 2, full: 2, comment: '书写极其工整，条理清晰。' }
-                            ].map((item, idx) => (
+                            {(gradingResult?.breakdown || []).length === 0 && (
+                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-[10px] text-slate-400">
+                                    暂无细分维度
+                                </div>
+                            )}
+                            {(gradingResult?.breakdown || []).map((item, idx) => (
                                 <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 transition-all hover:border-indigo-200 hover:bg-white shadow-sm hover:shadow-md">
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex items-center gap-2">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${item.score === item.full ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                                            <span className="text-xs font-bold text-slate-700">{item.title}</span>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${item.score === item.max ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                                            <span className="text-xs font-bold text-slate-700">{item.label}</span>
                                         </div>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.score === item.full ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {item.score} / {item.full}
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.score === item.max ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {item.score} / {item.max}
                                         </span>
                                     </div>
-                                    <p className="text-[10px] text-slate-500 leading-relaxed">{item.comment}</p>
+                                    <p className="text-[10px] text-slate-500 leading-relaxed">{item.comment || '无补充说明'}</p>
                                 </div>
                             ))}
                         </div>

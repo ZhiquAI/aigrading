@@ -8,6 +8,9 @@
  * - 支持最新模型
  */
 
+import { RubricJSONV3 } from './rubric-v3';
+import { buildJudgePrompt, parseJudgeResult, JudgeResult } from './rubric-judge';
+
 // Gemini API 配置
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -42,11 +45,20 @@ export interface GradeResult {
     }[];
 }
 
+export interface JudgeRequest {
+    imageBase64: string;
+    rubric: RubricJSONV3;
+    studentName?: string;
+}
+
 /**
  * 构建批改 Prompt
  */
 function buildGradingPrompt(rubric: string, studentName?: string): string {
-    const isJSONRubric = rubric.trim().startsWith('{') || rubric.includes('"answerPoints"');
+    const isJSONRubric = rubric.trim().startsWith('{')
+        || rubric.includes('"strategyType"')
+        || rubric.includes('"version":"3.0"')
+        || rubric.includes('"version": "3.0"');
 
     if (isJSONRubric) {
         return `你是一位高效的阅卷专家。请根据【评分细则JSON】对【学生答案图片】进行精准评分。
@@ -57,11 +69,11 @@ ${rubric}
 ${studentName ? `【学生姓名】：${studentName}` : ''}
 
 【评分规则】
-1. 逐一检查 answerPoints 中的每个得分点，并在 breakdown 中回复对应的编号 ID。
+1. 逐一检查评分细则中的每个得分项（points/steps/dimensions），并在 breakdown 中回复对应编号 ID。
 2. 根据 keywords 关键词匹配学生答案（允许同义表述）。
 3. **填空题严格模式**：如果 strictMode 为 true，必须完全匹配参考答案。
 4. 根据 scoringStrategy 计算最终得分。
-5. 参考 gradingNotes 中的阅卷提示进行评分。
+5. 参考 constraints 中的阅卷提示进行评分。
 
 【输出格式】
 返回 JSON：
@@ -221,6 +233,31 @@ export async function gradeWithGemini(
         return { ...result, model, strategy };
     } catch (error: any) {
         console.error(`[Gemini] ${strategy} 模式失败:`, error.message);
+        throw error;
+    }
+}
+
+/**
+ * 使用 Gemini 进行评分判定（仅输出判定 JSON）
+ */
+export async function judgeWithGemini(
+    request: JudgeRequest,
+    strategy: GradingStrategy = 'flash'
+): Promise<{ judge: JudgeResult; model?: string; strategy?: string }> {
+    if (!GEMINI_API_KEY) {
+        throw new Error('Gemini API Key 未配置');
+    }
+
+    const model = GEMINI_MODELS[strategy] || GEMINI_MODELS.flash;
+    const timeout = strategy === 'reasoning' ? 60000 : 30000;
+    const prompt = buildJudgePrompt(request.rubric);
+
+    try {
+        const content = await callGeminiAPI(model, prompt, request.imageBase64, timeout);
+        const judge = parseJudgeResult(content);
+        return { judge, model, strategy };
+    } catch (error: any) {
+        console.error(`[Gemini] Judge failed:`, error.message);
         throw error;
     }
 }
