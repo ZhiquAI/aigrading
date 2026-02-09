@@ -87,105 +87,102 @@ const CreateRubricWizard: React.FC<CreateRubricWizardProps> = ({ onBack, onCompl
     return (
         <div className="flex flex-col h-full bg-white">
             {/* Header */}
-            <header className="px-4 pt-6 pb-3 flex items-center gap-3 shrink-0">
-                <button
-                    onClick={onBack}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-lg font-bold text-slate-900">创建细则</h2>
+            <header className="px-4 py-3 flex items-center justify-between border-b border-[#E5E4E1] bg-white sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onBack}
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <h2 className="text-base font-black text-[#1A1918] tracking-tight">AI 识别生成</h2>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${stepProgress >= 1 ? 'bg-indigo-500' : 'bg-slate-200'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${stepProgress >= 2 ? 'bg-indigo-500' : 'bg-slate-200'}`} />
+                </div>
             </header>
 
-            {/* Step Indicator */}
-            <div className="px-4 py-3 shrink-0">
-                <div className="flex items-center gap-2">
-                    <div className={`flex-1 h-1.5 rounded-full transition-colors ${stepProgress >= 1 ? 'bg-primary' : 'bg-slate-100'}`} />
-                    <div className={`flex-1 h-1.5 rounded-full transition-colors ${stepProgress >= 2 ? 'bg-primary' : 'bg-slate-100'}`} />
-                    <div className={`flex-1 h-1.5 rounded-full transition-colors ${stepProgress >= 3 ? 'bg-primary' : 'bg-slate-100'}`} />
-                </div>
-                <div className="mt-2 flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                    <span className={stepProgress >= 1 ? 'text-primary' : 'text-slate-300'}>1. 基本信息</span>
-                    <span className={stepProgress >= 2 ? 'text-primary' : 'text-slate-300'}>2. AI 生成</span>
-                    <span className={stepProgress >= 3 ? 'text-primary' : 'text-slate-300'}>3. 确认</span>
-                </div>
-            </div>
 
             {/* Content */}
             <main className="flex-1 overflow-y-auto px-4 py-4">
                 {step === 'basic' && (
-                    <div className="space-y-4 animate-in fade-in duration-300">
-                        {/* 考试名称 */}
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                                <BookOpen className="w-3 h-3" />
-                                考试名称
-                            </label>
-                            <select
-                                value={examId}
-                                onChange={(e) => setExamId(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-primary transition-colors"
-                            >
-                                <option value="">请选择考试...</option>
-                                {exams.map(exam => (
-                                    <option key={exam.id} value={exam.id}>{exam.name}</option>
-                                ))}
-                            </select>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* 1:1 Configuration Grid */}
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-[#9C9B99] uppercase tracking-wider ml-1">考试</label>
+                                    <select
+                                        value={examId}
+                                        onChange={(e) => setExamId(e.target.value)}
+                                        className="w-full h-11 px-3 bg-slate-50 border border-[#E5E4E1] rounded-2xl text-[12px] font-bold text-[#1A1918] outline-none focus:border-indigo-300 focus:bg-white transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">请选择考试...</option>
+                                        {exams.map(exam => (
+                                            <option key={exam.id} value={exam.id}>{exam.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-[#9C9B99] uppercase tracking-wider ml-1">年级</label>
+                                    <select
+                                        value={grade}
+                                        onChange={(e) => setGrade(e.target.value)}
+                                        className="w-full h-11 px-3 bg-slate-50 border border-[#E5E4E1] rounded-2xl text-[12px] font-bold text-[#1A1918] outline-none focus:border-indigo-300 focus:bg-white transition-all appearance-none cursor-pointer"
+                                    >
+                                        {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-[#9C9B99] uppercase tracking-wider ml-1">科目</label>
+                                    <select
+                                        value={subject}
+                                        onChange={(e) => setSubject(e.target.value)}
+                                        className="w-full h-11 px-3 bg-slate-50 border border-[#E5E4E1] rounded-2xl text-[12px] font-bold text-[#1A1918] outline-none focus:border-indigo-300 focus:bg-white transition-all appearance-none cursor-pointer"
+                                    >
+                                        {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-[#9C9B99] uppercase tracking-wider ml-1">题号</label>
+                                    <input
+                                        type="text"
+                                        value={questionNo}
+                                        onChange={(e) => setQuestionNo(e.target.value)}
+                                        placeholder="例如：13"
+                                        className="w-full h-11 px-3 bg-slate-50 border border-[#E5E4E1] rounded-2xl text-[12px] font-bold text-[#1A1918] placeholder:text-slate-300 outline-none focus:border-indigo-300 focus:bg-white transition-all"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        {/* 学段/学科 */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">学段</label>
-                                <select
-                                    value={grade}
-                                    onChange={(e) => setGrade(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-primary transition-colors"
-                                >
-                                    {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
+                        {/* Visual upload tips */}
+                        <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-indigo-100 shadow-sm">
+                                <Sparkles className="w-4 h-4 text-indigo-500" />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">学科</label>
-                                <select
-                                    value={subject}
-                                    onChange={(e) => setSubject(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-primary transition-colors"
-                                >
-                                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[13px] font-black text-indigo-600 leading-tight">接下来...</span>
+                                <span className="text-[11px] font-bold text-indigo-400/80 leading-relaxed">
+                                    请上传清晰的试题图片及其对应的参考答案，AI 将根据图片内容自动生成采分条目。
+                                </span>
                             </div>
-                        </div>
-
-                        {/* 题号 */}
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                                <Hash className="w-3 h-3" />
-                                题号
-                            </label>
-                            <input
-                                type="text"
-                                value={questionNo}
-                                onChange={(e) => setQuestionNo(e.target.value)}
-                                placeholder="例如：第15题"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-primary transition-colors"
-                            />
                         </div>
                     </div>
                 )}
 
                 {step === 'upload' && (
-                    <div className="space-y-4 animate-in fade-in duration-300">
-                        <p className="text-sm text-slate-500 text-center mb-4">
-                            上传试题和参考答案图片，AI 将自动生成评分细则
-                        </p>
-
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* 图片上传区 */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-4">
                             {/* 试题图片 */}
-                            <label className={`aspect-square border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${questionImage
-                                    ? 'border-primary bg-primary-subtle'
-                                    : 'border-slate-200 hover:border-primary hover:bg-primary-subtle/30'
+                            <label className={`aspect-[1/1.1] border-2 border-dashed rounded-[20px] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${questionImage
+                                ? 'border-indigo-500 bg-indigo-50/30'
+                                : 'border-[#E5E4E1] bg-slate-50/50 hover:border-indigo-300 hover:bg-slate-50'
                                 }`}>
                                 <input
                                     type="file"
@@ -194,19 +191,25 @@ const CreateRubricWizard: React.FC<CreateRubricWizardProps> = ({ onBack, onCompl
                                     onChange={handleImageUpload('question')}
                                 />
                                 {questionImage ? (
-                                    <img src={questionImage} alt="试题" className="w-full h-full object-cover rounded-3xl" />
+                                    <div className="relative w-full h-full p-2">
+                                        <img src={questionImage} alt="试题" className="w-full h-full object-cover rounded-2xl" />
+                                        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-indigo-600/80 backdrop-blur-sm text-[8px] font-black text-white">试卷题目</div>
+                                    </div>
                                 ) : (
                                     <>
-                                        <ImagePlus className="w-6 h-6 text-slate-300" />
-                                        <span className="text-[10px] font-bold text-slate-400">试题图片</span>
+                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100">
+                                            <ImagePlus className="w-5 h-5 text-indigo-400" />
+                                        </div>
+                                        <span className="text-[11px] font-black text-[#1A1918]">试卷题目</span>
+                                        <span className="text-[9px] font-bold text-[#9C9B99]">(必填)</span>
                                     </>
                                 )}
                             </label>
 
                             {/* 参考答案 */}
-                            <label className={`aspect-square border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${answerImage
-                                    ? 'border-success bg-success-subtle'
-                                    : 'border-slate-200 hover:border-success hover:bg-success-subtle/30'
+                            <label className={`aspect-[1/1.1] border-2 border-dashed rounded-[20px] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${answerImage
+                                ? 'border-emerald-500 bg-emerald-50/30'
+                                : 'border-[#E5E4E1] bg-slate-50/50 hover:border-emerald-300 hover:bg-slate-50'
                                 }`}>
                                 <input
                                     type="file"
@@ -215,15 +218,37 @@ const CreateRubricWizard: React.FC<CreateRubricWizardProps> = ({ onBack, onCompl
                                     onChange={handleImageUpload('answer')}
                                 />
                                 {answerImage ? (
-                                    <img src={answerImage} alt="答案" className="w-full h-full object-cover rounded-3xl" />
+                                    <div className="relative w-full h-full p-2">
+                                        <img src={answerImage} alt="答案" className="w-full h-full object-cover rounded-2xl" />
+                                        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-emerald-600/80 backdrop-blur-sm text-[8px] font-black text-white">正确答案</div>
+                                    </div>
                                 ) : (
                                     <>
-                                        <FileText className="w-6 h-6 text-slate-300" />
-                                        <span className="text-[10px] font-bold text-slate-400">参考答案</span>
-                                        <span className="text-[8px] text-slate-300">(可选)</span>
+                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100">
+                                            <FileText className="w-5 h-5 text-emerald-400" />
+                                        </div>
+                                        <span className="text-[11px] font-black text-[#1A1918]">正确答案</span>
+                                        <span className="text-[9px] font-bold text-[#9C9B99]">(可选)</span>
                                     </>
                                 )}
                             </label>
+                        </div>
+
+                        <div className="px-2">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                <span className="text-[12px] font-black text-[#1A1918]">识别提示</span>
+                            </div>
+                            <ul className="space-y-1.5">
+                                <li className="flex items-start gap-2 text-[11px] font-bold text-[#64748B]">
+                                    <span className="text-indigo-400 mt-0.5">•</span>
+                                    请拍摄清晰、正向的试卷照片，避免反光。
+                                </li>
+                                <li className="flex items-start gap-2 text-[11px] font-bold text-[#64748B]">
+                                    <span className="text-indigo-400 mt-0.5">•</span>
+                                    同时上传答案可显著提升 AI 的给分点识别准确度。
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 )}
@@ -241,21 +266,27 @@ const CreateRubricWizard: React.FC<CreateRubricWizardProps> = ({ onBack, onCompl
 
             {/* Footer */}
             {step !== 'generating' && (
-                <footer className="p-4 shrink-0">
+                <footer className="px-4 py-4 shrink-0 bg-white border-t border-[#F0EFED]">
+                    <div className="mb-4 text-center">
+                        <p className="text-[10px] font-bold text-[#9C9B99] flex items-center justify-center gap-1">
+                            <Sparkles className="w-3 h-3 text-indigo-400" />
+                            AI 智能识别图片内容 · 生成评分后可自由微调
+                        </p>
+                    </div>
                     <button
                         onClick={handleNext}
                         disabled={!canProceed}
-                        className={`w-full py-3.5 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 ${canProceed
-                                ? 'bg-brand-gradient text-white shadow-brand hover:shadow-brand-lg active:scale-[0.98]'
-                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        className={`w-full h-12 font-black rounded-2xl transition-all flex items-center justify-center gap-2 text-[14px] ${canProceed
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-[0.98]'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                             }`}
                     >
                         {step === 'basic' ? (
-                            '下一步：上传图片'
+                            '确认信息 · 进入识别上传'
                         ) : (
                             <>
                                 <Sparkles className="w-4 h-4" />
-                                AI 生成细则
+                                开始 AI 智能识别
                             </>
                         )}
                     </button>

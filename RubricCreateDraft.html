@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分细则 - 生成页 (Generate)</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #3B82F6;
+            --color-primary-subtle: #EFF6FF;
+            --color-bg-app: #F5F4F1;
+            --color-text-main: #1A1918;
+            --color-text-body: #4A4947;
+            --color-text-muted: #9C9B99;
+            --color-border: #E5E4E1;
+            --color-border-subtle: #F0EFED;
+            --radius-xl: 1rem;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: var(--color-bg-app);
+            color: var(--color-text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .sidepanel-root {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--color-border);
+            height: 100%;
+            position: relative;
+        }
+
+        header {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border-subtle);
+            background: white;
+        }
+
+        .back-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--color-text-body);
+            margin-right: 8px;
+            background: var(--color-bg-app);
+            border: 1px solid var(--color-border);
+        }
+
+        .header-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header-info h1 {
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .header-info p {
+            font-size: 9px;
+            color: var(--color-text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            scrollbar-width: thin;
+        }
+
+        .section-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .section-tag h2 {
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .compact-input-group {
+            background: #F8F9FA;
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .field-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .field-box label {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+        }
+
+        .field-box select,
+        .field-box input {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            background: white;
+            font-size: 11px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .upload-box {
+            aspect-ratio: 1/1.1;
+            border: 2px dashed var(--color-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #F8FAFC;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-box:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-subtle);
+        }
+
+        .upload-box i {
+            color: #94A3B8;
+        }
+
+        .upload-box span {
+            font-size: 10px;
+            font-weight: 800;
+            color: #64748B;
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: var(--color-text-muted);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-border-subtle);
+        }
+
+        .text-input-area {
+            width: 100%;
+            height: 80px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            background: #FDFDFB;
+            resize: none;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .action-bar {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid var(--color-border-subtle);
+        }
+
+        .ai-btn-large {
+            width: 100%;
+            height: 52px;
+            background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+            border-radius: 16px;
+            color: white;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+            cursor: pointer;
+        }
+
+        .ai-btn-large:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidepanel-root">
+        <header>
+            <div class="back-btn"><i data-lucide="chevron-left" size="18"></i></div>
+            <div class="header-info">
+                <h1>AI 智能生成</h1>
+                <p>AI Rubric Generator</p>
+            </div>
+        </header>
+
+        <div class="scroll-content">
+            <div class="section-tag" style="background:#EEF2FF; color: #4F46E5;">
+                <i data-lucide="info" size="10"></i>
+                <h2>配置基本信息</h2>
+            </div>
+
+            <div class="compact-input-group" style="margin-bottom: 24px;">
+                <div class="input-row">
+                    <div class="field-box" style="flex: 1;">
+                        <label>考试</label>
+                        <select>
+                            <option>期末统考</option>
+                        </select>
+                    </div>
+                    <div class="field-box" style="flex: 1;">
+                        <label>年级</label>
+                        <select>
+                            <option>初三</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="field-box">
+                        <label>科目</label>
+                        <select>
+                            <option>历史</option>
+                        </select>
+                    </div>
+                    <div class="field-box">
+                        <label>题号</label>
+                        <input type="text" value="13">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="field-box">
+                        <label>题型</label>
+                        <select>
+                            <option>材料解析题</option>
+                        </select>
+                    </div>
+                    <div class="field-box">
+                        <label>策略</label>
+                        <select>
+                            <option>关键词采分点</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-tag" style="background:#F0FDF4; color: #166534;">
+                <i data-lucide="image" size="10"></i>
+                <h2>上传视觉资料</h2>
+            </div>
+
+            <div class="upload-grid">
+                <div class="upload-box">
+                    <i data-lucide="camera" size="20"></i>
+                    <span>试题照片</span>
+                </div>
+                <div class="upload-box" style="border-style: solid; border-color: #3B82F6; background: #EFF6FF;">
+                    <i data-lucide="file-check-2" size="20" style="color: #3B82F6;"></i>
+                    <span style="color: #3B82F6;">答案照片</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button class="ai-btn-large">
+                <i data-lucide="sparkles" size="18"></i>
+                一键生成评分细则
+            </button>
+            <p
+                style="text-align: center; font-size: 9px; color: var(--color-text-muted); margin-top: 10px; font-weight: 700;">
+                AI 智能识别图片内容 · 生成评分后可自由微调
+            </p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

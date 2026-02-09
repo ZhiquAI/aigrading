@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分细则 - 规则库 (List)</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #3B82F6;
+            --color-primary-subtle: #EFF6FF;
+            --color-bg-app: #F5F4F1;
+            --color-text-main: #1A1918;
+            --color-text-body: #4A4947;
+            --color-text-muted: #9C9B99;
+            --color-border: #E5E4E1;
+            --color-border-subtle: #F0EFED;
+            --radius-xl: 1rem;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: var(--color-bg-app);
+            color: var(--color-text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .sidepanel-root {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--color-border);
+            height: 100%;
+            position: relative;
+        }
+
+        header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--color-border-subtle);
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title i {
+            color: var(--color-primary);
+        }
+
+        .header-title h1 {
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .header-title .count {
+            font-size: 10px;
+            font-weight: 800;
+            background: #F1F5F9;
+            color: #64748B;
+            padding: 1px 6px;
+            border-radius: 99px;
+        }
+
+        .fab-btn {
+            width: 32px;
+            height: 32px;
+            background: var(--color-primary);
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+            cursor: pointer;
+        }
+
+        .search-area {
+            padding: 12px 16px;
+            background: white;
+            border-bottom: 1px solid var(--color-border-subtle);
+        }
+
+        .search-box {
+            background: #F8F9FA;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-box i {
+            color: #94A3B8;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            outline: none;
+            flex: 1;
+        }
+
+        .filter-tabs {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 16px 0;
+            gap: 16px;
+            background: white;
+            scrollbar-width: none;
+        }
+
+        .tab {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--color-text-muted);
+            padding-bottom: 8px;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+
+        .sub-filters {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+            background: white;
+            border-bottom: 1px solid var(--color-border-subtle);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .filter-pill {
+            font-size: 10px;
+            font-weight: 700;
+            background: #F1F5F9;
+            color: #64748B;
+            padding: 4px 12px;
+            border-radius: 99px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .filter-pill.active {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            border: 1px solid #BFDBFE;
+        }
+
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #F8F9FA;
+        }
+
+        .rubric-card {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .rubric-card:active {
+            transform: scale(0.98);
+        }
+
+        .rubric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #CBD5E1;
+        }
+
+        /* Subject Indicator Stripes */
+        .rubric-card.chinese::before {
+            background: #F43F5E;
+        }
+
+        .rubric-card.english::before {
+            background: #0EA5E9;
+        }
+
+        .rubric-card.math::before {
+            background: #06B6D4;
+        }
+
+        .rubric-card.physics::before {
+            background: #8B5CF6;
+        }
+
+        .rubric-card.chemistry::before {
+            background: #EC4899;
+        }
+
+        .rubric-card.politics::before {
+            background: #F97316;
+        }
+
+        .rubric-card.history::before {
+            background: #3B82F6;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .subject-tag {
+            font-size: 9px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .tag-blue {
+            background: #EFF6FF;
+            color: #1D4ED8;
+        }
+
+        .tag-red {
+            background: #FFF1F2;
+            color: #BE123C;
+        }
+
+        .tag-orange {
+            background: #FFF7ED;
+            color: #C2410C;
+        }
+
+        .tag-indigo {
+            background: #EEF2FF;
+            color: #4338CA;
+        }
+
+        .tag-sky {
+            background: #F0F9FF;
+            color: #0369A1;
+        }
+
+        .meta-tags {
+            display: flex;
+            gap: 6px;
+        }
+
+        .meta-pill {
+            font-size: 9px;
+            font-weight: 800;
+            background: #F8F9FA;
+            color: #64748B;
+            border: 1px solid var(--color-border);
+            padding: 1px 6px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .meta-pill.custom {
+            background: #F5F3FF;
+            color: #7C3AED;
+            border-color: #DDD6FE;
+        }
+
+        .card-body h3 {
+            font-size: 14px;
+            font-weight: 900;
+            color: var(--color-text-main);
+            line-height: 1.3;
+            margin-bottom: 8px;
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .stat-value {
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--color-text-main);
+        }
+
+        .stat-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+        }
+
+        .card-footer {
+            border-top: 1px dashed var(--color-border-subtle);
+            padding-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exam-info {
+            font-size: 10px;
+            color: var(--color-text-muted);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .exam-info span {
+            color: var(--color-text-body);
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .edit-btn {
+            color: var(--color-text-muted);
+        }
+
+        .edit-btn:hover {
+            color: var(--color-primary);
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            height: 60px;
+            border-top: 1px solid var(--color-border);
+            background: white;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            color: var(--color-text-muted);
+        }
+
+        .nav-item i {
+            transition: color 0.2s;
+        }
+
+        .nav-item span {
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .nav-item.active {
+            color: var(--color-primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidepanel-root">
+        <header>
+            <div class="header-title">
+                <i data-lucide="library" size="18"></i>
+                <h1>评分细则模板</h1>
+                <span class="count">18</span>
+            </div>
+            <div class="fab-btn"><i data-lucide="plus" size="18"></i></div>
+        </header>
+
+        <div class="search-area">
+            <div class="search-box">
+                <i data-lucide="search" size="14"></i>
+                <input type="text" placeholder="搜索细则模板...">
+            </div>
+        </div>
+
+        <div class="filter-tabs">
+            <div class="tab active">全部</div>
+            <div class="tab">语文</div>
+            <div class="tab">英语</div>
+            <div class="tab">数学</div>
+            <div class="tab">物理</div>
+            <div class="tab">化学</div>
+            <div class="tab">道法</div>
+            <div class="tab">历史</div>
+        </div>
+
+        <div class="scroll-content">
+            <!-- Card 1 (Redesigned) -->
+            <div class="rubric-card politics">
+                <div class="card-header">
+                    <span class="subject-tag tag-orange">道法</span>
+                    <div class="meta-tags">
+                        <span class="meta-pill custom"><i data-lucide="sparkles" size="8"></i>自定义</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3>辨析题通用评价矩阵</h3>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">4</span>
+                            <span class="stat-label">评分维度</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">12</span>
+                            <span class="stat-label">总分</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="exam-info"><i data-lucide="layers" size="10"></i><span>维度矩阵策略</span></div>
+                    <div class="edit-btn"><i data-lucide="pencil" size="12"></i></div>
+                </div>
+            </div>
+
+            <!-- Card 2 (Redesigned) -->
+            <div class="rubric-card history">
+                <div class="card-header">
+                    <span class="subject-tag tag-blue">历史</span>
+                    <div class="meta-tags">
+                        <span class="meta-pill">系统模板</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3>建言献策类方案分析 (#13)</h3>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">6</span>
+                            <span class="stat-label">采分点</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">3.0</span>
+                            <span class="stat-label">总分</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="exam-info"><i data-lucide="calendar" size="10"></i><span>期末统考 - 历史卷</span></div>
+                    <div class="edit-btn"><i data-lucide="pencil" size="12"></i></div>
+                </div>
+            </div>
+
+            <!-- Card 3 (Redesigned) -->
+            <div class="rubric-card chinese">
+                <div class="card-header">
+                    <span class="subject-tag tag-red">语文</span>
+                    <div class="meta-tags">
+                        <span class="meta-pill custom"><i data-lucide="sparkles" size="8"></i>自定义</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3>散文阅读理解标准模板</h3>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">8</span>
+                            <span class="stat-label">采分点</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">10</span>
+                            <span class="stat-label">总分</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="exam-info"><i data-lucide="file-text" size="10"></i><span>关键词累加</span></div>
+                    <div class="edit-btn"><i data-lucide="pencil" size="12"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Nav Bar -->
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <i data-lucide="file-text" size="20"></i>
+                <span>细则</span>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="check-circle" size="20"></i>
+                <span>阅卷</span>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="history" size="20"></i>
+                <span>记录</span>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="settings" size="20"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

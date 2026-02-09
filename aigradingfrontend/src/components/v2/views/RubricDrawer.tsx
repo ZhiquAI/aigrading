@@ -1,5 +1,5 @@
 import React from 'react';
-import RubricCreateModal from './RubricCreateModal';
+import RubricEditPanel from '../rubric/RubricEditPanel';
 
 interface RubricDrawerProps {
     isOpen: boolean;
@@ -9,8 +9,8 @@ interface RubricDrawerProps {
 /**
  * RubricDrawer - 评分细则弹窗容器
  *
- * 侧边栏模式使用全屏覆盖弹窗，避免抽屉占用空间
+ * 使用 Chrome Side Panel 适配版 UI
  */
 export default function RubricDrawer({ isOpen, onClose }: RubricDrawerProps) {
-    return <RubricCreateModal isOpen={isOpen} onClose={onClose} />;
+    return <RubricEditPanel isOpen={isOpen} onClose={onClose} />;
 }

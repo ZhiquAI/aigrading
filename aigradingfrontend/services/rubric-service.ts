@@ -4,7 +4,7 @@
  * AI 直接生成 RubricJSON v3 格式
  */
 
-import type { RubricJSONV3 } from '../types/rubric-v3';
+import type { RubricJSONV3, StrategyType } from '../types/rubric-v3';
 import { coerceRubricToV3 } from '../utils/rubric-convert';
 import { generateRulesPrompt, getCurrentSubject } from './config-service';
 
@@ -14,6 +14,13 @@ const BACKEND_URL = (import.meta.env?.VITE_API_BASE_URL as string) || 'http://lo
 
 function getDeviceId(): string {
     return localStorage.getItem('device_id') || 'unknown';
+}
+
+export interface RubricGenerateContext {
+    subject?: string;
+    questionType?: string;
+    strategyType?: StrategyType;
+    examName?: string;
 }
 
 // ==================== JSON 格式提示词 ====================
@@ -277,7 +284,8 @@ export function getRubricSystemPrompt(): string {
 export async function generateRubricFromImages(
     questionImageBase64?: string | null,
     answerImageBase64?: string | null,
-    questionId?: string
+    questionId?: string,
+    context?: RubricGenerateContext
 ): Promise<RubricJSONV3> {
     if (!questionImageBase64 && !answerImageBase64) {
         throw new Error('至少需要提供试题图片或参考答案图片');
@@ -302,6 +310,10 @@ export async function generateRubricFromImages(
                     questionImage: questionImageBase64,
                     answerImage: answerImageBase64,
                     questionId: questionId || 'unknown',
+                    subject: context?.subject,
+                    questionType: context?.questionType,
+                    strategyType: context?.strategyType,
+                    examName: context?.examName,
                     outputFormat: 'json',
                 }),
             });
@@ -338,7 +350,17 @@ export async function generateRubricFromImages(
             console.log('[generateRubricFromImages] API Key configured:', !!config.apiKey);
 
             const systemPrompt = getRubricSystemPrompt();
-            const userPrompt = '请根据图片中的参考答案生成结构化评分细则 JSON。';
+            const contextText = [
+                context?.subject ? `学科：${context.subject}` : '',
+                context?.questionType ? `题型：${context.questionType}` : '',
+                context?.strategyType ? `建议策略：${context.strategyType}` : '',
+                context?.examName ? `考试：${context.examName}` : '',
+                questionId ? `题号：${questionId}` : ''
+            ].filter(Boolean).join('\n');
+
+            const userPrompt = contextText
+                ? `请根据图片中的参考答案生成结构化评分细则 JSON。\n\n【上下文】\n${contextText}`
+                : '请根据图片中的参考答案生成结构化评分细则 JSON。';
 
             // 使用参考答案图片或试题图片
             const imageToUse = answerImageBase64 || questionImageBase64 || '';
@@ -379,7 +401,8 @@ export async function autoGenerateRubric(
  */
 export async function generateRubricFromText(
     answerText: string,
-    questionId?: string
+    questionId?: string,
+    context?: RubricGenerateContext
 ): Promise<RubricJSONV3> {
     if (!answerText || answerText.trim().length === 0) {
         throw new Error('参考答案文本不能为空');
@@ -405,6 +428,10 @@ export async function generateRubricFromText(
                 body: JSON.stringify({
                     answerText: answerText,
                     questionId: questionId || 'unknown',
+                    subject: context?.subject,
+                    questionType: context?.questionType,
+                    strategyType: context?.strategyType,
+                    examName: context?.examName,
                     outputFormat: 'json',
                 }),
             });
@@ -435,12 +462,21 @@ export async function generateRubricFromText(
         const { callAI } = await import('./ai-router');
 
         const systemPrompt = getRubricSystemPrompt();
+        const contextText = [
+            context?.subject ? `学科：${context.subject}` : '',
+            context?.questionType ? `题型：${context.questionType}` : '',
+            context?.strategyType ? `建议策略：${context.strategyType}` : '',
+            context?.examName ? `考试：${context.examName}` : '',
+            questionId ? `题号：${questionId}` : ''
+        ].filter(Boolean).join('\n');
+
         const userPrompt = `请根据以下文本格式的参考答案生成结构化评分细则 JSON：
 
 【参考答案】
 ${answerText}
 
 【题目 ID】${questionId || '未知'}
+${contextText ? `\n【上下文】\n${contextText}` : ''}
 
     请仔细分析参考答案的结构，识别各小题的题型（填空题 / 材料题 / 开放性题目），并生成对应的评分细则。`;
 

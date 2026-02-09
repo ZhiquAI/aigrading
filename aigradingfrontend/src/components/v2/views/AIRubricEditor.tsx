@@ -16,7 +16,12 @@ import {
 } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { refineRubric } from '@/services/rubric-service';
-import type { RubricJSONV3 } from '@/types/rubric-v3';
+import type {
+    RubricJSONV3,
+    PointAccumulationContent,
+    SequentialLogicContent,
+    RubricMatrixContent
+} from '@/types/rubric-v3';
 
 interface RubricPoint {
     id: string;
@@ -112,16 +117,27 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
             const refinedRubric = await refineRubric(currentRubric, userMessage);
 
             // 更新得分点
-            const rawPoints = refinedRubric.strategyType === 'sequential_logic'
-                ? refinedRubric.content.steps
-                : refinedRubric.strategyType === 'point_accumulation'
-                    ? refinedRubric.content.points
-                    : refinedRubric.content.dimensions.map((dimension, index) => ({
-                        id: dimension.id || `dim-${index + 1}`,
-                        content: dimension.name,
-                        score: dimension.weight || Math.max(...dimension.levels.map((level) => level.score)),
-                        keywords: [] as string[]
-                    }));
+            let rawPoints: any[] = [];
+            let total = 0;
+
+            if (refinedRubric.strategyType === 'sequential_logic') {
+                const content = refinedRubric.content as SequentialLogicContent;
+                rawPoints = content.steps;
+                total = refinedRubric.content.totalScore || content.steps.reduce((sum, point) => sum + point.score, 0);
+            } else if (refinedRubric.strategyType === 'point_accumulation') {
+                const content = refinedRubric.content as PointAccumulationContent;
+                rawPoints = content.points;
+                total = refinedRubric.content.totalScore || content.points.reduce((sum, point) => sum + point.score, 0);
+            } else if (refinedRubric.strategyType === 'rubric_matrix') {
+                const content = refinedRubric.content as RubricMatrixContent;
+                rawPoints = content.dimensions.map((dimension, index) => ({
+                    id: dimension.id || `dim-${index + 1}`,
+                    content: dimension.name,
+                    score: dimension.weight || Math.max(...dimension.levels.map((level) => level.score)),
+                    keywords: [] as string[]
+                }));
+                total = refinedRubric.content.totalScore || content.dimensions.reduce((sum, dim) => sum + (dim.weight || 0), 0);
+            }
 
             const newPoints: RubricPoint[] = rawPoints.map((point) => ({
                 id: point.id,
@@ -140,14 +156,6 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
             } else if (newPoints.length < points.length) {
                 response += ` 减少了 ${changeCount} 个得分点。`;
             }
-            const total = refinedRubric.strategyType === 'rubric_matrix'
-                ? refinedRubric.content.totalScore
-                    || refinedRubric.content.dimensions.reduce((sum, dim) => sum + (dim.weight || 0), 0)
-                : refinedRubric.strategyType === 'sequential_logic'
-                    ? refinedRubric.content.totalScore
-                        || refinedRubric.content.steps.reduce((sum, point) => sum + point.score, 0)
-                    : refinedRubric.content.totalScore
-                        || refinedRubric.content.points.reduce((sum, point) => sum + point.score, 0);
             response += ` 当前总分: ${total}分。`;
 
             setMessages(prev => [...prev, {
@@ -224,141 +232,164 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
     const totalScore = points.reduce((sum, p) => sum + p.score, 0);
 
     return (
-        <div className="flex flex-col h-full bg-slate-50">
+        <div className="flex flex-col h-full bg-bg-app">
             {/* Header */}
-            <header className="bg-white px-4 pt-6 pb-3 flex items-center justify-between shrink-0 border-b border-slate-100">
+            <header className="bg-white px-4 pt-4 pb-3 flex items-center justify-between shrink-0 border-b border-border shadow-sm">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={onBack}
-                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-bg-app text-text-body hover:bg-border transition-colors border border-border"
                     >
                         <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900">AI 编辑器</h2>
-                        <p className="text-[10px] text-slate-400">{questionKey}</p>
+                    <div className="min-w-0">
+                        <h2 className="text-sm font-black text-text-main truncate">AI 细则编辑器</h2>
+                        <div className="flex items-center gap-1 mt-0.5">
+                            <span className="w-1.5 h-1.5 bg-success rounded-full" />
+                            <p className="text-[10px] text-text-body font-bold truncate tracking-tight">{questionKey}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold text-slate-400">AI 已就绪</span>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleSaveAll}
+                        className="px-3 py-1.5 bg-primary text-white text-[11px] font-black rounded-lg shadow-sm shadow-primary/20 flex items-center gap-1 active:scale-95 transition-all"
+                    >
+                        <Save className="w-3.5 h-3.5" />
+                        保存
+                    </button>
                 </div>
             </header>
 
-            {/* Table Area */}
-            <div className="flex-1 overflow-y-auto p-4">
-                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    {/* Table Header */}
-                    <div className="bg-slate-50 border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            得分点列表
-                        </span>
-                        <span className="text-xs font-bold text-primary">
-                            总分: {totalScore}分
-                        </span>
-                    </div>
+            {/* Content Area - Scrollable Points */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-24 scrollbar-thin">
+                <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                        采分点明细 ({points.length})
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-border text-[11px] font-black text-primary shadow-sm">
+                        总计 {totalScore}分
+                    </span>
+                </div>
 
-                    {/* Table Body */}
-                    <div className="divide-y divide-slate-50">
-                        {points.map((point, index) => (
-                            <div
-                                key={point.id}
-                                className="px-4 py-3 flex items-center gap-3 hover:bg-primary-subtle/30 transition-colors group"
-                            >
-                                <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold flex items-center justify-center shrink-0">
-                                    {index + 1}
-                                </span>
+                {points.map((point, index) => (
+                    <div
+                        key={point.id}
+                        className="bg-white rounded-2xl p-4 shadow-sm border border-border hover:border-primary/30 transition-all group relative"
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="w-7 h-7 rounded-xl bg-bg-app text-text-muted text-[11px] font-black flex items-center justify-center shrink-0 border border-border">
+                                {index + 1}
+                            </div>
 
-                                <div className="flex-1 min-w-0">
-                                    {editingPointId === point.id ? (
-                                        <input
-                                            type="text"
+                            <div className="flex-1 min-w-0">
+                                {editingPointId === point.id ? (
+                                    <div className="space-y-2">
+                                        <textarea
                                             value={editingContent}
                                             onChange={(e) => setEditingContent(e.target.value)}
-                                            className="w-full px-2 py-1 border border-primary rounded-lg text-sm outline-none"
+                                            className="w-full px-3 py-2 border-2 border-primary bg-primary-subtle/20 rounded-xl text-sm font-bold outline-none leading-relaxed min-h-[60px]"
                                             autoFocus
                                         />
-                                    ) : (
-                                        <p className="text-sm font-medium text-slate-700 truncate">
-                                            {point.content}
-                                        </p>
-                                    )}
-                                    <div className="flex gap-1 mt-1 flex-wrap">
-                                        {point.keywords.map((kw, i) => (
-                                            <span
-                                                key={i}
-                                                className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] rounded"
-                                            >
-                                                {kw}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <span className="text-primary font-black text-sm shrink-0">
-                                    {point.score}分
-                                </span>
-
-                                {/* Actions */}
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {editingPointId === point.id ? (
-                                        <>
-                                            <button
-                                                onClick={handleSavePointEdit}
-                                                className="w-6 h-6 rounded-lg bg-success text-white flex items-center justify-center"
-                                            >
-                                                <Check className="w-3 h-3" />
-                                            </button>
+                                        <div className="flex gap-2 justify-end">
                                             <button
                                                 onClick={() => setEditingPointId(null)}
-                                                className="w-6 h-6 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center"
+                                                className="px-3 py-1.5 rounded-lg bg-bg-app text-text-body text-[10px] font-bold border border-border"
                                             >
-                                                <XIcon className="w-3 h-3" />
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                onClick={() => handleEditPoint(point)}
-                                                className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"
-                                            >
-                                                <Edit3 className="w-3 h-3" />
+                                                取消
                                             </button>
                                             <button
-                                                onClick={() => handleDeletePoint(point.id)}
-                                                className="w-6 h-6 rounded-lg bg-danger-subtle text-danger hover:bg-danger hover:text-white flex items-center justify-center transition-colors"
+                                                onClick={handleSavePointEdit}
+                                                className="px-3 py-1.5 rounded-lg bg-primary text-white text-[10px] font-bold shadow-sm"
                                             >
-                                                <Trash2 className="w-3 h-3" />
+                                                确认修改
                                             </button>
-                                        </>
-                                    )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div onClick={() => handleEditPoint(point)} className="cursor-text">
+                                        <p className="text-sm font-bold text-text-main leading-relaxed">
+                                            {point.content}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                            {point.keywords.map((kw, i) => (
+                                                <span
+                                                    key={i}
+                                                    className="px-1.5 py-0.5 bg-slate-50 text-text-muted text-[9px] font-bold rounded border border-border-subtle"
+                                                >
+                                                    {kw}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="text-right shrink-0 ml-2">
+                                <div className="text-primary font-black text-base italic leading-none">
+                                    {point.score}
+                                    <span className="text-[10px] ml-0.5">分</span>
                                 </div>
                             </div>
-                        ))}
+                        </div>
+
+                        {/* Point Actions - Floating */}
+                        {!editingPointId && (
+                            <div className="absolute -top-2 -right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                                <button
+                                    onClick={() => handleEditPoint(point)}
+                                    className="w-7 h-7 rounded-lg bg-white shadow-md border border-border text-text-body hover:text-primary flex items-center justify-center transition-colors"
+                                >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeletePoint(point.id)}
+                                    className="w-7 h-7 rounded-lg bg-white shadow-md border border-border text-text-body hover:text-danger flex items-center justify-center transition-colors"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
                     </div>
-                </div>
+                ))}
+
+                {points.length === 0 && (
+                    <div className="py-12 flex flex-col items-center justify-center gap-3 text-text-muted opacity-40 italic">
+                        <RotateCcw className="w-8 h-8" />
+                        <p className="text-xs font-bold">暂无得分点，请使用 AI 生成或对话添加</p>
+                    </div>
+                )}
             </div>
 
-            {/* AI Chat Panel */}
-            <div className="bg-indigo-950 p-4 rounded-t-[32px] shadow-[0_-10px_40px_rgba(30,27,75,0.15)] shrink-0">
-                {/* Chat Messages */}
+            {/* AI Control Center - Sticky Bottom */}
+            <div className="bg-ai-bg p-4 pb-6 rounded-t-[32px] shadow-[0_-8px_30px_rgba(30,27,75,0.25)] shrink-0 animate-slide-up border-t border-white/5">
+                {/* AI Status Indicator */}
+                <div className="flex items-center gap-2 mb-3 px-1">
+                    <div className="w-6 h-6 rounded-lg bg-ai-gradient flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
+                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">AI Refinement Box</span>
+                    <div className="flex-1 h-px bg-white/5 mx-2" />
+                    {isThinking && (
+                        <div className="flex gap-1">
+                            <span className="w-1 h-1 bg-primary rounded-full animate-ping" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Chat Display (Minimized concept) */}
                 <div
                     ref={chatContainerRef}
-                    className="max-h-32 overflow-y-auto space-y-2.5 mb-3 px-1 scrollbar-thin scrollbar-thumb-white/10"
+                    className="max-h-24 overflow-y-auto space-y-2.5 mb-3 px-1 scrollbar-thin scrollbar-thumb-white/10"
                 >
                     {messages.map(msg => (
                         <div
                             key={msg.id}
                             className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                         >
-                            {msg.role === 'ai' && (
-                                <div className="w-5 h-5 rounded-full bg-brand-gradient flex items-center justify-center shrink-0">
-                                    <Sparkles className="w-2.5 h-2.5 text-white" />
-                                </div>
-                            )}
-                            <div className={`rounded-2xl px-3 py-2 text-[11px] leading-relaxed max-w-[85%] ${msg.role === 'ai'
-                                ? 'bg-white/10 text-white/90 rounded-tl-none'
-                                : 'bg-primary rounded-tr-none text-white'
+                            <div className={`rounded-2xl px-3 py-2 text-[11px] leading-relaxed shadow-sm ${msg.role === 'ai'
+                                ? 'bg-white/10 text-white/90 rounded-tl-none border border-white/5'
+                                : 'bg-primary rounded-tr-none text-white font-bold'
                                 }`}>
                                 {msg.content}
                             </div>
@@ -367,51 +398,42 @@ const AIRubricEditor: React.FC<AIRubricEditorProps> = ({
 
                     {isThinking && (
                         <div className="flex gap-2">
-                            <div className="w-5 h-5 rounded-full bg-brand-gradient flex items-center justify-center shrink-0">
-                                <Sparkles className="w-2.5 h-2.5 text-white animate-pulse" />
-                            </div>
-                            <div className="bg-white/10 rounded-2xl rounded-tl-none px-3 py-2">
-                                <div className="flex gap-1">
-                                    <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <div className="bg-white/5 rounded-2xl rounded-tl-none px-4 py-2 border border-white/5">
+                                <div className="flex gap-1.5 items-center">
+                                    <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                    <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                    <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" />
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Input */}
-                <div className="relative">
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="试着说：把第2点拆成两个得分点..."
-                        className="w-full pl-4 pr-12 py-3 bg-white/10 border border-white/10 rounded-2xl text-[11px] text-white placeholder-white/40 focus:bg-white/15 outline-none transition-all"
-                    />
-                    <button
-                        onClick={handleSend}
-                        disabled={!inputValue.trim() || isThinking}
-                        className={`absolute right-2 top-2 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${inputValue.trim() && !isThinking
-                            ? 'bg-white text-indigo-950 active:scale-95'
-                            : 'bg-white/20 text-white/40 cursor-not-allowed'
-                            }`}
-                    >
-                        <Send className="w-4 h-4" />
-                    </button>
+                {/* Futuristic Input Bar */}
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-ai-gradient rounded-[20px] blur opacity-20 group-focus-within:opacity-40 transition-opacity" />
+                    <div className="relative">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="优化指令：如「把第2点分值改为3分」..."
+                            className="w-full pl-5 pr-14 py-3.5 bg-white/10 border border-white/10 rounded-[18px] text-[11px] font-medium text-white placeholder:text-white/30 focus:bg-white/15 outline-none transition-all"
+                        />
+                        <button
+                            onClick={handleSend}
+                            disabled={!inputValue.trim() || isThinking}
+                            className={`absolute right-2 top-2 bottom-2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${inputValue.trim() && !isThinking
+                                ? 'bg-white text-ai-bg shadow-lg shadow-white/10 scale-100 active:scale-90'
+                                : 'bg-white/5 text-white/20 scale-95 cursor-not-allowed border border-white/5'
+                                }`}
+                        >
+                            <Send className="w-4.5 h-4.5" />
+                        </button>
+                    </div>
                 </div>
-
-                {/* Save Button */}
-                <button
-                    onClick={handleSaveAll}
-                    className="w-full mt-3 py-3 bg-white text-indigo-950 font-bold rounded-2xl active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2"
-                >
-                    <Save className="w-4 h-4" />
-                    保存并完成
-                </button>
             </div>
         </div>
     );

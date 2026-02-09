@@ -231,6 +231,21 @@ export async function POST(request: NextRequest) {
             }
         });
 
+        // 防误发布：已发布模板被编辑后，强制回退到 draft
+        if (lifecycleStatus !== 'published') {
+            await prisma.rubricTemplate.updateMany({
+                where: {
+                    scope: 'user',
+                    activationCode: identifier,
+                    questionKey,
+                    lifecycleStatus: 'published'
+                },
+                data: {
+                    lifecycleStatus: 'draft'
+                }
+            });
+        }
+
         console.log(`[Rubric API] Saved: ${questionKey} (Exam: ${examId}) for ${formatIdentifierForLog(identifier)}`);
 
         return NextResponse.json({

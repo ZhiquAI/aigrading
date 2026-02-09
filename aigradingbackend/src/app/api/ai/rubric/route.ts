@@ -95,7 +95,16 @@ function parseAndValidate(jsonString: string): RubricJSONV3 {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { questionImage, answerImage, answerText, questionId } = body;
+        const {
+            questionImage,
+            answerImage,
+            answerText,
+            questionId,
+            subject,
+            questionType,
+            strategyType,
+            examName
+        } = body;
 
         if (!questionImage && !answerImage && !answerText) {
             return apiError('请提供图片或文本参考答案');
@@ -103,12 +112,21 @@ export async function POST(request: NextRequest) {
 
         // 统一使用配置服务生成 system prompt
         const systemPrompt = getRubricSystemPrompt();
+        const contextLines = [
+            subject ? `学科：${subject}` : '',
+            questionType ? `题型：${questionType}` : '',
+            strategyType ? `建议评分结构：${strategyType}` : '',
+            examName ? `考试：${examName}` : '',
+            questionId ? `题号：${questionId}` : ''
+        ].filter(Boolean);
+        const contextPrompt = contextLines.length > 0 ? `【上下文】\n${contextLines.join('\n')}\n\n` : '';
+
         let userPrompt: string;
         let images: { base64: string; label?: string }[] = [];
 
         if (answerText) {
             // 文本模式
-            userPrompt = `请根据以下文本格式的参考答案生成结构化评分细则 JSON:
+            userPrompt = `${contextPrompt}请根据以下文本格式的参考答案生成结构化评分细则 JSON:
 
 【参考答案】
 ${answerText}
@@ -119,7 +137,7 @@ ${answerText}
             console.log('[Rubric AI] Mode: Text input');
         } else {
             // 图片模式
-            userPrompt = '请根据图片中的参考答案生成结构化评分细则 JSON。';
+            userPrompt = `${contextPrompt}请根据图片中的参考答案生成结构化评分细则 JSON。`;
             if (questionImage) {
                 images.push({ base64: questionImage, label: '【试题图片】' });
             }
@@ -165,6 +183,15 @@ ${answerText}
         // 如果提供了 questionId,覆盖
         if (questionId) {
             rubric.metadata.questionId = questionId;
+        }
+        if (subject) {
+            rubric.metadata.subject = subject;
+        }
+        if (questionType) {
+            rubric.metadata.questionType = questionType;
+        }
+        if (examName) {
+            rubric.metadata.examName = examName;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

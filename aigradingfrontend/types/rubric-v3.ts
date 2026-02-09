@@ -85,3 +85,20 @@ export interface RubricJSONV3 {
     createdAt: string;
     updatedAt: string;
 }
+
+export function isStrategyType(value: unknown): value is StrategyType {
+    return value === 'point_accumulation' || value === 'sequential_logic' || value === 'rubric_matrix';
+}
+
+export function isRubricJSONV3(value: unknown): value is RubricJSONV3 {
+    if (!value || typeof value !== 'object') return false;
+
+    const candidate = value as Partial<RubricJSONV3>;
+    if (candidate.version !== '3.0') return false;
+    if (!candidate.metadata || typeof candidate.metadata !== 'object') return false;
+    if (!isStrategyType(candidate.strategyType)) return false;
+    if (!candidate.content || typeof candidate.content !== 'object') return false;
+    if (typeof candidate.createdAt !== 'string' || typeof candidate.updatedAt !== 'string') return false;
+
+    return true;
+}

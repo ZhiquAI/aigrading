@@ -1,10 +1,30 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Check, AlertTriangle, RefreshCw, Plus, Pencil, Trash2, X,
-    Download, Upload
+    AlertCircle,
+    ArrowLeft,
+    Download,
+    Plus,
+    RefreshCw,
+    Save,
+    Trash2,
+    Upload
 } from 'lucide-react';
 import { coerceRubricToV3 } from '@/utils/rubric-convert';
-import type { RubricJSONV3, RubricPoint } from '@/types/rubric-v3';
+import type { RubricJSONV3 } from '@/types/rubric-v3';
+import { getStrategyLabel } from './rubric-config';
+import {
+    applyEditableItems,
+    createEmptyEditableItem,
+    getRubricTotalScore,
+    toEditableItems,
+    type EditableItem,
+    type RubricDensity
+} from './rubric-view-model';
+import {
+    validateRubricDraft,
+    validateRubricForTemplate,
+    type RubricValidationResult
+} from './rubric-validator';
 
 interface RubricResultViewProps {
     rubric: RubricJSONV3;
@@ -13,103 +33,19 @@ interface RubricResultViewProps {
     questionNo: string;
     onSave: (rubric: RubricJSONV3) => void;
     onRegenerate: () => void;
+    onSaveTemplate?: (rubric: RubricJSONV3) => Promise<void> | void;
     onImport?: (rubric: RubricJSONV3) => void;
     onExport?: (rubric: RubricJSONV3) => void;
+    defaultDensity?: RubricDensity;
+    onValidate?: (result: RubricValidationResult) => void;
 }
 
-interface EditableItem {
-    id: string;
-    content: string;
-    score: number;
-    keywords: string[];
-    questionSegment?: string;
-}
-
-function toEditableItems(rubric: RubricJSONV3): EditableItem[] {
-    if (rubric.strategyType === 'rubric_matrix') {
-        return rubric.content.dimensions.map((dim) => ({
-            id: dim.id,
-            content: dim.name,
-            score: dim.weight || Math.max(...dim.levels.map((level) => level.score)),
-            keywords: [],
-            questionSegment: '评分维度'
-        }));
-    }
-
-    const points = rubric.strategyType === 'sequential_logic' ? rubric.content.steps : rubric.content.points;
-    return points.map((point) => ({
-        id: point.id,
-        content: point.content,
-        score: point.score,
-        keywords: point.keywords || [],
-        questionSegment: point.questionSegment
-    }));
-}
-
-function upsertItems(rubric: RubricJSONV3, items: EditableItem[]): RubricJSONV3 {
-    const now = new Date().toISOString();
-    if (rubric.strategyType === 'rubric_matrix') {
-        return {
-            ...rubric,
-            content: {
-                ...rubric.content,
-                dimensions: items.map((item) => ({
-                    id: item.id,
-                    name: item.content,
-                    weight: item.score,
-                    levels: [
-                        {
-                            label: 'A',
-                            score: item.score,
-                            description: item.content
-                        }
-                    ]
-                }))
-            },
-            updatedAt: now
-        };
-    }
-
-    const mapped: RubricPoint[] = items.map((item, index) => ({
-        id: item.id || `${rubric.metadata.questionId}-${index + 1}`,
-        questionSegment: item.questionSegment || '',
-        content: item.content,
-        keywords: item.keywords,
-        score: item.score
-    }));
-
-    if (rubric.strategyType === 'sequential_logic') {
-        return {
-            ...rubric,
-            content: {
-                ...rubric.content,
-                steps: mapped.map((point, index) => ({ ...point, order: index + 1 }))
-            },
-            updatedAt: now
-        };
-    }
-
-    return {
-        ...rubric,
-        content: {
-            ...rubric.content,
-            points: mapped
-        },
-        updatedAt: now
-    };
-}
-
-function calcTotalScore(rubric: RubricJSONV3): number {
-    if (rubric.strategyType === 'rubric_matrix') {
-        return rubric.content.totalScore
-            || rubric.content.dimensions.reduce((sum, dim) => sum + (dim.weight || 0), 0);
-    }
-    if (rubric.strategyType === 'sequential_logic') {
-        return rubric.content.totalScore
-            || rubric.content.steps.reduce((sum, step) => sum + (step.score || 0), 0);
-    }
-    return rubric.content.totalScore
-        || rubric.content.points.reduce((sum, point) => sum + (point.score || 0), 0);
+function normalizeKeywords(raw: string): string[] {
+    const list = raw
+        .split(/[，,]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    return Array.from(new Set(list));
 }
 
 export default function RubricResultView({
@@ -119,36 +55,44 @@ export default function RubricResultView({
     questionNo,
     onSave,
     onRegenerate,
+    onSaveTemplate,
     onImport,
-    onExport
+    onExport,
+    onValidate
 }: RubricResultViewProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [draft, setDraft] = useState<RubricJSONV3>(rubric);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [newKeyword, setNewKeyword] = useState('');
+    const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
-    const editableItems = useMemo(() => toEditableItems(draft), [draft]);
-    const totalScore = useMemo(() => calcTotalScore(draft), [draft]);
+    useEffect(() => {
+        setDraft(rubric);
+    }, [rubric]);
 
-    const applyItems = (nextItems: EditableItem[]) => {
-        setDraft((prev) => upsertItems(prev, nextItems));
+    const items = useMemo(() => toEditableItems(draft), [draft]);
+    const totalScore = useMemo(() => getRubricTotalScore(draft), [draft]);
+    const validation = useMemo(() => validateRubricDraft(draft), [draft]);
+    const templateValidation = useMemo(() => validateRubricForTemplate(draft), [draft]);
+    const hasBlockingErrors = validation.errors.length > 0;
+    const hasTemplateBlockingErrors = templateValidation.errors.length > 0;
+
+    useEffect(() => {
+        onValidate?.(validation);
+    }, [onValidate, validation]);
+
+    const setItems = (updater: (prev: EditableItem[]) => EditableItem[]) => {
+        setDraft((prev) => applyEditableItems(prev, updater(toEditableItems(prev))));
     };
 
-    const updateItem = (itemId: string, patch: Partial<EditableItem>) => {
-        applyItems(editableItems.map((item) => (item.id === itemId ? { ...item, ...patch } : item)));
-    };
-
-    const deleteItem = (itemId: string) => {
-        applyItems(editableItems.filter((item) => item.id !== itemId));
+    const patchItem = (itemId: string, patch: Partial<EditableItem>) => {
+        setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, ...patch } : item)));
     };
 
     const addItem = () => {
-        const id = `${draft.metadata.questionId || 'Q'}-${editableItems.length + 1}`;
-        applyItems([
-            ...editableItems,
-            { id, content: '', score: 1, keywords: [], questionSegment: '' }
-        ]);
-        setEditingId(id);
+        setItems((prev) => [...prev, createEmptyEditableItem(draft.strategyType, draft.metadata.questionId, prev.length)]);
+    };
+
+    const deleteItem = (itemId: string) => {
+        setItems((prev) => prev.filter((item) => item.id !== itemId));
     };
 
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +110,7 @@ export default function RubricResultView({
                 window.alert('JSON 格式不正确，请导入 Rubric v3 数据');
             }
         };
+
         reader.readAsText(file);
         event.target.value = '';
     };
@@ -181,6 +126,7 @@ export default function RubricResultView({
             },
             exportedAt: new Date().toISOString()
         };
+
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -192,6 +138,13 @@ export default function RubricResultView({
     };
 
     const handleSave = () => {
+        const currentValidation = validateRubricDraft(draft);
+        onValidate?.(currentValidation);
+        if (currentValidation.errors.length > 0) {
+            window.alert(currentValidation.errors.join('\n'));
+            return;
+        }
+
         onSave({
             ...draft,
             metadata: {
@@ -203,8 +156,36 @@ export default function RubricResultView({
         });
     };
 
+    const handleSaveTemplate = async () => {
+        if (!onSaveTemplate) return;
+
+        const currentTemplateValidation = validateRubricForTemplate(draft);
+        if (currentTemplateValidation.errors.length > 0) {
+            window.alert(currentTemplateValidation.errors.join('\n'));
+            return;
+        }
+
+        try {
+            setIsSavingTemplate(true);
+            await onSaveTemplate({
+                ...draft,
+                metadata: {
+                    ...draft.metadata,
+                    examName: examName || draft.metadata.examName,
+                    subject: subject || draft.metadata.subject,
+                    questionId: draft.metadata.questionId || questionNo
+                }
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : '模板保存失败，请重试';
+            window.alert(message);
+        } finally {
+            setIsSavingTemplate(false);
+        }
+    };
+
     return (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex h-full flex-col bg-[#F5F4F1]">
             <input
                 type="file"
                 ref={fileInputRef}
@@ -213,215 +194,181 @@ export default function RubricResultView({
                 className="hidden"
             />
 
-            <header className="h-11 flex items-center justify-between px-4 border-b border-slate-100 shrink-0 bg-gradient-to-r from-indigo-50 to-violet-50">
-                <div className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                        #{questionNo || draft.metadata.questionId}
-                    </span>
-                    <h1 className="font-bold text-slate-800 text-sm truncate max-w-[180px]">
-                        {draft.metadata.title || `第${questionNo}题`}
+            <header className="sticky top-0 z-20 flex h-14 items-center border-b border-[#F0EFED] bg-white px-4">
+                <button
+                    onClick={onRegenerate}
+                    className="mr-2 flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#E5E4E1] bg-[#F5F4F1] text-[#4A4947]"
+                    aria-label="返回重修"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                </button>
+
+                <div className="min-w-0 flex-1">
+                    <h1 className="truncate text-[14px] font-black text-[#1A1918]">
+                        {subject || draft.metadata.subject || '历史'}评分细则
                     </h1>
+                    <p className="text-[9px] font-bold uppercase text-[#9C9B99]">Score Grading Rubric</p>
                 </div>
+
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="导入细则"
+                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600"
+                        aria-label="导入"
                     >
-                        <Upload className="w-4 h-4" />
+                        <Upload className="h-4 w-4" />
                     </button>
                     <button
                         onClick={handleExport}
-                        className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="导出细则"
+                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600"
+                        aria-label="导出"
                     >
-                        <Download className="w-4 h-4" />
+                        <Download className="h-4 w-4" />
                     </button>
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
-                <div className="p-4 bg-gradient-to-r from-indigo-50 to-violet-50 border-b border-indigo-100">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-indigo-600 font-medium">{examName || '未指定考试'}</p>
-                        <span className="text-[10px] text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
-                            第{questionNo || draft.metadata.questionId}题 · {subject || draft.metadata.subject || '未设学科'}
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                <section className="relative overflow-hidden rounded-2xl border border-[#E5E4E1] bg-white p-4 shadow-sm before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-500">
+                    <div className="flex items-center justify-between">
+                        <h2 className="flex items-center gap-2 text-[18px] font-black text-[#1A1918]">
+                            <span className="rounded bg-[#1A1918] px-2 py-0.5 text-[13px] text-white">
+                                #{questionNo || draft.metadata.questionId || '-'}
+                            </span>
+                            {draft.metadata.title || draft.metadata.questionType || '材料解析题'}
+                        </h2>
+                        <div className="text-right">
+                            <div className="text-[24px] font-black leading-none text-blue-500">{totalScore}</div>
+                            <div className="mt-1 text-[9px] font-bold uppercase tracking-wide text-[#9C9B99]">TOTAL SCORE</div>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                        <span className="rounded bg-[#F1F5F9] px-2 py-0.5 text-[9px] font-bold text-[#4A4947]">
+                            策略：{getStrategyLabel(draft.strategyType)}
                         </span>
                     </div>
-                    <h2 className="text-base font-bold text-slate-800">{draft.metadata.title || `第${questionNo}题`}</h2>
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-indigo-100/50">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-500">总分</span>
-                            <span className="text-lg font-bold text-indigo-600">{totalScore}</span>
+                </section>
+
+                <section className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[#4A4947]">
+                    <h3 className="text-[11px] font-extrabold">
+                        评分维度：{draft.metadata.questionType || draft.metadata.title || '建言献策'}
+                    </h3>
+                </section>
+
+                <section className="space-y-3">
+                    {items.length === 0 && (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center text-xs text-slate-500">
+                            暂无采分点，请先添加条目
                         </div>
-                        <div className="w-px h-4 bg-indigo-200" />
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-500">条目</span>
-                            <span className="text-lg font-bold text-slate-700">{editableItems.length}</span>
-                        </div>
-                    </div>
-                </div>
+                    )}
 
-                <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide">评分条目</h3>
-                        <button
-                            onClick={addItem}
-                            className="text-[10px] text-indigo-600 hover:underline flex items-center gap-1"
-                        >
-                            <Plus className="w-3 h-3" />
-                            添加条目
-                        </button>
-                    </div>
-
-                    {editableItems.map((item, index) => (
-                        <div
-                            key={item.id}
-                            className={`bg-white rounded-xl border overflow-hidden transition-colors ${editingId === item.id
-                                ? 'border-indigo-300 ring-2 ring-indigo-100'
-                                : 'border-slate-200 hover:border-indigo-200'
-                                }`}
-                        >
-                            <div className="p-3 flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-                                    <span className="text-sm font-bold text-indigo-600">{index + 1}</span>
-                                </div>
-
-                                <div className="flex-1 min-w-0 space-y-2">
-                                    {editingId === item.id ? (
-                                        <>
-                                            <textarea
-                                                value={item.content}
-                                                onChange={(e) => updateItem(item.id, { content: e.target.value })}
-                                                placeholder="输入条目内容..."
-                                                className="w-full p-2 text-xs border border-slate-200 rounded-lg outline-none resize-none focus:border-indigo-300"
-                                                rows={2}
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] text-slate-500">分值:</span>
-                                                <button
-                                                    onClick={() => updateItem(item.id, { score: Math.max(1, item.score - 1) })}
-                                                    className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
-                                                >-</button>
-                                                <span className="text-sm font-bold text-slate-800 w-6 text-center">{item.score}</span>
-                                                <button
-                                                    onClick={() => updateItem(item.id, { score: item.score + 1 })}
-                                                    className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
-                                                >+</button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-1">
-                                                {item.keywords.map((kw) => (
-                                                    <span key={`${item.id}-${kw}`} className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] rounded-lg border border-amber-200 flex items-center gap-1">
-                                                        {kw}
-                                                        <button onClick={() => updateItem(item.id, { keywords: item.keywords.filter((k) => k !== kw) })}>
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    value={newKeyword}
-                                                    onChange={(e) => setNewKeyword(e.target.value)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' && newKeyword.trim()) {
-                                                            updateItem(item.id, { keywords: [...item.keywords, newKeyword.trim()] });
-                                                            setNewKeyword('');
-                                                        }
-                                                    }}
-                                                    placeholder="添加关键词"
-                                                    className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:border-indigo-300 outline-none"
-                                                />
-                                                <button
-                                                    onClick={() => {
-                                                        if (!newKeyword.trim()) return;
-                                                        updateItem(item.id, { keywords: [...item.keywords, newKeyword.trim()] });
-                                                        setNewKeyword('');
-                                                    }}
-                                                    className="px-3 py-1.5 bg-indigo-500 text-white text-[10px] font-medium rounded-lg hover:bg-indigo-600"
-                                                >
-                                                    添加
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="flex items-start justify-between gap-2">
-                                                <p className="text-xs text-slate-700 leading-relaxed">
-                                                    {item.questionSegment && (
-                                                        <span className="font-medium text-indigo-700">{item.questionSegment}：</span>
-                                                    )}
-                                                    {item.content}
-                                                </p>
-                                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded shrink-0">
-                                                    {item.score}分
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-1 mt-2">
-                                                {item.keywords.map((kw) => (
-                                                    <span
-                                                        key={`${item.id}-${kw}`}
-                                                        className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] rounded border border-amber-200"
-                                                    >
-                                                        {kw}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                    {editingId === item.id ? (
-                                        <button
-                                            onClick={() => setEditingId(null)}
-                                            className="p-1 text-emerald-600 hover:text-emerald-700"
-                                        >
-                                            <Check className="w-4 h-4" />
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => setEditingId(item.id)}
-                                            className="p-1 text-slate-400 hover:text-slate-600"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </button>
-                                    )}
+                    {items.map((item, index) => (
+                        <article key={item.id} className="rounded-xl border border-[#E5E4E1] bg-white p-3.5">
+                            <div className="mb-2 flex items-center justify-between">
+                                <span className="rounded bg-[#F5F4F1] px-1.5 py-0.5 text-[10px] font-black text-[#9C9B99]">
+                                    {index + 1}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        value={item.score}
+                                        onChange={(event) => patchItem(item.id, { score: event.target.value })}
+                                        className="h-6 w-12 rounded border border-[#E5E4E1] bg-[#ECFDF5] px-1 text-center text-[10px] font-extrabold text-[#059669] outline-none focus:border-emerald-300"
+                                    />
+                                    <span className="rounded bg-[#ECFDF5] px-1.5 py-0.5 text-[10px] font-extrabold text-[#059669]">
+                                        P
+                                    </span>
                                     <button
                                         onClick={() => deleteItem(item.id)}
-                                        className="p-1 text-slate-400 hover:text-red-500"
+                                        className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                                        aria-label="删除条目"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                 </div>
                             </div>
-                        </div>
+
+                            <textarea
+                                value={item.content}
+                                onChange={(event) => patchItem(item.id, { content: event.target.value })}
+                                className="mb-2 w-full resize-none rounded-lg border border-[#E5E4E1] bg-white px-2.5 py-2 text-[13px] font-semibold leading-relaxed text-[#1A1918] outline-none focus:border-blue-300"
+                                rows={2}
+                                placeholder="填写采分点内容"
+                            />
+
+                            <input
+                                value={item.keywords.join(', ')}
+                                onChange={(event) => patchItem(item.id, { keywords: normalizeKeywords(event.target.value) })}
+                                className="mb-2 h-8 w-full rounded-lg border border-[#E5E4E1] bg-[#F8F9FA] px-2.5 text-[11px] font-semibold text-[#4A4947] outline-none focus:border-blue-300"
+                                placeholder="关键词，使用逗号分隔"
+                            />
+
+                            {item.keywords.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {item.keywords.map((keyword) => (
+                                        <span
+                                            key={`${item.id}-${keyword}`}
+                                            className="rounded border border-[#EEF2F6] bg-[#F8F9FA] px-1.5 py-0.5 text-[9px] font-semibold text-[#4A4947]"
+                                        >
+                                            {keyword}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </article>
                     ))}
-                </div>
+                </section>
+
+                <button
+                    onClick={addItem}
+                    className="flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white text-[11px] font-bold text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-700"
+                >
+                    <Plus className="h-3.5 w-3.5" />
+                    添加采分点
+                </button>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-white shrink-0 space-y-3">
-                <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <p className="text-[10px] text-amber-700">请检查内容、分值和关键词后再保存</p>
+            <footer className="border-t border-[#F0EFED] bg-white p-4">
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-[#FEF3C7] bg-[#FFFBEB] px-3 py-2">
+                    <AlertCircle className={`h-4 w-4 shrink-0 ${hasBlockingErrors ? 'text-red-500' : 'text-amber-500'}`} />
+                    <p className={`text-[10px] font-semibold ${hasBlockingErrors ? 'text-red-700' : 'text-[#92400E]'}`}>
+                        {hasBlockingErrors
+                            ? validation.errors[0]
+                            : '请核对手写识别与分值分配合理性'}
+                    </p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2.5">
                     <button
                         onClick={onRegenerate}
-                        className="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-1"
+                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E5E4E1] bg-[#F5F4F1] text-[13px] font-extrabold text-[#4A4947]"
                     >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        重新生成
+                        <RefreshCw className="h-4 w-4" />
+                        重修
                     </button>
                     <button
                         onClick={handleSave}
-                        className="flex-[2] py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-shadow flex items-center justify-center gap-2"
+                        disabled={hasBlockingErrors}
+                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-500 text-[13px] font-extrabold text-white shadow-[0_4px_10px_rgba(59,130,246,0.2)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                     >
-                        <Check className="w-4 h-4" />
-                        确认并保存
+                        <Save className="h-4 w-4" />
+                        确认保存
                     </button>
                 </div>
-            </div>
+
+                <button
+                    onClick={handleSaveTemplate}
+                    disabled={!onSaveTemplate || hasTemplateBlockingErrors || isSavingTemplate}
+                    className="mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#E5E4E1] bg-white text-[12px] font-extrabold text-[#4A4947] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    {isSavingTemplate ? '模板保存中...' : '另存为模板'}
+                </button>
+                {hasTemplateBlockingErrors && (
+                    <p className="mt-1.5 text-[10px] font-semibold text-[#B91C1C]">
+                        模板保存受限：{templateValidation.errors[0]}
+                    </p>
+                )}
+            </footer>
         </div>
     );
 }

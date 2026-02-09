@@ -16,7 +16,7 @@ import {
     ChevronDown,
     Zap
 } from 'lucide-react';
-import RubricView from '../views/RubricView';
+import RubricPanel from '../views/RubricPanel';
 import GradingViewV2 from '../views/GradingViewV2';
 import RecordsViewV2 from '../views/RecordsViewV2';
 import SettingsViewV2 from '../views/SettingsViewV2';
@@ -357,7 +357,7 @@ export default function ModernLayout() {
 
                 {/* Tab: Rubric (评分细则) */}
                 <div className={`page-container ${activeTab === Tab.Rubric ? 'flex' : 'hidden'} h-full flex-col`}>
-                    <RubricView />
+                    <RubricPanel />
                 </div>
 
                 {/* Tab: Grade (阅卷) */}
