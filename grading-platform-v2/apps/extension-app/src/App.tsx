@@ -58,6 +58,18 @@ const App = () => {
         <p>阶段 B-1：延续原有 UI，完成 Health / Exams / Rubric / Grading / Records / License / Settings 接入</p>
       </header>
 
+      <section className="context-strip">
+        <span>
+          <strong>当前题目:</strong> {questionKey || "-"}
+        </span>
+        <span>
+          <strong>当前考试:</strong> {examName || examId || "未选择"}
+        </span>
+        <span>
+          <strong>最近得分:</strong> {latestGrading ? `${latestGrading.score}/${latestGrading.maxScore}` : "暂无"}
+        </span>
+      </section>
+
       <div className="module-grid">
         <HealthPanel />
         <LicensePanel />

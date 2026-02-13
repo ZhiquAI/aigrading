@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { copyText } from "../../lib/clipboard";
 import {
   createRecordBatch,
   createSingleRecord,
@@ -337,6 +338,32 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
     await loadRecords(current + 1);
   };
 
+  const handleResetFilters = (): void => {
+    setPage("1");
+    setLimit("20");
+    setFilterQuestionKey(questionKey);
+    setFilterQuestionNo("");
+    setSuccessMessage("筛选条件已重置");
+    setErrorMessage(null);
+  };
+
+  const handleExportCurrentPage = async (): Promise<void> => {
+    if (!recordsData || recordsData.records.length === 0) {
+      setErrorMessage("当前页没有记录可导出");
+      return;
+    }
+
+    const payload = JSON.stringify(recordsData.records, null, 2);
+
+    try {
+      await copyText(payload);
+      setSuccessMessage("当前页记录 JSON 已复制到剪贴板");
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "导出失败");
+    }
+  };
+
   useEffect(() => {
     void loadRecords(1);
   }, []);
@@ -392,6 +419,9 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
       <div className="btn-row">
         <button type="button" className="secondary-btn" onClick={() => void loadRecords()} disabled={busy}>
           查询
+        </button>
+        <button type="button" className="secondary-btn" onClick={handleResetFilters} disabled={busy}>
+          重置筛选
         </button>
         <button type="button" className="secondary-btn" onClick={() => void handlePrevPage()} disabled={busy}>
           上一页
@@ -499,6 +529,9 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
       <div className="btn-row">
         <button type="button" className="primary-btn" onClick={() => void handleBatchCreate()} disabled={busy}>
           批量导入
+        </button>
+        <button type="button" className="secondary-btn" onClick={() => void handleExportCurrentPage()} disabled={busy}>
+          导出当前页 JSON
         </button>
       </div>
 

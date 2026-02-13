@@ -29,6 +29,19 @@ body {
   color: #475569;
 }
 
+.context-strip {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #1e3a8a;
+}
+
 .module-grid {
   margin-top: 20px;
   display: grid;
@@ -76,6 +89,13 @@ body {
 .info-grid code {
   font-size: 12px;
   color: #334155;
+}
+
+.inline-action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .label {
@@ -159,6 +179,12 @@ button:disabled {
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 12px;
+}
+
+.mini-btn {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
 }
 
 .success-text {

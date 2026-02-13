@@ -4,6 +4,7 @@ import { fetchHealthStatus, type HealthStatusDTO } from "../../lib/api";
 export const HealthPanel = () => {
   const [status, setStatus] = useState<HealthStatusDTO | null>(null);
   const [busy, setBusy] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadHealth = async (): Promise<void> => {
@@ -24,13 +25,37 @@ export const HealthPanel = () => {
     void loadHealth();
   }, []);
 
+  useEffect(() => {
+    if (!autoRefresh) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void loadHealth();
+    }, 10000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [autoRefresh]);
+
   return (
     <section className="card">
       <header className="card-header">
         <h2>Health</h2>
-        <button type="button" className="secondary-btn" onClick={() => void loadHealth()} disabled={busy}>
-          {busy ? "检查中..." : "刷新"}
-        </button>
+        <div className="btn-row">
+          <button type="button" className="secondary-btn" onClick={() => void loadHealth()} disabled={busy}>
+            {busy ? "检查中..." : "刷新"}
+          </button>
+          <button
+            type="button"
+            className={autoRefresh ? "primary-btn" : "secondary-btn"}
+            onClick={() => setAutoRefresh((current) => !current)}
+            disabled={busy}
+          >
+            {autoRefresh ? "自动刷新: 开" : "自动刷新: 关"}
+          </button>
+        </div>
       </header>
 
       <p className="hint">接口: /api/health</p>

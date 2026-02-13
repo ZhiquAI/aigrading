@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { copyText } from "../../lib/clipboard";
 import { createExam, fetchExams, type ExamSessionDTO } from "../../lib/api";
 
 type ExamsPanelProps = {
@@ -35,6 +36,7 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameC
   const [subject, setSubject] = useState("history");
   const [grade, setGrade] = useState("高二");
   const [description, setDescription] = useState("阶段性练习");
+  const [keyword, setKeyword] = useState("");
   const [exams, setExams] = useState<ExamSessionDTO[]>([]);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,6 +45,21 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameC
   const selectedExam = useMemo(() => {
     return exams.find((item) => item.id === selectedExamId) ?? null;
   }, [exams, selectedExamId]);
+
+  const filteredExams = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    if (!normalizedKeyword) {
+      return exams;
+    }
+
+    return exams.filter((item) => {
+      return (
+        item.name.toLowerCase().includes(normalizedKeyword) ||
+        (item.subject ?? "").toLowerCase().includes(normalizedKeyword) ||
+        (item.grade ?? "").toLowerCase().includes(normalizedKeyword)
+      );
+    });
+  }, [keyword, exams]);
 
   const resetMessage = () => {
     setErrorMessage(null);
@@ -121,6 +138,21 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameC
     }
   };
 
+  const handleCopyExamId = async (): Promise<void> => {
+    if (!selectedExam) {
+      setErrorMessage("当前未选中考试");
+      return;
+    }
+
+    try {
+      await copyText(selectedExam.id);
+      setSuccessMessage("考试 ID 已复制");
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "复制考试 ID 失败");
+    }
+  };
+
   return (
     <section className="card card-wide">
       <header className="card-header">
@@ -130,6 +162,17 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameC
 
       <div className="field-row">
         <div className="field-group">
+          <label htmlFor="exam-keyword">筛选关键词</label>
+          <input
+            id="exam-keyword"
+            type="text"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="名称/学科/年级"
+          />
+        </div>
+
+        <div className="field-group">
           <label htmlFor="exam-select">当前考试</label>
           <select
             id="exam-select"
@@ -137,7 +180,7 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameC
             onChange={(event) => handleSelectChange(event.target.value)}
           >
             <option value="">不绑定考试</option>
-            {exams.map((item) => (
+            {filteredExams.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
@@ -188,10 +231,15 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameC
         <button type="button" className="secondary-btn" onClick={() => void loadExams()} disabled={busy}>
           刷新列表
         </button>
+        <button type="button" className="secondary-btn" onClick={() => void handleCopyExamId()} disabled={busy}>
+          复制考试 ID
+        </button>
         <button type="button" className="primary-btn" onClick={() => void handleCreate()} disabled={busy}>
           新建考试
         </button>
       </div>
+
+      <p className="hint">当前显示 {filteredExams.length} / {exams.length} 条考试</p>
 
       {selectedExam ? (
         <div className="status-box">

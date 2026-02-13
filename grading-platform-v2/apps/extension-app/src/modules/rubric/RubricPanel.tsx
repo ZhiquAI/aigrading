@@ -52,6 +52,40 @@ const parseScore = (raw: string): number | undefined => {
   return parsed;
 };
 
+const EXAMPLE_RUBRIC = JSON.stringify(
+  {
+    version: "2.0",
+    scoringStrategy: "all",
+    answerPoints: [
+      {
+        id: "p1",
+        content: "准确概述事件背景与时间线",
+        keywords: ["背景", "时间线", "史实"],
+        score: 4
+      },
+      {
+        id: "p2",
+        content: "阐明核心原因并有因果联系",
+        keywords: ["原因", "因果", "逻辑"],
+        score: 3
+      },
+      {
+        id: "p3",
+        content: "说明影响并给出简要结论",
+        keywords: ["影响", "结论"],
+        score: 3
+      }
+    ],
+    gradingNotes: "先按要点命中给分，再结合表达完整性做小幅浮动。",
+    metadata: {
+      questionId: "Q1",
+      title: "示例评分细则"
+    }
+  },
+  null,
+  2
+);
+
 export const RubricPanel = ({
   questionKey,
   onQuestionKeyChange,
@@ -206,6 +240,22 @@ export const RubricPanel = ({
     }
   };
 
+  const handleFillExampleRubric = (): void => {
+    onRubricTextChange(EXAMPLE_RUBRIC);
+    setSuccessMessage("已填充示例 Rubric");
+    setErrorMessage(null);
+  };
+
+  const handleValidateRubric = (): void => {
+    try {
+      parseRubricInput(rubricText);
+      setSuccessMessage("Rubric 格式校验通过");
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Rubric 格式校验失败");
+    }
+  };
+
   return (
     <section className="card card-wide">
       <header className="card-header">
@@ -299,6 +349,12 @@ export const RubricPanel = ({
       </div>
 
       <div className="btn-row">
+        <button type="button" className="secondary-btn" onClick={handleFillExampleRubric} disabled={busy}>
+          填充示例
+        </button>
+        <button type="button" className="secondary-btn" onClick={handleValidateRubric} disabled={busy}>
+          校验格式
+        </button>
         <button type="button" className="secondary-btn" onClick={() => void handleGenerate()} disabled={busy}>
           生成草稿
         </button>

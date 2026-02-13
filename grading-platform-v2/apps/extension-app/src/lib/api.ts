@@ -289,6 +289,27 @@ export const fetchSettingByKey = async (key: string): Promise<SettingEntryDTO | 
   return null;
 };
 
+export const fetchSettingsList = async (): Promise<SettingEntryDTO[]> => {
+  const data = await requestJson<SettingEntryDTO[] | SettingEntryDTO | null>(
+    "/api/v2/settings",
+    {
+      method: "GET",
+      headers: buildHeaders()
+    },
+    "读取设置列表失败"
+  );
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data) {
+    return [data];
+  }
+
+  return [];
+};
+
 export const upsertSettingByKey = async (key: string, value: unknown): Promise<SettingEntryDTO> => {
   return requestJson<SettingEntryDTO>(
     "/api/v2/settings",

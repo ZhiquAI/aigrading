@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { copyText } from "../../lib/clipboard";
 import {
   evaluateGrading,
   fetchQuotaStatus,
@@ -36,6 +37,27 @@ const parseRubricInput = (raw: string): unknown => {
   }
 };
 
+const validateRubricShape = (rubric: unknown): void => {
+  if (!rubric || typeof rubric !== "object") {
+    return;
+  }
+
+  const rubricObj = rubric as {
+    answerPoints?: unknown[];
+    content?: { points?: unknown[] };
+  };
+
+  const points = Array.isArray(rubricObj.answerPoints)
+    ? rubricObj.answerPoints
+    : Array.isArray(rubricObj.content?.points)
+      ? rubricObj.content?.points
+      : null;
+
+  if (!points || points.length === 0) {
+    throw new Error("Rubric 缺少 answerPoints/content.points");
+  }
+};
+
 export const GradingPanel = ({ questionKey, examId, examName, rubricText, onGradingCompleted }: GradingPanelProps) => {
   const [studentName, setStudentName] = useState("张三");
   const [questionNo, setQuestionNo] = useState("");
@@ -43,6 +65,7 @@ export const GradingPanel = ({ questionKey, examId, examName, rubricText, onGrad
   const [imageBase64, setImageBase64] = useState("");
   const [quota, setQuota] = useState<QuotaStatusDTO | null>(null);
   const [result, setResult] = useState<GradingEvaluateResultDTO | null>(null);
+  const [lastDurationMs, setLastDurationMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -86,10 +109,14 @@ export const GradingPanel = ({ questionKey, examId, examName, rubricText, onGrad
   const handleEvaluate = async (): Promise<void> => {
     setBusy(true);
     resetMessage();
+    const startedAt = performance.now();
 
     try {
+      const parsedRubric = parseRubricInput(rubricText);
+      validateRubricShape(parsedRubric);
+
       const gradingResult = await evaluateGrading({
-        rubric: parseRubricInput(rubricText),
+        rubric: parsedRubric,
         studentName: studentName.trim() || undefined,
         questionNo: questionNo.trim() || undefined,
         questionKey: questionKey.trim() || undefined,
@@ -116,10 +143,26 @@ export const GradingPanel = ({ questionKey, examId, examName, rubricText, onGrad
         questionKey: questionKey.trim(),
         examNo: examNo.trim() || examName.trim() || examId.trim()
       });
+      setLastDurationMs(Math.round(performance.now() - startedAt));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "批改失败");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleCopyResult = async (): Promise<void> => {
+    if (!result) {
+      setErrorMessage("当前没有评分结果可复制");
+      return;
+    }
+
+    try {
+      await copyText(JSON.stringify(result, null, 2));
+      setSuccessMessage("评分结果 JSON 已复制");
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "复制评分结果失败");
     }
   };
 
@@ -181,7 +224,12 @@ export const GradingPanel = ({ questionKey, examId, examName, rubricText, onGrad
         <button type="button" className="primary-btn" onClick={() => void handleEvaluate()} disabled={busy}>
           开始批改
         </button>
+        <button type="button" className="secondary-btn" onClick={() => void handleCopyResult()} disabled={busy || !result}>
+          复制结果 JSON
+        </button>
       </div>
+
+      {lastDurationMs !== null ? <p className="hint">最近批改耗时：{lastDurationMs} ms</p> : null}
 
       {quota ? (
         <div className="status-box">

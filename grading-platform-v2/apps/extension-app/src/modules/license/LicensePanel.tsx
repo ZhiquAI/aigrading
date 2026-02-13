@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { activateLicenseCode, fetchLicenseStatus, type LicenseStatusData } from "../../lib/api";
+import { copyText } from "../../lib/clipboard";
 import { getActivationCode, getDeviceId, setActivationCode } from "../../lib/device";
 
 const maskCode = (code: string | null): string => {
@@ -66,6 +67,23 @@ export const LicensePanel = () => {
     }
   };
 
+  const handleClearActivationCode = (): void => {
+    setActivationCode(null);
+    setInputCode("");
+    setSuccessMessage("已清空本地激活码");
+    setErrorMessage(null);
+  };
+
+  const handleCopyDeviceId = async (): Promise<void> => {
+    try {
+      await copyText(deviceId);
+      setSuccessMessage("设备 ID 已复制");
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "复制失败");
+    }
+  };
+
   return (
     <section className="card">
       <header className="card-header">
@@ -78,7 +96,12 @@ export const LicensePanel = () => {
       <div className="info-grid">
         <div>
           <span className="label">设备 ID</span>
-          <code>{deviceId}</code>
+          <div className="inline-action-row">
+            <code>{deviceId}</code>
+            <button type="button" className="secondary-btn mini-btn" onClick={() => void handleCopyDeviceId()}>
+              复制
+            </button>
+          </div>
         </div>
         <div>
           <span className="label">本地激活码</span>
@@ -97,9 +120,14 @@ export const LicensePanel = () => {
         />
       </div>
 
-      <button type="button" className="primary-btn" onClick={() => void handleActivate()} disabled={activating}>
-        {activating ? "激活中..." : "激活并写入本地"}
-      </button>
+      <div className="btn-row">
+        <button type="button" className="primary-btn" onClick={() => void handleActivate()} disabled={activating}>
+          {activating ? "激活中..." : "激活并写入本地"}
+        </button>
+        <button type="button" className="danger-btn" onClick={handleClearActivationCode} disabled={activating}>
+          清空本地激活码
+        </button>
+      </div>
 
       {successMessage ? <p className="success-text">{successMessage}</p> : null}
       {errorMessage ? <p className="error-text">{errorMessage}</p> : null}

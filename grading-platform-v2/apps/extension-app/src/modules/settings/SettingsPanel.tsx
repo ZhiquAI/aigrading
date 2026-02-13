@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteSettingByKey, fetchSettingByKey, upsertSettingByKey } from "../../lib/api";
+import { deleteSettingByKey, fetchSettingByKey, fetchSettingsList, upsertSettingByKey } from "../../lib/api";
 
 const parseValue = (rawValue: string): unknown => {
   const trimmed = rawValue.trim();
@@ -30,9 +30,17 @@ export const SettingsPanel = () => {
   const [key, setKey] = useState("model.provider");
   const [value, setValue] = useState("openrouter");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [settingsList, setSettingsList] = useState<Array<{ key: string; value: string; updatedAt: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const applyPreset = (presetKey: string, presetValue: string): void => {
+    setKey(presetKey);
+    setValue(presetValue);
+    setErrorMessage(null);
+    setSuccessMessage(`已填充预设：${presetKey}`);
+  };
 
   const handleLoad = async (): Promise<void> => {
     if (!key.trim()) {
@@ -107,6 +115,22 @@ export const SettingsPanel = () => {
     }
   };
 
+  const handleLoadAll = async (): Promise<void> => {
+    setLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const items = await fetchSettingsList();
+      setSettingsList(items);
+      setSuccessMessage(`已加载 ${items.length} 条设置`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "读取设置列表失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="card">
       <header className="card-header">
@@ -137,8 +161,38 @@ export const SettingsPanel = () => {
       </div>
 
       <div className="btn-row">
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => applyPreset("model.provider", "\"openrouter\"")}
+          disabled={loading}
+        >
+          预设: Provider
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => applyPreset("grading.mode", "\"balanced\"")}
+          disabled={loading}
+        >
+          预设: Grading Mode
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => applyPreset("ui.language", "\"zh-CN\"")}
+          disabled={loading}
+        >
+          预设: Language
+        </button>
+      </div>
+
+      <div className="btn-row">
         <button type="button" className="secondary-btn" onClick={() => void handleLoad()} disabled={loading}>
           读取
+        </button>
+        <button type="button" className="secondary-btn" onClick={() => void handleLoadAll()} disabled={loading}>
+          读取全部
         </button>
         <button type="button" className="primary-btn" onClick={() => void handleSave()} disabled={loading}>
           保存
@@ -151,6 +205,13 @@ export const SettingsPanel = () => {
       {updatedAt ? <p className="hint">最近更新时间：{updatedAt}</p> : null}
       {successMessage ? <p className="success-text">{successMessage}</p> : null}
       {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
+
+      {settingsList.length > 0 ? (
+        <div className="status-box">
+          <h3>设置列表</h3>
+          <pre>{JSON.stringify(settingsList, null, 2)}</pre>
+        </div>
+      ) : null}
     </section>
   );
 };
