@@ -13,12 +13,6 @@
   - supports `idempotency-key`
 - Upgraded `GET /api/v2/licenses/status`
   - reads real status from DB and binding records
-- Added compatibility route:
-  - `POST /api/activation/verify` (legacy request/response shape)
-  - `GET /api/activation/verify` (legacy status shape)
-- Added compatibility routes:
-  - `GET/PUT/DELETE /api/sync/config` -> scope-based setting storage
-  - `GET/POST/DELETE /api/sync/records` -> scope-based records storage
 - Added Prisma model:
   - `RubricDocument` (`@@unique([scopeKey, questionKey])`)
 - Added v2 resources:
@@ -26,19 +20,15 @@
   - `GET /api/v2/records`
   - `POST /api/v2/records/batch`
   - `DELETE /api/v2/records/:id`
-  - `POST/DELETE /api/v2/records` (compat mode)
+  - `POST/DELETE /api/v2/records`
   - `GET/POST/DELETE /api/v2/rubrics`
   - `POST /api/v2/rubrics/generate`
   - `POST /api/v2/rubrics/standardize`
   - `GET/POST /api/v2/gradings/evaluate`
   - `GET/POST /api/v2/exams`
-- Added compatibility routes:
-  - `GET/POST/DELETE /api/rubric`
-  - `POST /api/ai/rubric`
-  - `GET/POST /api/ai/grade`
-  - `GET/POST /api/exams`
 - Added seed data for test activation codes.
-- Added integration tests covering v2 and legacy license/settings/records/rubric/grading routes.
+- Added integration tests covering v2 license/settings/records/rubric/grading routes.
+- Removed legacy compatibility routes from `grading-platform-v2` to enforce v2-only API boundary.
 
 ## Local Runbook
 
@@ -58,5 +48,4 @@ pnpm dev
 - [ ] Device limit blocks activation with clear error
 - [ ] Disabled or expired code returns proper status
 - [ ] `status` endpoint reflects DB truth
-- [x] Legacy route compatibility is verified in CI tests
-- [x] Rubric and grading compatibility routes are verified
+- [x] v2-only routes are verified in CI tests

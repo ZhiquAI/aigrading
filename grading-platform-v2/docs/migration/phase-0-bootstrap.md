@@ -16,5 +16,4 @@
 - [x] Add database schema for `LicenseCode` and `LicenseBinding`
 - [x] Add basic unit tests for scope resolver and contracts
 - [x] Add integration tests for license routes
-- [x] Implement compatibility forwarding from legacy endpoints to `api/v2/licenses/*`
-- [x] Add compatibility forwarding for `/api/sync/config` and `/api/sync/records`
+- [x] Confirm v2-only API baseline (`/api/v2/*`) and keep legacy system isolated in old project directories

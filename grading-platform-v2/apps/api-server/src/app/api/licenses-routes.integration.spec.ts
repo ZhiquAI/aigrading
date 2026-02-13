@@ -29,6 +29,7 @@ let v2ActivatePost: RouteHandler;
 let v2StatusGet: RouteHandler;
 let v2SettingsGet: RouteHandler;
 let v2SettingsPut: RouteHandler;
+let v2SettingsDelete: RouteHandler;
 let v2RecordsGet: RouteHandler;
 let v2RecordsPost: RouteHandler;
 let v2RecordsDelete: RouteHandler;
@@ -43,21 +44,6 @@ let v2RubricsGeneratePost: RouteHandler;
 let v2RubricsStandardizePost: RouteHandler;
 let v2GradingEvaluatePost: RouteHandler;
 let v2GradingEvaluateGet: RouteHandler;
-let legacyActivatePost: RouteHandler;
-let legacyActivateGet: RouteHandler;
-let legacySyncConfigGet: RouteHandler;
-let legacySyncConfigPut: RouteHandler;
-let legacySyncRecordsGet: RouteHandler;
-let legacySyncRecordsPost: RouteHandler;
-let legacySyncRecordsDelete: RouteHandler;
-let legacyExamsGet: RouteHandler;
-let legacyExamsPost: RouteHandler;
-let legacyRubricGet: RouteHandler;
-let legacyRubricPost: RouteHandler;
-let legacyRubricDelete: RouteHandler;
-let legacyAiRubricPost: RouteHandler;
-let legacyAiGradePost: RouteHandler;
-let legacyAiGradeGet: RouteHandler;
 
 const seedCodes = async (): Promise<void> => {
   await testPrisma.licenseCode.createMany({
@@ -111,18 +97,12 @@ beforeAll(async () => {
   const v2RubricsGenerateRoute = await import("@/app/api/v2/rubrics/generate/route");
   const v2RubricsStandardizeRoute = await import("@/app/api/v2/rubrics/standardize/route");
   const v2GradingEvaluateRoute = await import("@/app/api/v2/gradings/evaluate/route");
-  const legacyRoute = await import("@/app/api/activation/verify/route");
-  const legacyConfigRoute = await import("@/app/api/sync/config/route");
-  const legacyRecordsRoute = await import("@/app/api/sync/records/route");
-  const legacyExamsRoute = await import("@/app/api/exams/route");
-  const legacyRubricRoute = await import("@/app/api/rubric/route");
-  const legacyAiRubricRoute = await import("@/app/api/ai/rubric/route");
-  const legacyAiGradeRoute = await import("@/app/api/ai/grade/route");
 
   v2ActivatePost = v2ActivateRoute.POST;
   v2StatusGet = v2StatusRoute.GET;
   v2SettingsGet = v2SettingsRoute.GET;
   v2SettingsPut = v2SettingsRoute.PUT;
+  v2SettingsDelete = v2SettingsRoute.DELETE;
   v2RecordsGet = v2RecordsRoute.GET;
   v2RecordsPost = v2RecordsRoute.POST;
   v2RecordsDelete = v2RecordsRoute.DELETE;
@@ -137,21 +117,6 @@ beforeAll(async () => {
   v2RubricsStandardizePost = v2RubricsStandardizeRoute.POST;
   v2GradingEvaluatePost = v2GradingEvaluateRoute.POST;
   v2GradingEvaluateGet = v2GradingEvaluateRoute.GET;
-  legacyActivatePost = legacyRoute.POST;
-  legacyActivateGet = legacyRoute.GET;
-  legacySyncConfigGet = legacyConfigRoute.GET;
-  legacySyncConfigPut = legacyConfigRoute.PUT;
-  legacySyncRecordsGet = legacyRecordsRoute.GET;
-  legacySyncRecordsPost = legacyRecordsRoute.POST;
-  legacySyncRecordsDelete = legacyRecordsRoute.DELETE;
-  legacyExamsGet = legacyExamsRoute.GET;
-  legacyExamsPost = legacyExamsRoute.POST;
-  legacyRubricGet = legacyRubricRoute.GET;
-  legacyRubricPost = legacyRubricRoute.POST;
-  legacyRubricDelete = legacyRubricRoute.DELETE;
-  legacyAiRubricPost = legacyAiRubricRoute.POST;
-  legacyAiGradePost = legacyAiGradeRoute.POST;
-  legacyAiGradeGet = legacyAiGradeRoute.GET;
 });
 
 afterAll(async () => {
@@ -183,7 +148,6 @@ describe("v2 license routes", () => {
       ok: boolean;
       data: { identity: { scopeType: string }; remainingQuota: number };
     }>(activateResponse);
-
     expect(activateJson.ok).toBe(true);
     expect(activateJson.data.identity.scopeType).toBe("activation");
     expect(activateJson.data.remainingQuota).toBe(300);
@@ -201,7 +165,6 @@ describe("v2 license routes", () => {
       ok: boolean;
       data: { licenseStatus: string; remainingQuota: number };
     }>(statusResponse);
-
     expect(statusJson.ok).toBe(true);
     expect(statusJson.data.licenseStatus).toBe("active");
     expect(statusJson.data.remainingQuota).toBe(300);
@@ -239,7 +202,6 @@ describe("v2 license routes", () => {
       ok: boolean;
       error: { code: string };
     }>(secondDeviceResponse);
-
     expect(conflictJson.ok).toBe(false);
     expect(conflictJson.error.code).toBe("DEVICE_LIMIT_REACHED");
   });
@@ -278,62 +240,19 @@ describe("v2 license routes", () => {
       ok: boolean;
       error: { code: string };
     }>(conflictResponse);
-
     expect(conflictJson.ok).toBe(false);
     expect(conflictJson.error.code).toBe("IDEMPOTENCY_CONFLICT");
   });
 });
 
-describe("legacy activation compatibility route", () => {
-  it("keeps legacy success shape for POST and GET", async () => {
-    const legacyPostResponse = await legacyActivatePost(
-      new Request("http://localhost/api/activation/verify", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          code: "BASIC-AAAA-BBBB-CCCC",
-          deviceId: "legacy-device"
-        })
-      })
-    );
-
-    expect(legacyPostResponse.status).toBe(200);
-    const legacyPostJson = await parseJson<{
-      success: boolean;
-      data: { remainingQuota: number; totalQuota: number };
-    }>(legacyPostResponse);
-
-    expect(legacyPostJson.success).toBe(true);
-    expect(legacyPostJson.data.remainingQuota).toBe(1000);
-    expect(legacyPostJson.data.totalQuota).toBe(1000);
-
-    const legacyGetResponse = await legacyActivateGet(
-      new Request("http://localhost/api/activation/verify?deviceId=legacy-device")
-    );
-
-    expect(legacyGetResponse.status).toBe(200);
-    const legacyGetJson = await parseJson<{
-      success: boolean;
-      data: { code: string; isPaid: boolean; quota: number };
-    }>(legacyGetResponse);
-
-    expect(legacyGetJson.success).toBe(true);
-    expect(legacyGetJson.data.code).toBe("BASIC-AAAA-BBBB-CCCC");
-    expect(legacyGetJson.data.isPaid).toBe(true);
-    expect(legacyGetJson.data.quota).toBe(1000);
-  });
-});
-
-describe("settings compatibility and v2 routes", () => {
-  it("supports v2 settings upsert/get and legacy sync config shape", async () => {
-    const v2Put = await v2SettingsPut(
+describe("v2 settings routes", () => {
+  it("supports setting upsert/get/delete", async () => {
+    const putResponse = await v2SettingsPut(
       new Request("http://localhost/api/v2/settings", {
         method: "PUT",
         headers: {
           "content-type": "application/json",
-          "x-device-id": "device-settings"
+          "x-device-id": "settings-device"
         },
         body: JSON.stringify({
           key: "model.provider",
@@ -342,69 +261,63 @@ describe("settings compatibility and v2 routes", () => {
       })
     );
 
-    expect(v2Put.status).toBe(200);
-    const v2PutJson = await parseJson<{
+    expect(putResponse.status).toBe(200);
+    const putJson = await parseJson<{
       ok: boolean;
       data: { key: string; value: string };
-    }>(v2Put);
-    expect(v2PutJson.ok).toBe(true);
-    expect(v2PutJson.data.key).toBe("model.provider");
-    expect(v2PutJson.data.value).toBe("openrouter");
+    }>(putResponse);
+    expect(putJson.ok).toBe(true);
+    expect(putJson.data.key).toBe("model.provider");
+    expect(putJson.data.value).toBe("openrouter");
 
-    const v2Get = await v2SettingsGet(
+    const getResponse = await v2SettingsGet(
       new Request("http://localhost/api/v2/settings?key=model.provider", {
         headers: {
-          "x-device-id": "device-settings"
+          "x-device-id": "settings-device"
         }
       })
     );
-    expect(v2Get.status).toBe(200);
 
-    const legacyPut = await legacySyncConfigPut(
-      new Request("http://localhost/api/sync/config", {
-        method: "PUT",
+    expect(getResponse.status).toBe(200);
+    const getJson = await parseJson<{
+      ok: boolean;
+      data: { key: string; value: string } | null;
+    }>(getResponse);
+    expect(getJson.ok).toBe(true);
+    expect(getJson.data?.key).toBe("model.provider");
+    expect(getJson.data?.value).toBe("openrouter");
+
+    const deleteResponse = await v2SettingsDelete(
+      new Request("http://localhost/api/v2/settings?key=model.provider", {
+        method: "DELETE",
         headers: {
-          "content-type": "application/json",
-          "x-device-id": "device-settings"
-        },
-        body: JSON.stringify({
-          key: "grading.mode",
-          value: "strict"
-        })
-      })
-    );
-
-    expect(legacyPut.status).toBe(200);
-    const legacyPutJson = await parseJson<{
-      success: boolean;
-      data: { key: string; value: string };
-    }>(legacyPut);
-    expect(legacyPutJson.success).toBe(true);
-    expect(legacyPutJson.data.key).toBe("grading.mode");
-    expect(legacyPutJson.data.value).toBe("strict");
-
-    const legacyGet = await legacySyncConfigGet(
-      new Request("http://localhost/api/sync/config?key=grading.mode", {
-        headers: {
-          "x-device-id": "device-settings"
+          "x-device-id": "settings-device"
         }
       })
     );
-    expect(legacyGet.status).toBe(200);
-    const legacyGetJson = await parseJson<{
-      success: boolean;
-      data: { key: string; value: string };
-    }>(legacyGet);
-    expect(legacyGetJson.success).toBe(true);
-    expect(legacyGetJson.data.key).toBe("grading.mode");
-    expect(legacyGetJson.data.value).toBe("strict");
+    expect(deleteResponse.status).toBe(200);
+
+    const getAfterDelete = await v2SettingsGet(
+      new Request("http://localhost/api/v2/settings?key=model.provider", {
+        headers: {
+          "x-device-id": "settings-device"
+        }
+      })
+    );
+    expect(getAfterDelete.status).toBe(200);
+    const getAfterDeleteJson = await parseJson<{
+      ok: boolean;
+      data: null;
+    }>(getAfterDelete);
+    expect(getAfterDeleteJson.ok).toBe(true);
+    expect(getAfterDeleteJson.data).toBeNull();
   });
 });
 
-describe("exams compatibility and v2 routes", () => {
-  it("supports create/list for v2 and legacy shapes", async () => {
-    const legacyPost = await legacyExamsPost(
-      new Request("http://localhost/api/exams", {
+describe("v2 exams routes", () => {
+  it("supports create/list", async () => {
+    const createOne = await v2ExamsPost(
+      new Request("http://localhost/api/v2/exams", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -417,17 +330,9 @@ describe("exams compatibility and v2 routes", () => {
         })
       })
     );
+    expect(createOne.status).toBe(201);
 
-    expect(legacyPost.status).toBe(200);
-    const legacyPostJson = await parseJson<{
-      success: boolean;
-      exam: { name: string; subject: string | null };
-    }>(legacyPost);
-    expect(legacyPostJson.success).toBe(true);
-    expect(legacyPostJson.exam.name).toBe("高三二模");
-    expect(legacyPostJson.exam.subject).toBe("history");
-
-    const v2Post = await v2ExamsPost(
+    const createTwo = await v2ExamsPost(
       new Request("http://localhost/api/v2/exams", {
         method: "POST",
         headers: {
@@ -442,67 +347,30 @@ describe("exams compatibility and v2 routes", () => {
         })
       })
     );
+    expect(createTwo.status).toBe(201);
 
-    expect(v2Post.status).toBe(201);
-    const v2PostJson = await parseJson<{
-      ok: boolean;
-      data: { name: string; grade: string | null };
-    }>(v2Post);
-    expect(v2PostJson.ok).toBe(true);
-    expect(v2PostJson.data.name).toBe("高三三模");
-    expect(v2PostJson.data.grade).toBe("高三");
-
-    const legacyGet = await legacyExamsGet(
-      new Request("http://localhost/api/exams", {
-        headers: {
-          "x-device-id": "exam-device"
-        }
-      })
-    );
-
-    expect(legacyGet.status).toBe(200);
-    const legacyGetJson = await parseJson<{
-      success: boolean;
-      exams: Array<{ name: string }>;
-    }>(legacyGet);
-    expect(legacyGetJson.success).toBe(true);
-    expect(legacyGetJson.exams).toHaveLength(2);
-    expect(legacyGetJson.exams.at(0)?.name).toBe("高三三模");
-
-    const v2Get = await v2ExamsGet(
+    const listResponse = await v2ExamsGet(
       new Request("http://localhost/api/v2/exams", {
         headers: {
           "x-device-id": "exam-device"
         }
       })
     );
+    expect(listResponse.status).toBe(200);
 
-    expect(v2Get.status).toBe(200);
-    const v2GetJson = await parseJson<{
+    const listJson = await parseJson<{
       ok: boolean;
       data: Array<{ name: string }>;
-    }>(v2Get);
-    expect(v2GetJson.ok).toBe(true);
-    expect(v2GetJson.data).toHaveLength(2);
-    expect(v2GetJson.data.at(1)?.name).toBe("高三二模");
+    }>(listResponse);
+    expect(listJson.ok).toBe(true);
+    expect(listJson.data).toHaveLength(2);
+    expect(listJson.data.map((item) => item.name)).toEqual(
+      expect.arrayContaining(["高三二模", "高三三模"])
+    );
   });
 
   it("returns validation error when exam name is missing", async () => {
-    const legacyPost = await legacyExamsPost(
-      new Request("http://localhost/api/exams", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-device-id": "exam-device"
-        },
-        body: JSON.stringify({
-          subject: "history"
-        })
-      })
-    );
-    expect(legacyPost.status).toBe(400);
-
-    const v2Post = await v2ExamsPost(
+    const response = await v2ExamsPost(
       new Request("http://localhost/api/v2/exams", {
         method: "POST",
         headers: {
@@ -514,19 +382,20 @@ describe("exams compatibility and v2 routes", () => {
         })
       })
     );
-    expect(v2Post.status).toBe(400);
+
+    expect(response.status).toBe(400);
   });
 });
 
-describe("records compatibility and v2 routes", () => {
-  it("supports batch create/list/delete and legacy sync records shape", async () => {
-    const v2BatchPost = await v2RecordsBatchPost(
+describe("v2 records routes", () => {
+  it("supports batch create/list/delete", async () => {
+    const batchPost = await v2RecordsBatchPost(
       new Request("http://localhost/api/v2/records/batch", {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
-          "x-device-id": "records-device-a"
+          "x-device-id": "records-device"
         },
         body: JSON.stringify({
           records: [
@@ -535,53 +404,21 @@ describe("records compatibility and v2 routes", () => {
               questionKey: "question-1",
               studentName: "Alice",
               score: 8,
-              maxScore: 10,
-              breakdown: [{ point: "史实", score: 4 }]
-            }
-          ]
-        })
-      })
-    );
-
-    expect(v2BatchPost.status).toBe(201);
-    const v2BatchPostJson = await parseJson<{
-      ok: boolean;
-      data: { created: number };
-    }>(v2BatchPost);
-    expect(v2BatchPostJson.ok).toBe(true);
-    expect(v2BatchPostJson.data.created).toBe(1);
-
-    // 兼容保留：仍支持 POST /api/v2/records
-    const v2CompatPost = await v2RecordsPost(
-      new Request("http://localhost/api/v2/records", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
-          "x-device-id": "records-device-a"
-        },
-        body: JSON.stringify({
-          records: [
-            {
-              questionNo: "Q1",
-              questionKey: "question-1",
-              studentName: "Carol",
-              score: 7,
               maxScore: 10
             }
           ]
         })
       })
     );
-    expect(v2CompatPost.status).toBe(201);
+    expect(batchPost.status).toBe(201);
 
-    const legacyPost = await legacySyncRecordsPost(
-      new Request("http://localhost/api/sync/records", {
+    const compatPost = await v2RecordsPost(
+      new Request("http://localhost/api/v2/records", {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
-          "x-device-id": "records-device-a"
+          "x-device-id": "records-device"
         },
         body: JSON.stringify({
           records: [
@@ -596,50 +433,27 @@ describe("records compatibility and v2 routes", () => {
         })
       })
     );
+    expect(compatPost.status).toBe(201);
 
-    expect(legacyPost.status).toBe(201);
-    const legacyPostJson = await parseJson<{
-      success: boolean;
-      data: { created: number };
-    }>(legacyPost);
-    expect(legacyPostJson.success).toBe(true);
-    expect(legacyPostJson.data.created).toBe(1);
-
-    const legacyGet = await legacySyncRecordsGet(
-      new Request("http://localhost/api/sync/records?page=1&limit=10", {
-        headers: {
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
-        }
-      })
-    );
-
-    expect(legacyGet.status).toBe(200);
-    const legacyGetJson = await parseJson<{
-      success: boolean;
-      data: { total: number; records: Array<{ studentName: string }> };
-    }>(legacyGet);
-    expect(legacyGetJson.success).toBe(true);
-    expect(legacyGetJson.data.total).toBe(3);
-
-    const v2Get = await v2RecordsGet(
+    const listResponse = await v2RecordsGet(
       new Request("http://localhost/api/v2/records?page=1&limit=10", {
         headers: {
           "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
         }
       })
     );
-    expect(v2Get.status).toBe(200);
-    const v2GetJson = await parseJson<{
+    expect(listResponse.status).toBe(200);
+    const listJson = await parseJson<{
       ok: boolean;
       data: { total: number; records: Array<{ id: string }> };
-    }>(v2Get);
-    expect(v2GetJson.ok).toBe(true);
-    expect(v2GetJson.data.total).toBe(3);
+    }>(listResponse);
+    expect(listJson.ok).toBe(true);
+    expect(listJson.data.total).toBe(2);
 
-    const firstRecordId = v2GetJson.data.records.at(0)?.id;
+    const firstRecordId = listJson.data.records.at(0)?.id;
     expect(firstRecordId).toBeTruthy();
 
-    const v2DeleteById = await v2RecordsDeleteById(
+    const deleteById = await v2RecordsDeleteById(
       new Request(`http://localhost/api/v2/records/${firstRecordId}`, {
         method: "DELETE",
         headers: {
@@ -650,15 +464,9 @@ describe("records compatibility and v2 routes", () => {
         params: { id: firstRecordId ?? "" }
       }
     );
-    expect(v2DeleteById.status).toBe(200);
-    const v2DeleteByIdJson = await parseJson<{
-      ok: boolean;
-      data: { deleted: number };
-    }>(v2DeleteById);
-    expect(v2DeleteByIdJson.ok).toBe(true);
-    expect(v2DeleteByIdJson.data.deleted).toBe(1);
+    expect(deleteById.status).toBe(200);
 
-    const v2Delete = await v2RecordsDelete(
+    const deleteByQuestion = await v2RecordsDelete(
       new Request("http://localhost/api/v2/records?questionKey=question-1", {
         method: "DELETE",
         headers: {
@@ -666,44 +474,19 @@ describe("records compatibility and v2 routes", () => {
         }
       })
     );
-    expect(v2Delete.status).toBe(200);
-
-    const v2GetAfterDelete = await v2RecordsGet(
-      new Request("http://localhost/api/v2/records?page=1&limit=10", {
-        headers: {
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
-        }
-      })
-    );
-    expect(v2GetAfterDelete.status).toBe(200);
-    const v2GetAfterDeleteJson = await parseJson<{
+    expect(deleteByQuestion.status).toBe(200);
+    const deleteByQuestionJson = await parseJson<{
       ok: boolean;
-      data: { total: number };
-    }>(v2GetAfterDelete);
-    expect(v2GetAfterDeleteJson.ok).toBe(true);
-    expect(v2GetAfterDeleteJson.data.total).toBe(0);
-
-    const legacyDelete = await legacySyncRecordsDelete(
-      new Request("http://localhost/api/sync/records?questionKey=question-1", {
-        method: "DELETE",
-        headers: {
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
-        }
-      })
-    );
-    expect(legacyDelete.status).toBe(200);
-    const legacyDeleteJson = await parseJson<{
-      success: boolean;
       data: { deleted: number };
-    }>(legacyDelete);
-    expect(legacyDeleteJson.success).toBe(true);
-    expect(legacyDeleteJson.data.deleted).toBe(0);
+    }>(deleteByQuestion);
+    expect(deleteByQuestionJson.ok).toBe(true);
+    expect(deleteByQuestionJson.data.deleted).toBe(1);
   });
 });
 
-describe("rubrics compatibility and v2 routes", () => {
-  it("supports v2 upsert and legacy conflict/delete behavior", async () => {
-    const v2Post = await v2RubricsPost(
+describe("v2 rubrics routes", () => {
+  it("supports upsert/get/delete", async () => {
+    const upsertResponse = await v2RubricsPost(
       new Request("http://localhost/api/v2/rubrics", {
         method: "POST",
         headers: {
@@ -728,94 +511,53 @@ describe("rubrics compatibility and v2 routes", () => {
         })
       })
     );
+    expect(upsertResponse.status).toBe(200);
 
-    expect(v2Post.status).toBe(200);
-    const v2PostJson = await parseJson<{
-      ok: boolean;
-      data: { questionKey: string; lifecycleStatus: string };
-    }>(v2Post);
-    expect(v2PostJson.ok).toBe(true);
-    expect(v2PostJson.data.questionKey).toBe("q-1");
-    expect(v2PostJson.data.lifecycleStatus).toBe("draft");
-
-    const legacyGet = await legacyRubricGet(
-      new Request("http://localhost/api/rubric?questionKey=q-1", {
-        headers: {
-          "x-device-id": "rubric-device"
-        }
-      })
-    );
-
-    expect(legacyGet.status).toBe(200);
-    const legacyGetJson = await parseJson<{
-      success: boolean;
-      rubric: { metadata: { questionId: string } };
-      lifecycleStatus: string;
-    }>(legacyGet);
-    expect(legacyGetJson.success).toBe(true);
-    expect(legacyGetJson.rubric.metadata.questionId).toBe("q-1");
-    expect(legacyGetJson.lifecycleStatus).toBe("draft");
-
-    const conflictPost = await legacyRubricPost(
-      new Request("http://localhost/api/rubric", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-device-id": "rubric-device"
-        },
-        body: JSON.stringify({
-          questionKey: "q-1",
-          rubric: {
-            version: "2.0",
-            metadata: {
-              questionId: "q-1",
-              title: "旧版稿"
-            },
-            answerPoints: [{ content: "要点", score: 10 }],
-            updatedAt: "2020-01-01T00:00:00.000Z"
-          }
-        })
-      })
-    );
-
-    expect(conflictPost.status).toBe(409);
-    const conflictJson = await parseJson<{
-      success: boolean;
-      code: string;
-    }>(conflictPost);
-    expect(conflictJson.success).toBe(false);
-    expect(conflictJson.code).toBe("CONFLICT");
-
-    const legacyDelete = await legacyRubricDelete(
-      new Request("http://localhost/api/rubric?questionKey=q-1", {
-        method: "DELETE",
-        headers: {
-          "x-device-id": "rubric-device"
-        }
-      })
-    );
-    expect(legacyDelete.status).toBe(200);
-
-    const v2Get = await v2RubricsGet(
+    const getResponse = await v2RubricsGet(
       new Request("http://localhost/api/v2/rubrics?questionKey=q-1", {
         headers: {
           "x-device-id": "rubric-device"
         }
       })
     );
-    expect(v2Get.status).toBe(200);
-    const v2GetJson = await parseJson<{
+    expect(getResponse.status).toBe(200);
+    const getJson = await parseJson<{
       ok: boolean;
-      data: unknown;
-    }>(v2Get);
-    expect(v2GetJson.ok).toBe(true);
-    expect(v2GetJson.data).toBeNull();
+      data: { rubric: { metadata: { questionId: string } }; lifecycleStatus: string } | null;
+    }>(getResponse);
+    expect(getJson.ok).toBe(true);
+    expect(getJson.data?.rubric.metadata.questionId).toBe("q-1");
+    expect(getJson.data?.lifecycleStatus).toBe("draft");
+
+    const deleteResponse = await v2RubricsDelete(
+      new Request("http://localhost/api/v2/rubrics?questionKey=q-1", {
+        method: "DELETE",
+        headers: {
+          "x-device-id": "rubric-device"
+        }
+      })
+    );
+    expect(deleteResponse.status).toBe(200);
+
+    const getAfterDelete = await v2RubricsGet(
+      new Request("http://localhost/api/v2/rubrics?questionKey=q-1", {
+        headers: {
+          "x-device-id": "rubric-device"
+        }
+      })
+    );
+    const getAfterDeleteJson = await parseJson<{
+      ok: boolean;
+      data: null;
+    }>(getAfterDelete);
+    expect(getAfterDeleteJson.ok).toBe(true);
+    expect(getAfterDeleteJson.data).toBeNull();
   });
 });
 
-describe("grading and ai-rubric compatibility routes", () => {
-  it("supports legacy ai/rubric and ai/grade with shared quota", async () => {
-    const v2Generated = await v2RubricsGeneratePost(
+describe("v2 grading and rubric generate routes", () => {
+  it("supports generate/evaluate with shared quota", async () => {
+    const generated = await v2RubricsGeneratePost(
       new Request("http://localhost/api/v2/rubrics/generate", {
         method: "POST",
         headers: {
@@ -829,45 +571,18 @@ describe("grading and ai-rubric compatibility routes", () => {
         })
       })
     );
-
-    expect(v2Generated.status).toBe(200);
-    const v2GeneratedJson = await parseJson<{
+    expect(generated.status).toBe(200);
+    const generatedJson = await parseJson<{
       ok: boolean;
       data: {
         rubric: unknown;
-        providerTrace: { mode: string; reason?: string };
+        providerTrace: { mode: string };
       };
-    }>(v2Generated);
-    expect(v2GeneratedJson.ok).toBe(true);
-    expect(v2GeneratedJson.data.providerTrace.mode).toBe("fallback");
+    }>(generated);
+    expect(generatedJson.ok).toBe(true);
+    expect(["ai", "fallback"]).toContain(generatedJson.data.providerTrace.mode);
 
-    const legacyGenerated = await legacyAiRubricPost(
-      new Request("http://localhost/api/ai/rubric", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          questionId: "Q2",
-          answerText: "第一点：史实准确\n第二点：逻辑完整",
-          subject: "history",
-          totalScore: 10
-        })
-      })
-    );
-
-    expect(legacyGenerated.status).toBe(200);
-    const legacyGeneratedJson = await parseJson<{
-      success: boolean;
-      data: {
-        rubric: unknown;
-        providerTrace: { mode: string; reason?: string };
-      };
-    }>(legacyGenerated);
-    expect(legacyGeneratedJson.success).toBe(true);
-    expect(legacyGeneratedJson.data.providerTrace.mode).toBe("fallback");
-
-    const v2Evaluate = await v2GradingEvaluatePost(
+    const evaluate = await v2GradingEvaluatePost(
       new Request("http://localhost/api/v2/gradings/evaluate", {
         method: "POST",
         headers: {
@@ -877,75 +592,27 @@ describe("grading and ai-rubric compatibility routes", () => {
         },
         body: JSON.stringify({
           imageBase64: "base64-placeholder",
-          rubric: v2GeneratedJson.data.rubric,
+          rubric: generatedJson.data.rubric,
           studentName: "Alice",
           questionNo: "Q2"
         })
       })
     );
-
-    expect(v2Evaluate.status).toBe(200);
-    const v2EvaluateJson = await parseJson<{
+    expect(evaluate.status).toBe(200);
+    const evaluateJson = await parseJson<{
       ok: boolean;
       data: {
         remaining: number;
         totalUsed: number;
-        providerTrace: { mode: string; reason?: string };
+        providerTrace: { mode: string };
       };
-    }>(v2Evaluate);
-    expect(v2EvaluateJson.ok).toBe(true);
-    expect(v2EvaluateJson.data.remaining).toBe(999);
-    expect(v2EvaluateJson.data.totalUsed).toBe(1);
-    expect(v2EvaluateJson.data.providerTrace.mode).toBe("fallback");
+    }>(evaluate);
+    expect(evaluateJson.ok).toBe(true);
+    expect(evaluateJson.data.remaining).toBe(999);
+    expect(evaluateJson.data.totalUsed).toBe(1);
+    expect(["ai", "fallback"]).toContain(evaluateJson.data.providerTrace.mode);
 
-    const legacyEvaluate = await legacyAiGradePost(
-      new Request("http://localhost/api/ai/grade", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
-          "x-device-id": "grade-device"
-        },
-        body: JSON.stringify({
-          imageBase64: "base64-placeholder",
-          rubric: legacyGeneratedJson.data.rubric,
-          studentName: "Bob",
-          questionNo: "Q2"
-        })
-      })
-    );
-
-    expect(legacyEvaluate.status).toBe(200);
-    const legacyEvaluateJson = await parseJson<{
-      success: boolean;
-      data: {
-        remaining: number;
-        providerTrace: { mode: string; reason?: string };
-      };
-    }>(legacyEvaluate);
-    expect(legacyEvaluateJson.success).toBe(true);
-    expect(legacyEvaluateJson.data.remaining).toBe(998);
-    expect(legacyEvaluateJson.data.providerTrace.mode).toBe("fallback");
-
-    const legacyQuota = await legacyAiGradeGet(
-      new Request("http://localhost/api/ai/grade", {
-        headers: {
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
-          "x-device-id": "grade-device"
-        }
-      })
-    );
-
-    expect(legacyQuota.status).toBe(200);
-    const legacyQuotaJson = await parseJson<{
-      success: boolean;
-      data: { quota: number; totalUsed: number };
-    }>(legacyQuota);
-    expect(legacyQuotaJson.success).toBe(true);
-    expect(legacyQuotaJson.data.quota).toBe(998);
-    expect(legacyQuotaJson.data.totalUsed).toBe(2);
-
-    const v2Quota = await v2GradingEvaluateGet(
+    const quotaResponse = await v2GradingEvaluateGet(
       new Request("http://localhost/api/v2/gradings/evaluate", {
         headers: {
           "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
@@ -953,43 +620,40 @@ describe("grading and ai-rubric compatibility routes", () => {
         }
       })
     );
-
-    expect(v2Quota.status).toBe(200);
-    const v2QuotaJson = await parseJson<{
+    expect(quotaResponse.status).toBe(200);
+    const quotaJson = await parseJson<{
       ok: boolean;
       data: { remaining: number; totalUsed: number };
-    }>(v2Quota);
-    expect(v2QuotaJson.ok).toBe(true);
-    expect(v2QuotaJson.data.remaining).toBe(998);
-    expect(v2QuotaJson.data.totalUsed).toBe(2);
+    }>(quotaResponse);
+    expect(quotaJson.ok).toBe(true);
+    expect(quotaJson.data.remaining).toBe(999);
+    expect(quotaJson.data.totalUsed).toBe(1);
   });
 });
 
-describe("rubric standardize v2 route", () => {
-  it("returns v2 standardize response shape", async () => {
-    const payload = {
-      rubric: "1. 史实准确（6分）\n2. 逻辑完整（4分）",
-      maxScore: 10
-    };
-
-    const v2Response = await v2RubricsStandardizePost(
+describe("v2 rubric standardize route", () => {
+  it("returns standardize response shape", async () => {
+    const response = await v2RubricsStandardizePost(
       new Request("http://localhost/api/v2/rubrics/standardize", {
         method: "POST",
         headers: {
           "content-type": "application/json"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          rubric: "1. 史实准确（6分）\n2. 逻辑完整（4分）",
+          maxScore: 10
+        })
       })
     );
+    expect(response.status).toBe(200);
 
-    expect(v2Response.status).toBe(200);
-    const v2Json = await parseJson<{
+    const json = await parseJson<{
       ok: boolean;
       data: { rubric: string; providerTrace: { mode: string } };
-    }>(v2Response);
-    expect(v2Json.ok).toBe(true);
-    expect(v2Json.data.rubric).toContain("## 总分: 10分");
-    expect(v2Json.data.rubric).toContain("| 分值 | 给分标准 | 常见错误及扣分 |");
-    expect(["ai", "fallback"]).toContain(v2Json.data.providerTrace.mode);
+    }>(response);
+    expect(json.ok).toBe(true);
+    expect(json.data.rubric).toContain("## 总分: 10分");
+    expect(json.data.rubric).toContain("| 分值 | 给分标准 | 常见错误及扣分 |");
+    expect(["ai", "fallback"]).toContain(json.data.providerTrace.mode);
   });
 });
