@@ -45,6 +45,13 @@ export type SettingEntryDTO = {
   updatedAt: string;
 };
 
+export type HealthStatusDTO = {
+  status: "ok" | "error";
+  timestamp: string;
+  uptimeSeconds?: number;
+  version?: string;
+};
+
 export type ExamSessionDTO = {
   id: string;
   name: string;
@@ -219,6 +226,34 @@ export const fetchLicenseStatus = async (): Promise<LicenseStatusData> => {
     },
     "获取授权状态失败"
   );
+};
+
+export const fetchHealthStatus = async (): Promise<HealthStatusDTO> => {
+  const response = await fetch(`${API_BASE_URL}/api/health`, {
+    method: "GET",
+    headers: buildHeaders()
+  });
+
+  if (!response.ok) {
+    throw new Error(`健康检查失败 (${response.status})`);
+  }
+
+  const payload = (await response.json()) as {
+    ok?: boolean;
+    service?: string;
+    timestamp?: string;
+    message?: string;
+  };
+
+  if (!payload.ok) {
+    throw new Error(payload.message ?? "健康检查失败");
+  }
+
+  return {
+    status: "ok",
+    timestamp: payload.timestamp ?? new Date().toISOString(),
+    version: payload.service
+  };
 };
 
 export const activateLicenseCode = async (activationCode: string): Promise<LicenseActivateData> => {
@@ -480,7 +515,7 @@ export const createRecordBatch = async (
   }
 
   return requestJson<{ created: number }>(
-    "/api/v2/records",
+    "/api/v2/records/batch",
     {
       method: "POST",
       headers: buildHeaders(extraHeaders),

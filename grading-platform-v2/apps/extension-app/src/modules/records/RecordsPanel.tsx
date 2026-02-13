@@ -12,6 +12,18 @@ import {
 
 type RecordsPanelProps = {
   questionKey: string;
+  examId: string;
+  examName: string;
+  latestGrading?: {
+    score: number;
+    maxScore: number;
+    comment: string;
+    breakdown: unknown;
+    studentName: string;
+    questionNo: string;
+    questionKey: string;
+    examNo: string;
+  } | null;
 };
 
 const parseScore = (raw: string, label: string): number => {
@@ -85,7 +97,7 @@ const formatDateTime = (iso: string): string => {
   return date.toLocaleString();
 };
 
-export const RecordsPanel = ({ questionKey }: RecordsPanelProps) => {
+export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: RecordsPanelProps) => {
   const [page, setPage] = useState("1");
   const [limit, setLimit] = useState("20");
   const [filterQuestionKey, setFilterQuestionKey] = useState(questionKey);
@@ -141,6 +153,26 @@ export const RecordsPanel = ({ questionKey }: RecordsPanelProps) => {
     }
   }, [questionKey]);
 
+  useEffect(() => {
+    if (!examNo.trim() && (examName.trim() || examId.trim())) {
+      setExamNo(examName.trim() || examId.trim());
+    }
+  }, [examId, examName]);
+
+  useEffect(() => {
+    if (!latestGrading) {
+      return;
+    }
+
+    setStudentName(latestGrading.studentName);
+    setNewQuestionNo(latestGrading.questionNo || latestGrading.questionKey || questionKey);
+    setExamNo(latestGrading.examNo || examName || examId);
+    setScore(String(latestGrading.score));
+    setMaxScore(String(latestGrading.maxScore));
+    setComment(latestGrading.comment ?? "");
+    setBreakdown(JSON.stringify(latestGrading.breakdown ?? "", null, 2));
+  }, [latestGrading, questionKey, examId, examName]);
+
   const resetMessage = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -192,6 +224,36 @@ export const RecordsPanel = ({ questionKey }: RecordsPanelProps) => {
       await loadRecords();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "新增记录失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateFromLatestGrading = async (): Promise<void> => {
+    if (!latestGrading) {
+      setErrorMessage("当前没有可写入的批改结果");
+      return;
+    }
+
+    setBusy(true);
+    resetMessage();
+
+    try {
+      const result = await createSingleRecord({
+        studentName: latestGrading.studentName,
+        questionNo: latestGrading.questionNo || undefined,
+        questionKey: latestGrading.questionKey || undefined,
+        examNo: latestGrading.examNo || undefined,
+        score: latestGrading.score,
+        maxScore: latestGrading.maxScore,
+        comment: latestGrading.comment || undefined,
+        breakdown: latestGrading.breakdown
+      });
+
+      setSuccessMessage(`已写入最近批改结果：${result.created} 条`);
+      await loadRecords();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "写入批改结果失败");
     } finally {
       setBusy(false);
     }
@@ -274,6 +336,10 @@ export const RecordsPanel = ({ questionKey }: RecordsPanelProps) => {
 
     await loadRecords(current + 1);
   };
+
+  useEffect(() => {
+    void loadRecords(1);
+  }, []);
 
   return (
     <section className="card card-wide">
@@ -398,6 +464,14 @@ export const RecordsPanel = ({ questionKey }: RecordsPanelProps) => {
       <div className="btn-row">
         <button type="button" className="primary-btn" onClick={() => void handleCreate()} disabled={busy}>
           新增记录
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => void handleCreateFromLatestGrading()}
+          disabled={busy || !latestGrading}
+        >
+          写入最近批改结果
         </button>
       </div>
 

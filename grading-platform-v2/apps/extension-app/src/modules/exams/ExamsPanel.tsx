@@ -4,6 +4,7 @@ import { createExam, fetchExams, type ExamSessionDTO } from "../../lib/api";
 type ExamsPanelProps = {
   selectedExamId: string;
   onSelectExamId: (examId: string) => void;
+  onSelectedExamNameChange?: (examName: string) => void;
 };
 
 const formatDateTime = (value: string): string => {
@@ -28,7 +29,7 @@ const toDateInputValue = (value: string | null): string => {
   return date.toISOString().slice(0, 10);
 };
 
-export const ExamsPanel = ({ selectedExamId, onSelectExamId }: ExamsPanelProps) => {
+export const ExamsPanel = ({ selectedExamId, onSelectExamId, onSelectedExamNameChange }: ExamsPanelProps) => {
   const [name, setName] = useState("高二历史月考");
   const [date, setDate] = useState("");
   const [subject, setSubject] = useState("history");
@@ -60,6 +61,7 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId }: ExamsPanelProps) 
       const firstExam = items.at(0);
       if (!selectedExamId && firstExam) {
         onSelectExamId(firstExam.id);
+        onSelectedExamNameChange?.(firstExam.name);
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "读取考试列表失败");
@@ -92,6 +94,7 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId }: ExamsPanelProps) 
 
       setExams((current) => [created, ...current]);
       onSelectExamId(created.id);
+      onSelectedExamNameChange?.(created.name);
       setSuccessMessage(`考试已创建并选中：${created.name}`);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "创建考试失败");
@@ -105,6 +108,7 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId }: ExamsPanelProps) 
 
     const matched = exams.find((item) => item.id === id);
     if (matched) {
+      onSelectedExamNameChange?.(matched.name);
       setName(matched.name);
       setDate(toDateInputValue(matched.date));
       setSubject(matched.subject ?? "");
@@ -112,6 +116,8 @@ export const ExamsPanel = ({ selectedExamId, onSelectExamId }: ExamsPanelProps) 
       setDescription(matched.description ?? "");
       setSuccessMessage(`已切换考试：${matched.name}`);
       setErrorMessage(null);
+    } else if (!id) {
+      onSelectedExamNameChange?.("");
     }
   };
 

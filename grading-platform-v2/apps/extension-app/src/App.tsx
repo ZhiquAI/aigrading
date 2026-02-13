@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ExamsPanel } from "./modules/exams/ExamsPanel";
 import { GradingPanel } from "./modules/grading/GradingPanel";
+import { HealthPanel } from "./modules/health/HealthPanel";
 import { LicensePanel } from "./modules/license/LicensePanel";
 import { RecordsPanel } from "./modules/records/RecordsPanel";
 import { RubricPanel } from "./modules/rubric/RubricPanel";
@@ -37,19 +38,35 @@ const DEFAULT_RUBRIC = JSON.stringify(
 const App = () => {
   const [questionKey, setQuestionKey] = useState("Q1");
   const [examId, setExamId] = useState("");
+  const [examName, setExamName] = useState("");
   const [rubricText, setRubricText] = useState(DEFAULT_RUBRIC);
+  const [latestGrading, setLatestGrading] = useState<{
+    score: number;
+    maxScore: number;
+    comment: string;
+    breakdown: unknown;
+    studentName: string;
+    questionNo: string;
+    questionKey: string;
+    examNo: string;
+  } | null>(null);
 
   return (
     <main className="app-shell">
       <header className="app-header">
         <h1>Extension App V2</h1>
-        <p>阶段 B-1：延续原有 UI，先完成 Exams / Rubric / Grading / Records / License / Settings 接入 /api/v2/*</p>
+        <p>阶段 B-1：延续原有 UI，完成 Health / Exams / Rubric / Grading / Records / License / Settings 接入</p>
       </header>
 
       <div className="module-grid">
+        <HealthPanel />
         <LicensePanel />
         <SettingsPanel />
-        <ExamsPanel selectedExamId={examId} onSelectExamId={setExamId} />
+        <ExamsPanel
+          selectedExamId={examId}
+          onSelectExamId={setExamId}
+          onSelectedExamNameChange={setExamName}
+        />
       </div>
 
       <div className="module-stack">
@@ -61,8 +78,19 @@ const App = () => {
           rubricText={rubricText}
           onRubricTextChange={setRubricText}
         />
-        <GradingPanel questionKey={questionKey} rubricText={rubricText} />
-        <RecordsPanel questionKey={questionKey} />
+        <GradingPanel
+          questionKey={questionKey}
+          examId={examId}
+          examName={examName}
+          rubricText={rubricText}
+          onGradingCompleted={setLatestGrading}
+        />
+        <RecordsPanel
+          questionKey={questionKey}
+          examId={examId}
+          examName={examName}
+          latestGrading={latestGrading}
+        />
       </div>
     </main>
   );

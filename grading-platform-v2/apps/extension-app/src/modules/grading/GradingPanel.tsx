@@ -8,7 +8,19 @@ import {
 
 type GradingPanelProps = {
   questionKey: string;
+  examId: string;
+  examName: string;
   rubricText: string;
+  onGradingCompleted?: (payload: {
+    score: number;
+    maxScore: number;
+    comment: string;
+    breakdown: unknown;
+    studentName: string;
+    questionNo: string;
+    questionKey: string;
+    examNo: string;
+  }) => void;
 };
 
 const parseRubricInput = (raw: string): unknown => {
@@ -24,7 +36,7 @@ const parseRubricInput = (raw: string): unknown => {
   }
 };
 
-export const GradingPanel = ({ questionKey, rubricText }: GradingPanelProps) => {
+export const GradingPanel = ({ questionKey, examId, examName, rubricText, onGradingCompleted }: GradingPanelProps) => {
   const [studentName, setStudentName] = useState("张三");
   const [questionNo, setQuestionNo] = useState("");
   const [examNo, setExamNo] = useState("EX-2026-001");
@@ -65,6 +77,12 @@ export const GradingPanel = ({ questionKey, rubricText }: GradingPanelProps) => 
     }
   }, [questionKey]);
 
+  useEffect(() => {
+    if (!examNo.trim() && examId.trim()) {
+      setExamNo(examName.trim() || examId.trim());
+    }
+  }, [examId, examName]);
+
   const handleEvaluate = async (): Promise<void> => {
     setBusy(true);
     resetMessage();
@@ -87,6 +105,17 @@ export const GradingPanel = ({ questionKey, rubricText }: GradingPanelProps) => 
         status: gradingResult.remaining > 0 ? "active" : "expired"
       }));
       setSuccessMessage(`批改完成（${gradingResult.provider}）`);
+
+      onGradingCompleted?.({
+        score: gradingResult.score,
+        maxScore: gradingResult.maxScore,
+        comment: gradingResult.comment,
+        breakdown: gradingResult.breakdown,
+        studentName: studentName.trim() || "未知",
+        questionNo: questionNo.trim() || questionKey.trim(),
+        questionKey: questionKey.trim(),
+        examNo: examNo.trim() || examName.trim() || examId.trim()
+      });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "批改失败");
     } finally {
