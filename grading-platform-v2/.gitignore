@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.next
+dist
+build
+coverage
+.turbo
+*.tsbuildinfo
+.env
+.env.*
+*.db
+*.db-journal

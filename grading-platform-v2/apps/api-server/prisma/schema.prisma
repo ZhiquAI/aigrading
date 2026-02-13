@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model LicenseCode {
+  id         String           @id @default(cuid())
+  code       String           @unique
+  planType   String
+  totalQuota Int              @default(0)
+  maxDevices Int              @default(1)
+  isEnabled  Boolean          @default(true)
+  expiresAt  DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  bindings   LicenseBinding[]
+  quotas     ScopeQuota[]
+}
+
+model LicenseBinding {
+  id        String      @id @default(cuid())
+  code      String
+  deviceId  String
+  scopeKey  String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  license   LicenseCode @relation(fields: [code], references: [code], onDelete: Cascade)
+
+  @@unique([code, deviceId])
+  @@index([deviceId])
+}
+
+model ScopeQuota {
+  id        String       @id @default(cuid())
+  scopeKey  String       @unique
+  code      String?
+  remaining Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  license   LicenseCode? @relation(fields: [code], references: [code], onDelete: SetNull)
+}
+
+model IdempotencyRecord {
+  id          String   @id @default(cuid())
+  scopeKey    String
+  endpoint    String
+  key         String
+  requestHash String
+  responseBody String
+  statusCode  Int
+  createdAt   DateTime @default(now())
+
+  @@unique([scopeKey, endpoint, key])
+  @@index([createdAt])
+}
+
+model SettingEntry {
+  id        String   @id @default(cuid())
+  scopeKey  String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scopeKey, key])
+  @@index([scopeKey])
+}
+
+model GradingRecord {
+  id         String   @id @default(cuid())
+  scopeKey   String
+  questionNo String?
+  questionKey String?
+  studentName String
+  examNo     String?
+  score      Float
+  maxScore   Float
+  comment    String?
+  breakdown  String?
+  deviceId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([scopeKey, createdAt])
+  @@index([scopeKey, questionNo])
+  @@index([scopeKey, questionKey])
+}
+
+model RubricDocument {
+  id              String   @id @default(cuid())
+  scopeKey        String
+  questionKey     String
+  rubricJson      String
+  examId          String?
+  deviceId        String?
+  lifecycleStatus String   @default("draft")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([scopeKey, questionKey])
+  @@index([scopeKey, updatedAt])
+}

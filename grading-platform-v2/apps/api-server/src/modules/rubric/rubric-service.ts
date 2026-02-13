@@ -1,0 +1,342 @@
+import type { PrismaClient } from "@prisma/client";
+import { normalizeNonEmpty } from "@ai-grading/domain-core";
+
+export type RubricLifecycleStatus = "draft" | "published";
+
+export class RubricDomainError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly statusCode: number
+  ) {
+    super(message);
+    this.name = "RubricDomainError";
+  }
+}
+
+export const isRubricDomainError = (error: unknown): error is RubricDomainError => {
+  return error instanceof RubricDomainError;
+};
+
+const normalizeLifecycleStatus = (value?: string | null): RubricLifecycleStatus => {
+  return value === "published" ? "published" : "draft";
+};
+
+const parseRubricJson = (raw: string): unknown => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const inferQuestionKeyFromRubric = (rubric: unknown): string | undefined => {
+  if (!rubric || typeof rubric !== "object") {
+    return undefined;
+  }
+
+  const asObject = rubric as {
+    metadata?: { questionId?: unknown };
+    questionKey?: unknown;
+    questionId?: unknown;
+  };
+
+  const fromMetadata = normalizeNonEmpty(
+    typeof asObject.metadata?.questionId === "string" ? asObject.metadata.questionId : undefined
+  );
+
+  if (fromMetadata) {
+    return fromMetadata;
+  }
+
+  const fromQuestionKey = normalizeNonEmpty(
+    typeof asObject.questionKey === "string" ? asObject.questionKey : undefined
+  );
+
+  if (fromQuestionKey) {
+    return fromQuestionKey;
+  }
+
+  return normalizeNonEmpty(
+    typeof asObject.questionId === "string" ? asObject.questionId : undefined
+  );
+};
+
+const computeRubricSummary = (rubric: unknown): {
+  totalScore: number;
+  pointCount: number;
+  title: string;
+  updatedAt: string;
+} => {
+  const nowIso = new Date().toISOString();
+
+  if (!rubric || typeof rubric !== "object") {
+    return {
+      totalScore: 0,
+      pointCount: 0,
+      title: "未命名评分细则",
+      updatedAt: nowIso
+    };
+  }
+
+  const rubricObj = rubric as {
+    metadata?: { title?: unknown; questionType?: unknown };
+    answerPoints?: Array<{ score?: unknown }>;
+    content?: { points?: Array<{ score?: unknown }> };
+    updatedAt?: unknown;
+  };
+
+  const answerPoints = Array.isArray(rubricObj.answerPoints)
+    ? rubricObj.answerPoints
+    : Array.isArray(rubricObj.content?.points)
+      ? rubricObj.content.points
+      : [];
+
+  const totalScore = answerPoints.reduce((sum, point) => {
+    const score = Number(point?.score);
+    return Number.isFinite(score) ? sum + score : sum;
+  }, 0);
+
+  const title = normalizeNonEmpty(
+    typeof rubricObj.metadata?.title === "string" ? rubricObj.metadata.title : undefined
+  ) ?? "未命名评分细则";
+
+  const updatedAt = normalizeNonEmpty(
+    typeof rubricObj.updatedAt === "string" ? rubricObj.updatedAt : undefined
+  ) ?? nowIso;
+
+  return {
+    totalScore,
+    pointCount: answerPoints.length,
+    title,
+    updatedAt
+  };
+};
+
+export const listRubrics = async (
+  db: PrismaClient,
+  input: {
+    scopeKey: string;
+    examId?: string;
+  }
+): Promise<Array<{
+  questionId: string;
+  title: string;
+  totalScore: number;
+  pointCount: number;
+  updatedAt: string;
+  examId: string | null;
+  lifecycleStatus: RubricLifecycleStatus;
+}>> => {
+  const docs = await db.rubricDocument.findMany({
+    where: {
+      scopeKey: input.scopeKey,
+      ...(input.examId ? { examId: input.examId } : {})
+    },
+    orderBy: { updatedAt: "desc" }
+  });
+
+  return docs.map((doc) => {
+    const rubric = parseRubricJson(doc.rubricJson);
+    const summary = computeRubricSummary(rubric);
+
+    return {
+      questionId: doc.questionKey,
+      title: summary.title,
+      totalScore: summary.totalScore,
+      pointCount: summary.pointCount,
+      updatedAt: summary.updatedAt,
+      examId: doc.examId,
+      lifecycleStatus: normalizeLifecycleStatus(doc.lifecycleStatus)
+    };
+  });
+};
+
+export const getRubricByQuestionKey = async (
+  db: PrismaClient,
+  input: {
+    scopeKey: string;
+    questionKey: string;
+  }
+): Promise<{
+  rubric: unknown;
+  lifecycleStatus: RubricLifecycleStatus;
+} | null> => {
+  const doc = await db.rubricDocument.findUnique({
+    where: {
+      scopeKey_questionKey: {
+        scopeKey: input.scopeKey,
+        questionKey: input.questionKey
+      }
+    }
+  });
+
+  if (!doc) {
+    return null;
+  }
+
+  return {
+    rubric: parseRubricJson(doc.rubricJson),
+    lifecycleStatus: normalizeLifecycleStatus(doc.lifecycleStatus)
+  };
+};
+
+export const upsertRubric = async (
+  db: PrismaClient,
+  input: {
+    scopeKey: string;
+    questionKey?: string;
+    rubric: unknown;
+    examId?: string | null;
+    deviceId?: string;
+    lifecycleStatus?: string;
+  }
+): Promise<{
+  questionKey: string;
+  rubric: unknown;
+  examId: string | null;
+  lifecycleStatus: RubricLifecycleStatus;
+}> => {
+  const questionKey =
+    normalizeNonEmpty(input.questionKey) ?? inferQuestionKeyFromRubric(input.rubric);
+
+  if (!questionKey) {
+    throw new RubricDomainError("MISSING_QUESTION_KEY", "缺少 questionKey", 400);
+  }
+
+  const lifecycleStatus = normalizeLifecycleStatus(input.lifecycleStatus);
+
+  const now = new Date().toISOString();
+  const rubricPayload =
+    input.rubric && typeof input.rubric === "object"
+      ? {
+          ...(input.rubric as Record<string, unknown>),
+          updatedAt: now,
+          createdAt:
+            (input.rubric as { createdAt?: unknown }).createdAt ?? now
+        }
+      : {
+          questionKey,
+          updatedAt: now,
+          createdAt: now,
+          content: input.rubric
+        };
+
+  const doc = await db.rubricDocument.upsert({
+    where: {
+      scopeKey_questionKey: {
+        scopeKey: input.scopeKey,
+        questionKey
+      }
+    },
+    update: {
+      rubricJson: JSON.stringify(rubricPayload),
+      examId: input.examId ?? null,
+      deviceId: input.deviceId ?? null,
+      lifecycleStatus
+    },
+    create: {
+      scopeKey: input.scopeKey,
+      questionKey,
+      rubricJson: JSON.stringify(rubricPayload),
+      examId: input.examId ?? null,
+      deviceId: input.deviceId ?? null,
+      lifecycleStatus
+    }
+  });
+
+  return {
+    questionKey: doc.questionKey,
+    rubric: parseRubricJson(doc.rubricJson),
+    examId: doc.examId,
+    lifecycleStatus: normalizeLifecycleStatus(doc.lifecycleStatus)
+  };
+};
+
+export const deleteRubric = async (
+  db: PrismaClient,
+  input: {
+    scopeKey: string;
+    questionKey: string;
+  }
+): Promise<void> => {
+  await db.rubricDocument.deleteMany({
+    where: {
+      scopeKey: input.scopeKey,
+      questionKey: input.questionKey
+    }
+  });
+};
+
+const extractKeywords = (answerText: string): string[] => {
+  return Array.from(
+    new Set(
+      answerText
+        .split(/[\n，。；、,.!?\s]+/)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 2)
+        .slice(0, 12)
+    )
+  );
+};
+
+const buildAnswerPointsFromText = (answerText: string, totalScore = 10) => {
+  const lines = answerText
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    return [
+      {
+        id: "p1",
+        content: "答案结构完整，史实准确",
+        keywords: [],
+        score: totalScore
+      }
+    ];
+  }
+
+  const perPointScore = Math.max(1, Math.floor(totalScore / lines.length));
+
+  return lines.map((line, index) => ({
+    id: `p${index + 1}`,
+    content: line,
+    keywords: extractKeywords(line),
+    score: perPointScore
+  }));
+};
+
+export const generateRubricDraft = (input: {
+  questionId?: string;
+  subject?: string;
+  questionType?: string;
+  strategyType?: string;
+  answerText?: string;
+  totalScore?: number;
+}): {
+  rubric: Record<string, unknown>;
+  provider: string;
+} => {
+  const totalScore = Math.max(1, Math.floor(input.totalScore ?? 10));
+  const answerPoints = buildAnswerPointsFromText(input.answerText ?? "", totalScore);
+
+  return {
+    provider: "rule-based-generator",
+    rubric: {
+      version: "2.0",
+      scoringStrategy: "all",
+      answerPoints,
+      gradingNotes: "按要点命中情况进行评分，可结合表达完整性酌情给分。",
+      metadata: {
+        questionId: input.questionId ?? `q-${Date.now()}`,
+        title: `自动生成细则-${input.questionId ?? "未命名题目"}`,
+        subject: input.subject ?? "history",
+        questionType: input.questionType ?? "analysis",
+        strategyType: input.strategyType ?? "standard"
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  };
+};

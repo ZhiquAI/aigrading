@@ -1,0 +1,51 @@
+name: grading-platform-v2-ci
+
+on:
+  pull_request:
+    paths:
+      - 'grading-platform-v2/**'
+      - '.github/workflows/grading-platform-v2-ci.yml'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'grading-platform-v2/**'
+      - '.github/workflows/grading-platform-v2-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: grading-platform-v2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: grading-platform-v2/pnpm-lock.yaml
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: corepack pnpm lint
+
+      - name: Typecheck
+        run: corepack pnpm typecheck
+
+      - name: Test
+        run: corepack pnpm test
+
+      - name: Build
+        run: corepack pnpm build
