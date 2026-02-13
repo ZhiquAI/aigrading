@@ -56,7 +56,6 @@ let legacyRubricGet: RouteHandler;
 let legacyRubricPost: RouteHandler;
 let legacyRubricDelete: RouteHandler;
 let legacyAiRubricPost: RouteHandler;
-let legacyAiRubricStandardizePost: RouteHandler;
 let legacyAiGradePost: RouteHandler;
 let legacyAiGradeGet: RouteHandler;
 
@@ -118,7 +117,6 @@ beforeAll(async () => {
   const legacyExamsRoute = await import("@/app/api/exams/route");
   const legacyRubricRoute = await import("@/app/api/rubric/route");
   const legacyAiRubricRoute = await import("@/app/api/ai/rubric/route");
-  const legacyAiRubricStandardizeRoute = await import("@/app/api/ai/rubric/standardize/route");
   const legacyAiGradeRoute = await import("@/app/api/ai/grade/route");
 
   v2ActivatePost = v2ActivateRoute.POST;
@@ -152,7 +150,6 @@ beforeAll(async () => {
   legacyRubricPost = legacyRubricRoute.POST;
   legacyRubricDelete = legacyRubricRoute.DELETE;
   legacyAiRubricPost = legacyAiRubricRoute.POST;
-  legacyAiRubricStandardizePost = legacyAiRubricStandardizeRoute.POST;
   legacyAiGradePost = legacyAiGradeRoute.POST;
   legacyAiGradeGet = legacyAiGradeRoute.GET;
 });
@@ -968,8 +965,8 @@ describe("grading and ai-rubric compatibility routes", () => {
   });
 });
 
-describe("rubric standardize compatibility routes", () => {
-  it("supports both v2 and legacy standardize shapes", async () => {
+describe("rubric standardize v2 route", () => {
+  it("returns v2 standardize response shape", async () => {
     const payload = {
       rubric: "1. 史实准确（6分）\n2. 逻辑完整（4分）",
       maxScore: 10
@@ -994,25 +991,5 @@ describe("rubric standardize compatibility routes", () => {
     expect(v2Json.data.rubric).toContain("## 总分: 10分");
     expect(v2Json.data.rubric).toContain("| 分值 | 给分标准 | 常见错误及扣分 |");
     expect(["ai", "fallback"]).toContain(v2Json.data.providerTrace.mode);
-
-    const legacyResponse = await legacyAiRubricStandardizePost(
-      new Request("http://localhost/api/ai/rubric/standardize", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      })
-    );
-
-    expect(legacyResponse.status).toBe(200);
-    const legacyJson = await parseJson<{
-      success: boolean;
-      data: { rubric: string; providerTrace: { mode: string } };
-    }>(legacyResponse);
-    expect(legacyJson.success).toBe(true);
-    expect(legacyJson.data.rubric).toContain("## 总分: 10分");
-    expect(legacyJson.data.rubric).toContain("| 分值 | 给分标准 | 常见错误及扣分 |");
-    expect(["ai", "fallback"]).toContain(legacyJson.data.providerTrace.mode);
   });
 });
