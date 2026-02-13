@@ -1,15 +1,18 @@
-import { resolveScopeIdentity } from "@ai-grading/domain-core";
+import { LicensePanel } from "./modules/license/LicensePanel";
+import { SettingsPanel } from "./modules/settings/SettingsPanel";
 
 const App = () => {
-  const identity = resolveScopeIdentity({
-    deviceId: "local-dev-device"
-  });
-
   return (
-    <main style={{ fontFamily: "sans-serif", padding: 24 }}>
-      <h1>Extension App V2</h1>
-      <p>Monorepo scaffold is ready.</p>
-      <pre>{JSON.stringify(identity, null, 2)}</pre>
+    <main className="app-shell">
+      <header className="app-header">
+        <h1>Extension App V2</h1>
+        <p>阶段 B-1：保留原有风格，先完成 License + Settings 接入 /api/v2/*</p>
+      </header>
+
+      <div className="module-grid">
+        <LicensePanel />
+        <SettingsPanel />
+      </div>
     </main>
   );
 };
