@@ -45,6 +45,9 @@ importers:
 
   apps/api-server:
     dependencies:
+      '@ai-grading/ai-gateway':
+        specifier: workspace:*
+        version: link:../../packages/ai-gateway
       '@ai-grading/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
@@ -114,7 +117,14 @@ importers:
         specifier: ^5.4.11
         version: 5.4.21(@types/node@22.19.11)
 
-  packages/ai-gateway: {}
+  packages/ai-gateway:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.11
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.11)
 
   packages/api-contracts:
     dependencies:

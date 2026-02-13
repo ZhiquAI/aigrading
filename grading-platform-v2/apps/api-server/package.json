@@ -16,6 +16,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@ai-grading/ai-gateway": "workspace:*",
     "@ai-grading/api-contracts": "workspace:*",
     "@ai-grading/domain-core": "workspace:*",
     "@prisma/client": "5.22.0",

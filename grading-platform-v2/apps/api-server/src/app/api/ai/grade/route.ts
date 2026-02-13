@@ -68,7 +68,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       questionNo: body.questionNo,
       questionKey: body.questionKey,
       examNo: body.examNo,
-      deviceId
+      deviceId,
+      imageBase64: body.imageBase64
     });
 
     return legacySuccess(result, "批改完成");

@@ -22,13 +22,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     }
 
-    const generated = generateRubricDraft({
+    const generated = await generateRubricDraft({
       questionId: body.questionId,
       subject: body.subject,
       questionType: body.questionType,
       strategyType: body.strategyType,
       answerText: body.answerText,
-      totalScore: body.totalScore
+      totalScore: body.totalScore,
+      questionImage: body.questionImage,
+      answerImage: body.answerImage
     });
 
     return NextResponse.json({ ok: true, data: generated }, {

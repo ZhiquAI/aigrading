@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { callAiGatewayJson } from "@ai-grading/ai-gateway";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 
 export type RubricLifecycleStatus = "draft" | "published";
@@ -307,36 +308,212 @@ const buildAnswerPointsFromText = (answerText: string, totalScore = 10) => {
   }));
 };
 
-export const generateRubricDraft = (input: {
+const buildRuleBasedRubric = (input: {
   questionId?: string;
   subject?: string;
   questionType?: string;
   strategyType?: string;
   answerText?: string;
   totalScore?: number;
-}): {
-  rubric: Record<string, unknown>;
-  provider: string;
-} => {
+}): Record<string, unknown> => {
   const totalScore = Math.max(1, Math.floor(input.totalScore ?? 10));
   const answerPoints = buildAnswerPointsFromText(input.answerText ?? "", totalScore);
+  const now = new Date().toISOString();
 
   return {
-    provider: "rule-based-generator",
-    rubric: {
-      version: "2.0",
-      scoringStrategy: "all",
-      answerPoints,
-      gradingNotes: "按要点命中情况进行评分，可结合表达完整性酌情给分。",
-      metadata: {
-        questionId: input.questionId ?? `q-${Date.now()}`,
-        title: `自动生成细则-${input.questionId ?? "未命名题目"}`,
-        subject: input.subject ?? "history",
-        questionType: input.questionType ?? "analysis",
-        strategyType: input.strategyType ?? "standard"
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
+    version: "2.0",
+    scoringStrategy: "all",
+    answerPoints,
+    gradingNotes: "按要点命中情况进行评分，可结合表达完整性酌情给分。",
+    metadata: {
+      questionId: input.questionId ?? `q-${Date.now()}`,
+      title: `自动生成细则-${input.questionId ?? "未命名题目"}`,
+      subject: input.subject ?? "history",
+      questionType: input.questionType ?? "analysis",
+      strategyType: input.strategyType ?? "standard"
+    },
+    createdAt: now,
+    updatedAt: now
   };
+};
+
+const normalizeAiRubricResult = (
+  candidate: Record<string, unknown>,
+  input: {
+    questionId?: string;
+    subject?: string;
+    questionType?: string;
+    strategyType?: string;
+    answerText?: string;
+    totalScore?: number;
+  }
+): Record<string, unknown> => {
+  const now = new Date().toISOString();
+  const root = (
+    typeof candidate.rubric === "object" &&
+    candidate.rubric &&
+    !Array.isArray(candidate.rubric)
+      ? candidate.rubric
+      : candidate
+  ) as Record<string, unknown>;
+
+  const metadata = (
+    typeof root.metadata === "object" && root.metadata && !Array.isArray(root.metadata)
+      ? root.metadata
+      : {}
+  ) as Record<string, unknown>;
+
+  const questionId =
+    normalizeNonEmpty(
+      typeof metadata.questionId === "string" ? metadata.questionId : undefined
+    ) ??
+    normalizeNonEmpty(input.questionId) ??
+    `q-${Date.now()}`;
+
+  const title =
+    normalizeNonEmpty(
+      typeof metadata.title === "string" ? metadata.title : undefined
+    ) ?? `自动生成细则-${questionId}`;
+
+  const rawAnswerPoints = Array.isArray(root.answerPoints) ? root.answerPoints : [];
+
+  const normalizedAnswerPoints = rawAnswerPoints
+    .map((point, index) => {
+      if (!point || typeof point !== "object") {
+        return null;
+      }
+
+      const raw = point as {
+        id?: unknown;
+        content?: unknown;
+        keywords?: unknown;
+        score?: unknown;
+      };
+
+      const content = normalizeNonEmpty(
+        typeof raw.content === "string" ? raw.content : undefined
+      );
+
+      if (!content) {
+        return null;
+      }
+
+      const score = Number(raw.score);
+
+      return {
+        id: normalizeNonEmpty(typeof raw.id === "string" ? raw.id : undefined) ?? `p${index + 1}`,
+        content,
+        keywords: Array.isArray(raw.keywords)
+          ? raw.keywords.filter((item): item is string => typeof item === "string")
+          : extractKeywords(content),
+        score: Number.isFinite(score) && score > 0 ? score : 1
+      };
+    })
+    .filter((item): item is { id: string; content: string; keywords: string[]; score: number } => Boolean(item));
+
+  const answerPoints =
+    normalizedAnswerPoints.length > 0
+      ? normalizedAnswerPoints
+      : buildAnswerPointsFromText(input.answerText ?? "", Math.max(1, Math.floor(input.totalScore ?? 10)));
+
+  return {
+    ...root,
+    version: "2.0",
+    scoringStrategy:
+      normalizeNonEmpty(typeof root.scoringStrategy === "string" ? root.scoringStrategy : undefined) ??
+      "all",
+    answerPoints,
+    gradingNotes:
+      normalizeNonEmpty(typeof root.gradingNotes === "string" ? root.gradingNotes : undefined) ??
+      "按要点命中情况进行评分，可结合表达完整性酌情给分。",
+    metadata: {
+      ...metadata,
+      questionId,
+      title,
+      subject:
+        normalizeNonEmpty(typeof metadata.subject === "string" ? metadata.subject : undefined) ??
+        input.subject ??
+        "history",
+      questionType:
+        normalizeNonEmpty(typeof metadata.questionType === "string" ? metadata.questionType : undefined) ??
+        input.questionType ??
+        "analysis",
+      strategyType:
+        normalizeNonEmpty(typeof metadata.strategyType === "string" ? metadata.strategyType : undefined) ??
+        input.strategyType ??
+        "standard"
+    },
+    createdAt:
+      normalizeNonEmpty(typeof root.createdAt === "string" ? root.createdAt : undefined) ?? now,
+    updatedAt: now
+  };
+};
+
+export const generateRubricDraft = async (input: {
+  questionId?: string;
+  subject?: string;
+  questionType?: string;
+  strategyType?: string;
+  answerText?: string;
+  totalScore?: number;
+  questionImage?: string;
+  answerImage?: string;
+}): Promise<{
+  rubric: Record<string, unknown>;
+  provider: string;
+}> => {
+  const ruleBasedRubric = buildRuleBasedRubric(input);
+  const images = [
+    input.questionImage
+      ? {
+          base64: input.questionImage,
+          label: "【试题图片】"
+        }
+      : null,
+    input.answerImage
+      ? {
+          base64: input.answerImage,
+          label: "【参考答案图片】"
+        }
+      : null
+  ].filter((item): item is { base64: string; label: string } => Boolean(item));
+
+  const systemPrompt = [
+    "你是一名高中历史学科阅卷专家。",
+    "请输出 RubricJSON v2。",
+    "输出必须是 JSON 对象，禁止输出 markdown。",
+    "字段至少包含：version, scoringStrategy, answerPoints, gradingNotes, metadata。"
+  ].join("\n");
+
+  const userPrompt = [
+    `题目ID: ${input.questionId ?? "未提供"}`,
+    `学科: ${input.subject ?? "history"}`,
+    `题型: ${input.questionType ?? "analysis"}`,
+    `评分策略: ${input.strategyType ?? "standard"}`,
+    `总分: ${Math.max(1, Math.floor(input.totalScore ?? 10))}`,
+    input.answerText ? `参考答案文本:\n${input.answerText}` : "参考答案文本: 未提供"
+  ].join("\n");
+
+  try {
+    const aiResult = await callAiGatewayJson({
+      task: "rubric_generate",
+      systemPrompt,
+      userPrompt,
+      images,
+      temperature: 0.2,
+      maxTokens: 2048
+    });
+
+    const normalizedRubric = normalizeAiRubricResult(aiResult.json, input);
+
+    return {
+      provider: `${aiResult.provider}:${aiResult.model}`,
+      rubric: normalizedRubric
+    };
+  } catch {
+    return {
+      provider: "rule-based-generator",
+      rubric: ruleBasedRubric
+    };
+  }
 };

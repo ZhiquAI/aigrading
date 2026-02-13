@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import type { ScopeIdentity } from "@ai-grading/api-contracts";
-import { buildActivationScopeKey } from "@ai-grading/domain-core";
+import { callAiGatewayJson } from "@ai-grading/ai-gateway";
+import { buildActivationScopeKey, normalizeNonEmpty } from "@ai-grading/domain-core";
 import { RubricDomainError } from "@/modules/rubric/rubric-service";
 
 export class GradingDomainError extends Error {
@@ -23,6 +24,13 @@ type QuotaStatus = {
   totalUsed: number;
   isPaid: boolean;
   status: "active" | "expired" | "disabled";
+};
+
+type BreakdownItem = {
+  label: string;
+  score: number;
+  max: number;
+  comment: string;
 };
 
 const isActivationScope = (identity: ScopeIdentity): boolean => {
@@ -136,7 +144,7 @@ const computeMaxScoreFromRubric = (rubric: unknown): number => {
   return pointTotal > 0 ? pointTotal : 10;
 };
 
-const buildBreakdown = (rubric: unknown): Array<{ label: string; score: number; max: number; comment: string }> => {
+const buildBreakdown = (rubric: unknown): BreakdownItem[] => {
   if (!rubric || typeof rubric !== "object") {
     return [
       {
@@ -184,6 +192,150 @@ const buildBreakdown = (rubric: unknown): Array<{ label: string; score: number; 
   }));
 };
 
+const buildMarkdownComment = (breakdown: BreakdownItem[]): string => {
+  return [
+    "| 项目 | 得分 | 说明 |",
+    "|---|---|---|",
+    ...breakdown.map((item) => `| ${item.label} | ${item.score}/${item.max} | ${item.comment} |`)
+  ].join("\n");
+};
+
+const normalizeBreakdownFromAi = (candidate: unknown): BreakdownItem[] => {
+  if (!Array.isArray(candidate)) {
+    return [];
+  }
+
+  return candidate
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const row = item as {
+        label?: unknown;
+        score?: unknown;
+        max?: unknown;
+        comment?: unknown;
+      };
+
+      const label = normalizeNonEmpty(typeof row.label === "string" ? row.label : undefined);
+      if (!label) {
+        return null;
+      }
+
+      const rawScore = Number(row.score);
+      const rawMax = Number(row.max);
+
+      const max = Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 1;
+      const score =
+        Number.isFinite(rawScore) && rawScore >= 0
+          ? Math.min(rawScore, max)
+          : 0;
+
+      return {
+        label,
+        score,
+        max,
+        comment:
+          normalizeNonEmpty(typeof row.comment === "string" ? row.comment : undefined) ??
+          "AI 评分结果"
+      };
+    })
+    .filter((item): item is BreakdownItem => Boolean(item));
+};
+
+const evaluateWithAiGateway = async (input: {
+  rubric: unknown;
+  studentName?: string;
+  questionNo?: string;
+  questionKey?: string;
+  examNo?: string;
+  imageBase64?: string;
+}): Promise<{
+  score: number;
+  maxScore: number;
+  breakdown: BreakdownItem[];
+  comment: string;
+  provider: string;
+}> => {
+  const rubricText = JSON.stringify(input.rubric);
+  const maxScoreFromRubric = computeMaxScoreFromRubric(input.rubric);
+
+  const systemPrompt = [
+    "你是一名高中历史阅卷老师。",
+    "请根据评分细则给学生答案评分。",
+    "只返回 JSON 对象，不要输出 markdown。",
+    "JSON 字段必须包含：score, maxScore, breakdown, comment。",
+    "breakdown 是数组，元素包含：label, score, max, comment。"
+  ].join("\n");
+
+  const userPrompt = [
+    `学生姓名: ${input.studentName ?? "未知"}`,
+    `题号: ${input.questionNo ?? input.questionKey ?? "未提供"}`,
+    `准考证号: ${input.examNo ?? "未提供"}`,
+    `评分细则: ${rubricText}`
+  ].join("\n");
+
+  const images = input.imageBase64
+    ? [
+        {
+          base64: input.imageBase64,
+          label: "【学生答案图片】"
+        }
+      ]
+    : [];
+
+  const gatewayResult = await callAiGatewayJson({
+    task: "grading_evaluate",
+    systemPrompt,
+    userPrompt,
+    images,
+    temperature: 0.1,
+    maxTokens: 1200
+  });
+
+  const root = (
+    typeof gatewayResult.json.result === "object" &&
+    gatewayResult.json.result &&
+    !Array.isArray(gatewayResult.json.result)
+      ? gatewayResult.json.result
+      : gatewayResult.json
+  ) as Record<string, unknown>;
+
+  const breakdown = normalizeBreakdownFromAi(root.breakdown);
+  if (breakdown.length === 0) {
+    throw new GradingDomainError("AI_OUTPUT_INVALID", "AI 返回评分结构无效", 502);
+  }
+
+  const maxScoreRaw = Number(root.maxScore);
+  const maxScore =
+    Number.isFinite(maxScoreRaw) && maxScoreRaw > 0
+      ? maxScoreRaw
+      : Math.max(
+          maxScoreFromRubric,
+          breakdown.reduce((sum, item) => sum + item.max, 0)
+        );
+
+  const scoreRaw = Number(root.score);
+  const scoreFromBreakdown = breakdown.reduce((sum, item) => sum + item.score, 0);
+  const score =
+    Number.isFinite(scoreRaw) && scoreRaw >= 0
+      ? Math.min(scoreRaw, maxScore)
+      : Math.min(scoreFromBreakdown, maxScore);
+
+  const comment =
+    normalizeNonEmpty(typeof root.comment === "string" ? root.comment : undefined) ??
+    buildMarkdownComment(breakdown);
+
+  return {
+    score,
+    maxScore,
+    breakdown,
+    comment,
+    provider: `${gatewayResult.provider}:${gatewayResult.model}`
+  };
+};
+
 export const evaluateGrading = async (
   db: PrismaClient,
   input: {
@@ -194,11 +346,12 @@ export const evaluateGrading = async (
     questionKey?: string;
     examNo?: string;
     deviceId?: string;
+    imageBase64?: string;
   }
 ): Promise<{
   score: number;
   maxScore: number;
-  breakdown: Array<{ label: string; score: number; max: number; comment: string }>;
+  breakdown: BreakdownItem[];
   comment: string;
   provider: string;
   remaining: number;
@@ -214,18 +367,36 @@ export const evaluateGrading = async (
     throw new GradingDomainError("QUOTA_EXHAUSTED", "配额已用完，请购买更多配额", 403);
   }
 
-  const maxScore = computeMaxScoreFromRubric(input.rubric);
-  const breakdown = buildBreakdown(input.rubric);
-  const score = Math.min(
-    maxScore,
-    breakdown.reduce((sum, item) => sum + item.score, 0)
-  );
+  let score = 0;
+  let maxScore = 0;
+  let breakdown: BreakdownItem[] = [];
+  let comment = "";
+  let provider = "rule-evaluator";
 
-  const comment = [
-    "| 项目 | 得分 | 说明 |",
-    "|---|---|---|",
-    ...breakdown.map((item) => `| ${item.label} | ${item.score}/${item.max} | ${item.comment} |`)
-  ].join("\n");
+  try {
+    const aiResult = await evaluateWithAiGateway({
+      rubric: input.rubric,
+      studentName: input.studentName,
+      questionNo: input.questionNo,
+      questionKey: input.questionKey,
+      examNo: input.examNo,
+      imageBase64: input.imageBase64
+    });
+
+    score = aiResult.score;
+    maxScore = aiResult.maxScore;
+    breakdown = aiResult.breakdown;
+    comment = aiResult.comment;
+    provider = aiResult.provider;
+  } catch {
+    maxScore = computeMaxScoreFromRubric(input.rubric);
+    breakdown = buildBreakdown(input.rubric);
+    score = Math.min(
+      maxScore,
+      breakdown.reduce((sum, item) => sum + item.score, 0)
+    );
+    comment = buildMarkdownComment(breakdown);
+  }
 
   const updatedQuota = await db.$transaction(async (tx) => {
     const updated = await tx.scopeQuota.update({
@@ -262,7 +433,7 @@ export const evaluateGrading = async (
     maxScore,
     breakdown,
     comment,
-    provider: "rule-evaluator",
+    provider,
     remaining: updatedQuota.remaining,
     totalUsed: quota.total - updatedQuota.remaining
   };

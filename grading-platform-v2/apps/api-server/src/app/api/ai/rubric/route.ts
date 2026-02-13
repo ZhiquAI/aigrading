@@ -43,13 +43,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       return legacyError("请提供图片或文本参考答案", "INVALID_REQUEST", 400);
     }
 
-    const generated = generateRubricDraft({
+    const generated = await generateRubricDraft({
       questionId: body.questionId,
       subject: body.subject,
       questionType: body.questionType,
       strategyType: body.strategyType,
       answerText: body.answerText,
-      totalScore: body.totalScore
+      totalScore: body.totalScore,
+      questionImage: body.questionImage,
+      answerImage: body.answerImage
     });
 
     return legacySuccess(generated, "评分细则生成成功");

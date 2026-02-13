@@ -20,7 +20,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       questionNo: body.questionNo,
       questionKey: body.questionKey,
       examNo: body.examNo,
-      deviceId: normalizeNonEmpty(request.headers.get("x-device-id"))
+      deviceId: normalizeNonEmpty(request.headers.get("x-device-id")),
+      imageBase64: body.imageBase64
     });
 
     return NextResponse.json({ ok: true, data }, {
