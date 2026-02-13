@@ -104,3 +104,18 @@ model RubricDocument {
   @@unique([scopeKey, questionKey])
   @@index([scopeKey, updatedAt])
 }
+
+model ExamSession {
+  id          String   @id @default(cuid())
+  scopeKey    String
+  name        String
+  date        DateTime?
+  subject     String?
+  grade       String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([scopeKey, date])
+  @@index([scopeKey, createdAt])
+}

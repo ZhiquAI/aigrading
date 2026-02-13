@@ -15,6 +15,7 @@ export class ScopeResolutionError extends Error {
 type ResolveRequestScopeOptions = {
   requireIdentity?: boolean;
   requireActivation?: boolean;
+  anonymousSeed?: string;
 };
 
 export const resolveRequestScope = (
@@ -35,7 +36,7 @@ export const resolveRequestScope = (
   const identity = resolveScopeIdentity({
     activationCode,
     deviceId,
-    anonymousSeed: "missing_identity"
+    anonymousSeed: options.anonymousSeed ?? `${Date.now()}_${crypto.randomUUID()}`
   });
 
   return {

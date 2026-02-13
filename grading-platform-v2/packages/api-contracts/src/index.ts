@@ -106,6 +106,16 @@ export const recordsBatchRequestSchema = z.object({
 
 export type RecordsBatchRequest = z.infer<typeof recordsBatchRequestSchema>;
 
+export const examCreateRequestSchema = z.object({
+  name: z.string().trim().min(1).max(128),
+  date: z.string().trim().min(1).optional(),
+  subject: z.string().trim().min(1).max(64).optional(),
+  grade: z.string().trim().min(1).max(64).optional(),
+  description: z.string().trim().min(1).max(1000).optional()
+});
+
+export type ExamCreateRequest = z.infer<typeof examCreateRequestSchema>;
+
 export const rubricLifecycleStatusSchema = z.enum(["draft", "published"]);
 
 export const rubricUpsertRequestSchema = z.object({

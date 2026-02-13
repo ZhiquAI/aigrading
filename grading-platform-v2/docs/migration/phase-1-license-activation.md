@@ -28,10 +28,12 @@
   - `POST /api/v2/rubrics/generate`
   - `POST /api/v2/rubrics/standardize`
   - `GET/POST /api/v2/gradings/evaluate`
+  - `GET/POST /api/v2/exams`
 - Added compatibility routes:
   - `GET/POST/DELETE /api/rubric`
   - `POST /api/ai/rubric`
   - `GET/POST /api/ai/grade`
+  - `GET/POST /api/exams`
 - Added seed data for test activation codes.
 - Added integration tests covering v2 and legacy license/settings/records/rubric/grading routes.
 

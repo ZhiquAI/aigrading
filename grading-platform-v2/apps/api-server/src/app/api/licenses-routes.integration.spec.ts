@@ -28,6 +28,8 @@ let v2SettingsPut: RouteHandler;
 let v2RecordsGet: RouteHandler;
 let v2RecordsPost: RouteHandler;
 let v2RecordsDelete: RouteHandler;
+let v2ExamsGet: RouteHandler;
+let v2ExamsPost: RouteHandler;
 let v2RubricsGet: RouteHandler;
 let v2RubricsPost: RouteHandler;
 let v2RubricsDelete: RouteHandler;
@@ -41,6 +43,8 @@ let legacySyncConfigPut: RouteHandler;
 let legacySyncRecordsGet: RouteHandler;
 let legacySyncRecordsPost: RouteHandler;
 let legacySyncRecordsDelete: RouteHandler;
+let legacyExamsGet: RouteHandler;
+let legacyExamsPost: RouteHandler;
 let legacyRubricGet: RouteHandler;
 let legacyRubricPost: RouteHandler;
 let legacyRubricDelete: RouteHandler;
@@ -62,6 +66,7 @@ const resetDb = async (): Promise<void> => {
   await testPrisma.idempotencyRecord.deleteMany();
   await testPrisma.rubricDocument.deleteMany();
   await testPrisma.gradingRecord.deleteMany();
+  await testPrisma.examSession.deleteMany();
   await testPrisma.settingEntry.deleteMany();
   await testPrisma.licenseBinding.deleteMany();
   await testPrisma.scopeQuota.deleteMany();
@@ -92,12 +97,14 @@ beforeAll(async () => {
   const v2StatusRoute = await import("@/app/api/v2/licenses/status/route");
   const v2SettingsRoute = await import("@/app/api/v2/settings/route");
   const v2RecordsRoute = await import("@/app/api/v2/records/route");
+  const v2ExamsRoute = await import("@/app/api/v2/exams/route");
   const v2RubricsRoute = await import("@/app/api/v2/rubrics/route");
   const v2RubricsGenerateRoute = await import("@/app/api/v2/rubrics/generate/route");
   const v2GradingEvaluateRoute = await import("@/app/api/v2/gradings/evaluate/route");
   const legacyRoute = await import("@/app/api/activation/verify/route");
   const legacyConfigRoute = await import("@/app/api/sync/config/route");
   const legacyRecordsRoute = await import("@/app/api/sync/records/route");
+  const legacyExamsRoute = await import("@/app/api/exams/route");
   const legacyRubricRoute = await import("@/app/api/rubric/route");
   const legacyAiRubricRoute = await import("@/app/api/ai/rubric/route");
   const legacyAiGradeRoute = await import("@/app/api/ai/grade/route");
@@ -109,6 +116,8 @@ beforeAll(async () => {
   v2RecordsGet = v2RecordsRoute.GET;
   v2RecordsPost = v2RecordsRoute.POST;
   v2RecordsDelete = v2RecordsRoute.DELETE;
+  v2ExamsGet = v2ExamsRoute.GET;
+  v2ExamsPost = v2ExamsRoute.POST;
   v2RubricsGet = v2RubricsRoute.GET;
   v2RubricsPost = v2RubricsRoute.POST;
   v2RubricsDelete = v2RubricsRoute.DELETE;
@@ -122,6 +131,8 @@ beforeAll(async () => {
   legacySyncRecordsGet = legacyRecordsRoute.GET;
   legacySyncRecordsPost = legacyRecordsRoute.POST;
   legacySyncRecordsDelete = legacyRecordsRoute.DELETE;
+  legacyExamsGet = legacyExamsRoute.GET;
+  legacyExamsPost = legacyExamsRoute.POST;
   legacyRubricGet = legacyRubricRoute.GET;
   legacyRubricPost = legacyRubricRoute.POST;
   legacyRubricDelete = legacyRubricRoute.DELETE;
@@ -374,6 +385,123 @@ describe("settings compatibility and v2 routes", () => {
     expect(legacyGetJson.success).toBe(true);
     expect(legacyGetJson.data.key).toBe("grading.mode");
     expect(legacyGetJson.data.value).toBe("strict");
+  });
+});
+
+describe("exams compatibility and v2 routes", () => {
+  it("supports create/list for v2 and legacy shapes", async () => {
+    const legacyPost = await legacyExamsPost(
+      new Request("http://localhost/api/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-device"
+        },
+        body: JSON.stringify({
+          name: "高三二模",
+          date: "2026-02-10",
+          subject: "history"
+        })
+      })
+    );
+
+    expect(legacyPost.status).toBe(200);
+    const legacyPostJson = await parseJson<{
+      success: boolean;
+      exam: { name: string; subject: string | null };
+    }>(legacyPost);
+    expect(legacyPostJson.success).toBe(true);
+    expect(legacyPostJson.exam.name).toBe("高三二模");
+    expect(legacyPostJson.exam.subject).toBe("history");
+
+    const v2Post = await v2ExamsPost(
+      new Request("http://localhost/api/v2/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-device"
+        },
+        body: JSON.stringify({
+          name: "高三三模",
+          date: "2026-03-12",
+          subject: "history",
+          grade: "高三"
+        })
+      })
+    );
+
+    expect(v2Post.status).toBe(201);
+    const v2PostJson = await parseJson<{
+      ok: boolean;
+      data: { name: string; grade: string | null };
+    }>(v2Post);
+    expect(v2PostJson.ok).toBe(true);
+    expect(v2PostJson.data.name).toBe("高三三模");
+    expect(v2PostJson.data.grade).toBe("高三");
+
+    const legacyGet = await legacyExamsGet(
+      new Request("http://localhost/api/exams", {
+        headers: {
+          "x-device-id": "exam-device"
+        }
+      })
+    );
+
+    expect(legacyGet.status).toBe(200);
+    const legacyGetJson = await parseJson<{
+      success: boolean;
+      exams: Array<{ name: string }>;
+    }>(legacyGet);
+    expect(legacyGetJson.success).toBe(true);
+    expect(legacyGetJson.exams).toHaveLength(2);
+    expect(legacyGetJson.exams.at(0)?.name).toBe("高三三模");
+
+    const v2Get = await v2ExamsGet(
+      new Request("http://localhost/api/v2/exams", {
+        headers: {
+          "x-device-id": "exam-device"
+        }
+      })
+    );
+
+    expect(v2Get.status).toBe(200);
+    const v2GetJson = await parseJson<{
+      ok: boolean;
+      data: Array<{ name: string }>;
+    }>(v2Get);
+    expect(v2GetJson.ok).toBe(true);
+    expect(v2GetJson.data).toHaveLength(2);
+    expect(v2GetJson.data.at(1)?.name).toBe("高三二模");
+  });
+
+  it("returns validation error when exam name is missing", async () => {
+    const legacyPost = await legacyExamsPost(
+      new Request("http://localhost/api/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-device"
+        },
+        body: JSON.stringify({
+          subject: "history"
+        })
+      })
+    );
+    expect(legacyPost.status).toBe(400);
+
+    const v2Post = await v2ExamsPost(
+      new Request("http://localhost/api/v2/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-device"
+        },
+        body: JSON.stringify({
+          subject: "history"
+        })
+      })
+    );
+    expect(v2Post.status).toBe(400);
   });
 });
 

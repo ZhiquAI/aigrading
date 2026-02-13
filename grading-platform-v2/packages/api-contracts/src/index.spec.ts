@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  examCreateRequestSchema,
   gradingEvaluateRequestSchema,
   licenseActivateRequestSchema,
   licenseStatusResponseSchema,
@@ -94,5 +95,15 @@ describe("license contracts", () => {
       studentName: "Alice"
     });
     expect(parsed.studentName).toBe("Alice");
+  });
+
+  it("validates exam create request", () => {
+    const parsed = examCreateRequestSchema.parse({
+      name: "2026届高三二模",
+      date: "2026-02-10",
+      subject: "history",
+      grade: "高三"
+    });
+    expect(parsed.name).toBe("2026届高三二模");
   });
 });

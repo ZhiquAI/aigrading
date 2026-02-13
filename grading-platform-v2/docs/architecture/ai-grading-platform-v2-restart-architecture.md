@@ -129,18 +129,21 @@ type ScopeIdentity = {
 4. `POST /api/v2/rubrics`
 5. `POST /api/v2/rubrics/generate`
 6. `POST /api/v2/rubrics/standardize`
-7. `POST /api/v2/gradings/evaluate`
-8. `GET /api/v2/records`
-9. `POST /api/v2/records/batch`
-10. `DELETE /api/v2/records/:id`
-11. `GET /api/v2/settings`
-12. `PUT /api/v2/settings`
+7. `GET /api/v2/exams`
+8. `POST /api/v2/exams`
+9. `POST /api/v2/gradings/evaluate`
+10. `GET /api/v2/records`
+11. `POST /api/v2/records/batch`
+12. `DELETE /api/v2/records/:id`
+13. `GET /api/v2/settings`
+14. `PUT /api/v2/settings`
 
 ## 3) 兼容层策略
 旧接口继续保留并转发到 v2（兼容期 2 个版本）：
 1. `/api/activation/verify` -> `/api/v2/licenses/*`
 2. `/api/sync/records` -> `/api/v2/records*`
 3. `/api/sync/config` -> `/api/v2/settings`
+4. `/api/exams` -> `/api/v2/exams`
 
 ---
 
