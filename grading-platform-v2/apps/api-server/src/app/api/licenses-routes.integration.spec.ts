@@ -20,6 +20,10 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 type RouteHandler = (request: Request) => Promise<Response>;
+type RecordDeleteByIdHandler = (
+  request: Request,
+  context: { params: { id: string } }
+) => Promise<Response>;
 
 let v2ActivatePost: RouteHandler;
 let v2StatusGet: RouteHandler;
@@ -28,6 +32,8 @@ let v2SettingsPut: RouteHandler;
 let v2RecordsGet: RouteHandler;
 let v2RecordsPost: RouteHandler;
 let v2RecordsDelete: RouteHandler;
+let v2RecordsBatchPost: RouteHandler;
+let v2RecordsDeleteById: RecordDeleteByIdHandler;
 let v2ExamsGet: RouteHandler;
 let v2ExamsPost: RouteHandler;
 let v2RubricsGet: RouteHandler;
@@ -97,6 +103,8 @@ beforeAll(async () => {
   const v2StatusRoute = await import("@/app/api/v2/licenses/status/route");
   const v2SettingsRoute = await import("@/app/api/v2/settings/route");
   const v2RecordsRoute = await import("@/app/api/v2/records/route");
+  const v2RecordsBatchRoute = await import("@/app/api/v2/records/batch/route");
+  const v2RecordsDeleteByIdRoute = await import("@/app/api/v2/records/[id]/route");
   const v2ExamsRoute = await import("@/app/api/v2/exams/route");
   const v2RubricsRoute = await import("@/app/api/v2/rubrics/route");
   const v2RubricsGenerateRoute = await import("@/app/api/v2/rubrics/generate/route");
@@ -116,6 +124,8 @@ beforeAll(async () => {
   v2RecordsGet = v2RecordsRoute.GET;
   v2RecordsPost = v2RecordsRoute.POST;
   v2RecordsDelete = v2RecordsRoute.DELETE;
+  v2RecordsBatchPost = v2RecordsBatchRoute.POST;
+  v2RecordsDeleteById = v2RecordsDeleteByIdRoute.DELETE;
   v2ExamsGet = v2ExamsRoute.GET;
   v2ExamsPost = v2ExamsRoute.POST;
   v2RubricsGet = v2RubricsRoute.GET;
@@ -507,8 +517,8 @@ describe("exams compatibility and v2 routes", () => {
 
 describe("records compatibility and v2 routes", () => {
   it("supports batch create/list/delete and legacy sync records shape", async () => {
-    const v2Post = await v2RecordsPost(
-      new Request("http://localhost/api/v2/records", {
+    const v2BatchPost = await v2RecordsBatchPost(
+      new Request("http://localhost/api/v2/records/batch", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -530,13 +540,37 @@ describe("records compatibility and v2 routes", () => {
       })
     );
 
-    expect(v2Post.status).toBe(201);
-    const v2PostJson = await parseJson<{
+    expect(v2BatchPost.status).toBe(201);
+    const v2BatchPostJson = await parseJson<{
       ok: boolean;
       data: { created: number };
-    }>(v2Post);
-    expect(v2PostJson.ok).toBe(true);
-    expect(v2PostJson.data.created).toBe(1);
+    }>(v2BatchPost);
+    expect(v2BatchPostJson.ok).toBe(true);
+    expect(v2BatchPostJson.data.created).toBe(1);
+
+    // 兼容保留：仍支持 POST /api/v2/records
+    const v2CompatPost = await v2RecordsPost(
+      new Request("http://localhost/api/v2/records", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "records-device-a"
+        },
+        body: JSON.stringify({
+          records: [
+            {
+              questionNo: "Q1",
+              questionKey: "question-1",
+              studentName: "Carol",
+              score: 7,
+              maxScore: 10
+            }
+          ]
+        })
+      })
+    );
+    expect(v2CompatPost.status).toBe(201);
 
     const legacyPost = await legacySyncRecordsPost(
       new Request("http://localhost/api/sync/records", {
@@ -582,23 +616,7 @@ describe("records compatibility and v2 routes", () => {
       data: { total: number; records: Array<{ studentName: string }> };
     }>(legacyGet);
     expect(legacyGetJson.success).toBe(true);
-    expect(legacyGetJson.data.total).toBe(2);
-
-    const deleteOne = await legacySyncRecordsDelete(
-      new Request("http://localhost/api/sync/records?questionKey=question-1", {
-        method: "DELETE",
-        headers: {
-          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
-        }
-      })
-    );
-    expect(deleteOne.status).toBe(200);
-    const deleteJson = await parseJson<{
-      success: boolean;
-      data: { deleted: number };
-    }>(deleteOne);
-    expect(deleteJson.success).toBe(true);
-    expect(deleteJson.data.deleted).toBe(2);
+    expect(legacyGetJson.data.total).toBe(3);
 
     const v2Get = await v2RecordsGet(
       new Request("http://localhost/api/v2/records?page=1&limit=10", {
@@ -610,13 +628,35 @@ describe("records compatibility and v2 routes", () => {
     expect(v2Get.status).toBe(200);
     const v2GetJson = await parseJson<{
       ok: boolean;
-      data: { total: number };
+      data: { total: number; records: Array<{ id: string }> };
     }>(v2Get);
     expect(v2GetJson.ok).toBe(true);
-    expect(v2GetJson.data.total).toBe(0);
+    expect(v2GetJson.data.total).toBe(3);
+
+    const firstRecordId = v2GetJson.data.records.at(0)?.id;
+    expect(firstRecordId).toBeTruthy();
+
+    const v2DeleteById = await v2RecordsDeleteById(
+      new Request(`http://localhost/api/v2/records/${firstRecordId}`, {
+        method: "DELETE",
+        headers: {
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
+        }
+      }),
+      {
+        params: { id: firstRecordId ?? "" }
+      }
+    );
+    expect(v2DeleteById.status).toBe(200);
+    const v2DeleteByIdJson = await parseJson<{
+      ok: boolean;
+      data: { deleted: number };
+    }>(v2DeleteById);
+    expect(v2DeleteByIdJson.ok).toBe(true);
+    expect(v2DeleteByIdJson.data.deleted).toBe(1);
 
     const v2Delete = await v2RecordsDelete(
-      new Request("http://localhost/api/v2/records?id=non-existent", {
+      new Request("http://localhost/api/v2/records?questionKey=question-1", {
         method: "DELETE",
         headers: {
           "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
@@ -624,6 +664,37 @@ describe("records compatibility and v2 routes", () => {
       })
     );
     expect(v2Delete.status).toBe(200);
+
+    const v2GetAfterDelete = await v2RecordsGet(
+      new Request("http://localhost/api/v2/records?page=1&limit=10", {
+        headers: {
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
+        }
+      })
+    );
+    expect(v2GetAfterDelete.status).toBe(200);
+    const v2GetAfterDeleteJson = await parseJson<{
+      ok: boolean;
+      data: { total: number };
+    }>(v2GetAfterDelete);
+    expect(v2GetAfterDeleteJson.ok).toBe(true);
+    expect(v2GetAfterDeleteJson.data.total).toBe(0);
+
+    const legacyDelete = await legacySyncRecordsDelete(
+      new Request("http://localhost/api/sync/records?questionKey=question-1", {
+        method: "DELETE",
+        headers: {
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC"
+        }
+      })
+    );
+    expect(legacyDelete.status).toBe(200);
+    const legacyDeleteJson = await parseJson<{
+      success: boolean;
+      data: { deleted: number };
+    }>(legacyDelete);
+    expect(legacyDeleteJson.success).toBe(true);
+    expect(legacyDeleteJson.data.deleted).toBe(0);
   });
 });
 

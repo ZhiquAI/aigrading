@@ -23,7 +23,10 @@
   - `RubricDocument` (`@@unique([scopeKey, questionKey])`)
 - Added v2 resources:
   - `GET/PUT/DELETE /api/v2/settings`
-  - `GET/POST/DELETE /api/v2/records`
+  - `GET /api/v2/records`
+  - `POST /api/v2/records/batch`
+  - `DELETE /api/v2/records/:id`
+  - `POST/DELETE /api/v2/records` (compat mode)
   - `GET/POST/DELETE /api/v2/rubrics`
   - `POST /api/v2/rubrics/generate`
   - `POST /api/v2/rubrics/standardize`
