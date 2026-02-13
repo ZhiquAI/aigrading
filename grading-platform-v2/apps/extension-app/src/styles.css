@@ -14,7 +14,7 @@ body {
 }
 
 .app-shell {
-  max-width: 920px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -36,6 +36,12 @@ body {
   gap: 16px;
 }
 
+.module-stack {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
 .card {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
@@ -44,11 +50,16 @@ body {
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
+.card-wide {
+  width: 100%;
+}
+
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+  gap: 8px;
 }
 
 .card-header h2 {
@@ -74,6 +85,12 @@ body {
   margin-bottom: 4px;
 }
 
+.field-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 .field-group {
   margin-bottom: 12px;
 }
@@ -86,7 +103,8 @@ body {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
@@ -94,11 +112,12 @@ textarea {
   font-size: 14px;
   font-family: inherit;
   color: #0f172a;
+  background: #fff;
 }
 
 textarea {
   resize: vertical;
-  min-height: 120px;
+  min-height: 80px;
 }
 
 button {
@@ -118,6 +137,7 @@ button:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
 .primary-btn {
@@ -133,6 +153,12 @@ button:disabled {
 .danger-btn {
   background: #dc2626;
   color: #fff;
+}
+
+.table-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
 }
 
 .success-text {
@@ -168,7 +194,45 @@ button:disabled {
 
 .status-box pre {
   margin: 0;
-  max-height: 200px;
+  max-height: 240px;
   overflow: auto;
   font-size: 12px;
+}
+
+.table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+th {
+  color: #334155;
+  background: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 14px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .btn-row button {
+    width: 100%;
+  }
 }
