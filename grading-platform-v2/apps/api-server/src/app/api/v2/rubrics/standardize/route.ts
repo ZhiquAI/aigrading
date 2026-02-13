@@ -1,24 +1,19 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { apiErrorSchema, rubricUpsertRequestSchema } from "@ai-grading/api-contracts";
+import { apiErrorSchema, rubricStandardizeRequestSchema } from "@ai-grading/api-contracts";
+import { standardizeRubric } from "@/modules/rubric/rubric-service";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
 
   try {
-    const body = rubricUpsertRequestSchema.parse(await request.json());
-    const baseRubric =
-      body.rubric && typeof body.rubric === "object"
-        ? (body.rubric as Record<string, unknown>)
-        : { content: body.rubric };
+    const body = rubricStandardizeRequestSchema.parse(await request.json());
+    const standardized = await standardizeRubric({
+      rubric: body.rubric,
+      maxScore: body.maxScore
+    });
 
-    const standardized = {
-      ...baseRubric,
-      version: "2.0",
-      updatedAt: new Date().toISOString()
-    };
-
-    return NextResponse.json({ ok: true, data: { rubric: standardized } }, {
+    return NextResponse.json({ ok: true, data: standardized }, {
       status: 200,
       headers: { "x-request-id": requestId }
     });

@@ -449,6 +449,263 @@ const normalizeAiRubricResult = (
   };
 };
 
+export type AiProviderTrace = {
+  mode: "ai" | "fallback";
+  reason?: string;
+  attempts?: AiProviderAttempt[];
+};
+
+type StandardizedRubricRow = {
+  score: number;
+  standard: string;
+  deduction: string;
+};
+
+const stripMarkdownCodeFence = (value: string): string => {
+  return value
+    .replace(/```markdown\s*/gi, "")
+    .replace(/```md\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+};
+
+const toSafeText = (value: string): string => {
+  return value.replace(/\|/g, "\\|").trim();
+};
+
+const formatScoreLabel = (value: number): string => {
+  return Number.isInteger(value) ? `${value}` : value.toFixed(1).replace(/\.0$/, "");
+};
+
+const extractRowsFromRubricObject = (rubric: Record<string, unknown>): StandardizedRubricRow[] => {
+  const rootPoints = Array.isArray(rubric.answerPoints)
+    ? rubric.answerPoints
+    : Array.isArray((rubric as { content?: { points?: unknown[] } }).content?.points)
+      ? (rubric as { content: { points: unknown[] } }).content.points
+      : [];
+
+  const rows = rootPoints
+    .map((item, index): StandardizedRubricRow | null => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const point = item as {
+        content?: unknown;
+        score?: unknown;
+        deductionRules?: unknown;
+      };
+
+      const standard = normalizeNonEmpty(typeof point.content === "string" ? point.content : undefined);
+      if (!standard) {
+        return null;
+      }
+
+      const parsedScore = Number(point.score);
+      const score = Number.isFinite(parsedScore) && parsedScore > 0 ? parsedScore : 1;
+
+      return {
+        score,
+        standard,
+        deduction:
+          normalizeNonEmpty(
+            typeof point.deductionRules === "string" ? point.deductionRules : undefined
+          ) ?? `未命中要点可酌情扣分（第${index + 1}点）`
+      };
+    })
+    .filter((item): item is StandardizedRubricRow => Boolean(item));
+
+  return rows;
+};
+
+const extractRowsFromRubricText = (rubric: string): StandardizedRubricRow[] => {
+  const rows = rubric
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index): StandardizedRubricRow | null => {
+      const scoreMatch = line.match(/([0-9]+(?:\.[0-9]+)?)\s*分/);
+      const score = scoreMatch ? Number(scoreMatch[1]) : Number.NaN;
+
+      const standard = normalizeNonEmpty(
+        line
+          .replace(/^[\-*•\d\.\)\(、\s]+/, "")
+          .replace(/（?\s*[0-9]+(?:\.[0-9]+)?\s*分\s*）?/g, "")
+          .replace(/\(\s*[0-9]+(?:\.[0-9]+)?\s*分\s*\)/g, "")
+          .trim()
+      );
+
+      if (!standard) {
+        return null;
+      }
+
+      return {
+        score: Number.isFinite(score) && score > 0 ? score : 0,
+        standard,
+        deduction: `未命中“${standard.slice(0, 12)}”可酌情扣分`
+      };
+    })
+    .filter((item): item is StandardizedRubricRow => Boolean(item));
+
+  return rows;
+};
+
+const distributeMissingScores = (
+  rows: StandardizedRubricRow[],
+  totalScore: number
+): StandardizedRubricRow[] => {
+  const provided = rows.filter((item) => item.score > 0);
+  const missing = rows.filter((item) => item.score <= 0);
+
+  if (missing.length === 0) {
+    return rows;
+  }
+
+  const providedSum = provided.reduce((sum, item) => sum + item.score, 0);
+  const remaining = Math.max(0, totalScore - providedSum);
+  const average = remaining > 0 ? remaining / missing.length : totalScore / rows.length;
+  const roundedAverage = Number(average.toFixed(1));
+
+  return rows.map((item) => {
+    if (item.score > 0) {
+      return item;
+    }
+
+    return {
+      ...item,
+      score: roundedAverage > 0 ? roundedAverage : 1
+    };
+  });
+};
+
+const buildFallbackStandardizedRubric = (
+  rubricInput: string | Record<string, unknown>,
+  maxScore?: number
+): string => {
+  const rawRows =
+    typeof rubricInput === "string"
+      ? extractRowsFromRubricText(rubricInput)
+      : extractRowsFromRubricObject(rubricInput);
+
+  const rows = rawRows.length
+    ? rawRows
+    : [
+        {
+          score: maxScore && maxScore > 0 ? maxScore : 10,
+          standard: "答案结构完整，史实准确，论证逻辑清晰",
+          deduction: "缺失关键史实或逻辑链不完整可酌情扣分"
+        }
+      ];
+
+  const explicitTotal = rows.reduce((sum, item) => sum + Math.max(0, item.score), 0);
+  const resolvedTotal = Math.max(
+    1,
+    Math.round(
+      maxScore && maxScore > 0
+        ? Math.max(maxScore, explicitTotal)
+        : explicitTotal > 0
+          ? explicitTotal
+          : 10
+    )
+  );
+  const normalizedRows = distributeMissingScores(rows, resolvedTotal);
+
+  const markdownRows = normalizedRows
+    .map(
+      (item) =>
+        `| ${formatScoreLabel(item.score)} | ${toSafeText(item.standard)} | ${toSafeText(item.deduction)} |`
+    )
+    .join("\n");
+
+  return [
+    `## 总分: ${formatScoreLabel(resolvedTotal)}分`,
+    "",
+    "| 分值 | 给分标准 | 常见错误及扣分 |",
+    "| --- | --- | --- |",
+    markdownRows
+  ].join("\n");
+};
+
+const extractStandardizedRubric = (candidate: Record<string, unknown>): string | null => {
+  const possibleKeys = ["rubric", "rubricMarkdown", "markdown", "content"] as const;
+
+  for (const key of possibleKeys) {
+    const value = candidate[key];
+    const text = normalizeNonEmpty(typeof value === "string" ? value : undefined);
+    if (text) {
+      return stripMarkdownCodeFence(text);
+    }
+  }
+
+  return null;
+};
+
+export const standardizeRubric = async (input: {
+  rubric: string | Record<string, unknown>;
+  maxScore?: number;
+}): Promise<{
+  rubric: string;
+  provider: string;
+  providerTrace: AiProviderTrace;
+}> => {
+  const sourceText =
+    typeof input.rubric === "string" ? input.rubric : JSON.stringify(input.rubric, null, 2);
+
+  const userPrompt = [
+    "请将以下评分细则整理为标准 Markdown 格式。",
+    "输出要求：",
+    "1) 首行为 ## 总分: X分",
+    "2) 必须包含三列表格：分值 | 给分标准 | 常见错误及扣分",
+    "3) 保留原始要点，不要遗漏",
+    "4) 禁止输出代码块标记",
+    input.maxScore ? `5) 总分以 ${input.maxScore} 分为准` : "5) 若原文无总分，请合理推断总分",
+    "",
+    "原始评分细则：",
+    sourceText
+  ].join("\n");
+
+  try {
+    const aiResult = await callAiGatewayJson({
+      task: "rubric_generate",
+      systemPrompt: "你是一名评分细则格式化专家，请输出 JSON 对象。",
+      userPrompt,
+      temperature: 0.1,
+      maxTokens: 2048
+    });
+
+    const standardizedRubric = extractStandardizedRubric(aiResult.json);
+    if (!standardizedRubric) {
+      throw new Error("AI_STANDARDIZE_EMPTY_RESULT");
+    }
+
+    return {
+      rubric: standardizedRubric,
+      provider: `${aiResult.provider}:${aiResult.model}`,
+      providerTrace: {
+        mode: "ai"
+      }
+    };
+  } catch (error) {
+    const trace: AiProviderTrace =
+      isAiGatewayError(error)
+        ? {
+            mode: "fallback",
+            reason: error.code,
+            attempts: error.attempts
+          }
+        : {
+            mode: "fallback",
+            reason: error instanceof Error ? error.message : "AI_STANDARDIZE_UNKNOWN_ERROR"
+          };
+
+    return {
+      rubric: buildFallbackStandardizedRubric(input.rubric, input.maxScore),
+      provider: "rule-standardizer",
+      providerTrace: trace
+    };
+  }
+};
+
 export const generateRubricDraft = async (input: {
   questionId?: string;
   subject?: string;
@@ -461,11 +718,7 @@ export const generateRubricDraft = async (input: {
 }): Promise<{
   rubric: Record<string, unknown>;
   provider: string;
-  providerTrace: {
-    mode: "ai" | "fallback";
-    reason?: string;
-    attempts?: AiProviderAttempt[];
-  };
+  providerTrace: AiProviderTrace;
 }> => {
   const ruleBasedRubric = buildRuleBasedRubric(input);
   const images = [

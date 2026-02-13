@@ -6,6 +6,7 @@ import {
   licenseStatusResponseSchema,
   recordsBatchRequestSchema,
   rubricGenerateRequestSchema,
+  rubricStandardizeRequestSchema,
   rubricUpsertRequestSchema,
   settingUpsertRequestSchema
 } from "./index";
@@ -105,5 +106,25 @@ describe("license contracts", () => {
       grade: "高三"
     });
     expect(parsed.name).toBe("2026届高三二模");
+  });
+
+  it("validates rubric standardize request with plain text", () => {
+    const parsed = rubricStandardizeRequestSchema.parse({
+      rubric: "第一点：史实准确（6分）\n第二点：逻辑完整（4分）",
+      maxScore: 10
+    });
+    expect(parsed.maxScore).toBe(10);
+  });
+
+  it("validates rubric standardize request with object payload", () => {
+    const parsed = rubricStandardizeRequestSchema.parse({
+      rubric: {
+        answerPoints: [
+          { content: "史实准确", score: 6 },
+          { content: "逻辑完整", score: 4 }
+        ]
+      }
+    });
+    expect(parsed.rubric).toBeTypeOf("object");
   });
 });

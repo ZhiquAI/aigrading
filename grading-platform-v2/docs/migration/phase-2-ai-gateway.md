@@ -21,6 +21,9 @@
 - Updated routes to pass through AI inputs:
   - `questionImage/answerImage` for rubric generation routes
   - `imageBase64` for grading evaluate routes
+- Added rubric standardize routes with compatibility:
+  - `POST /api/v2/rubrics/standardize` (v2 response shape)
+  - `POST /api/ai/rubric/standardize` (legacy `success/data` response shape)
 - Added env placeholders for AI providers in `apps/api-server/.env.example`.
 
 ## Notes

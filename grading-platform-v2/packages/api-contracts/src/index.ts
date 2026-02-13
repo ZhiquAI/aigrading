@@ -141,6 +141,16 @@ export const rubricGenerateRequestSchema = z.object({
 
 export type RubricGenerateRequest = z.infer<typeof rubricGenerateRequestSchema>;
 
+export const rubricStandardizeRequestSchema = z.object({
+  rubric: z.union([
+    z.string().trim().min(1),
+    z.record(z.unknown())
+  ]),
+  maxScore: z.number().positive().optional()
+});
+
+export type RubricStandardizeRequest = z.infer<typeof rubricStandardizeRequestSchema>;
+
 export const gradingEvaluateRequestSchema = z.object({
   imageBase64: z.string().trim().min(1).optional(),
   rubric: z.unknown(),
