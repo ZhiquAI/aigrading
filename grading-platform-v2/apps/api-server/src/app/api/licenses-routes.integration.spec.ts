@@ -830,9 +830,13 @@ describe("grading and ai-rubric compatibility routes", () => {
     expect(v2Generated.status).toBe(200);
     const v2GeneratedJson = await parseJson<{
       ok: boolean;
-      data: { rubric: unknown };
+      data: {
+        rubric: unknown;
+        providerTrace: { mode: string; reason?: string };
+      };
     }>(v2Generated);
     expect(v2GeneratedJson.ok).toBe(true);
+    expect(v2GeneratedJson.data.providerTrace.mode).toBe("fallback");
 
     const legacyGenerated = await legacyAiRubricPost(
       new Request("http://localhost/api/ai/rubric", {
@@ -852,9 +856,13 @@ describe("grading and ai-rubric compatibility routes", () => {
     expect(legacyGenerated.status).toBe(200);
     const legacyGeneratedJson = await parseJson<{
       success: boolean;
-      data: { rubric: unknown };
+      data: {
+        rubric: unknown;
+        providerTrace: { mode: string; reason?: string };
+      };
     }>(legacyGenerated);
     expect(legacyGeneratedJson.success).toBe(true);
+    expect(legacyGeneratedJson.data.providerTrace.mode).toBe("fallback");
 
     const v2Evaluate = await v2GradingEvaluatePost(
       new Request("http://localhost/api/v2/gradings/evaluate", {
@@ -876,11 +884,16 @@ describe("grading and ai-rubric compatibility routes", () => {
     expect(v2Evaluate.status).toBe(200);
     const v2EvaluateJson = await parseJson<{
       ok: boolean;
-      data: { remaining: number; totalUsed: number };
+      data: {
+        remaining: number;
+        totalUsed: number;
+        providerTrace: { mode: string; reason?: string };
+      };
     }>(v2Evaluate);
     expect(v2EvaluateJson.ok).toBe(true);
     expect(v2EvaluateJson.data.remaining).toBe(999);
     expect(v2EvaluateJson.data.totalUsed).toBe(1);
+    expect(v2EvaluateJson.data.providerTrace.mode).toBe("fallback");
 
     const legacyEvaluate = await legacyAiGradePost(
       new Request("http://localhost/api/ai/grade", {
@@ -902,10 +915,14 @@ describe("grading and ai-rubric compatibility routes", () => {
     expect(legacyEvaluate.status).toBe(200);
     const legacyEvaluateJson = await parseJson<{
       success: boolean;
-      data: { remaining: number };
+      data: {
+        remaining: number;
+        providerTrace: { mode: string; reason?: string };
+      };
     }>(legacyEvaluate);
     expect(legacyEvaluateJson.success).toBe(true);
     expect(legacyEvaluateJson.data.remaining).toBe(998);
+    expect(legacyEvaluateJson.data.providerTrace.mode).toBe("fallback");
 
     const legacyQuota = await legacyAiGradeGet(
       new Request("http://localhost/api/ai/grade", {

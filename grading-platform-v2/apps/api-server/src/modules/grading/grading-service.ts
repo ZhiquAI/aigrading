@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import type { ScopeIdentity } from "@ai-grading/api-contracts";
-import { callAiGatewayJson } from "@ai-grading/ai-gateway";
+import { callAiGatewayJson, isAiGatewayError, type AiProviderAttempt } from "@ai-grading/ai-gateway";
 import { buildActivationScopeKey, normalizeNonEmpty } from "@ai-grading/domain-core";
 import { RubricDomainError } from "@/modules/rubric/rubric-service";
 
@@ -354,6 +354,11 @@ export const evaluateGrading = async (
   breakdown: BreakdownItem[];
   comment: string;
   provider: string;
+  providerTrace: {
+    mode: "ai" | "fallback";
+    reason?: string;
+    attempts?: AiProviderAttempt[];
+  };
   remaining: number;
   totalUsed: number;
 }> => {
@@ -372,6 +377,14 @@ export const evaluateGrading = async (
   let breakdown: BreakdownItem[] = [];
   let comment = "";
   let provider = "rule-evaluator";
+  let providerTrace: {
+    mode: "ai" | "fallback";
+    reason?: string;
+    attempts?: AiProviderAttempt[];
+  } = {
+    mode: "fallback",
+    reason: "AI_GATEWAY_NOT_CALLED"
+  };
 
   try {
     const aiResult = await evaluateWithAiGateway({
@@ -388,7 +401,10 @@ export const evaluateGrading = async (
     breakdown = aiResult.breakdown;
     comment = aiResult.comment;
     provider = aiResult.provider;
-  } catch {
+    providerTrace = {
+      mode: "ai"
+    };
+  } catch (error) {
     maxScore = computeMaxScoreFromRubric(input.rubric);
     breakdown = buildBreakdown(input.rubric);
     score = Math.min(
@@ -396,6 +412,17 @@ export const evaluateGrading = async (
       breakdown.reduce((sum, item) => sum + item.score, 0)
     );
     comment = buildMarkdownComment(breakdown);
+    providerTrace =
+      isAiGatewayError(error)
+        ? {
+            mode: "fallback",
+            reason: error.code,
+            attempts: error.attempts
+          }
+        : {
+            mode: "fallback",
+            reason: "AI_GATEWAY_UNKNOWN_ERROR"
+          };
   }
 
   const updatedQuota = await db.$transaction(async (tx) => {
@@ -434,6 +461,7 @@ export const evaluateGrading = async (
     breakdown,
     comment,
     provider,
+    providerTrace,
     remaining: updatedQuota.remaining,
     totalUsed: quota.total - updatedQuota.remaining
   };

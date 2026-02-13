@@ -47,7 +47,7 @@ export type AiGatewayRuntimeConfig = {
   zhipu: ProviderConfig;
 };
 
-type ProviderError = {
+export type AiProviderAttempt = {
   provider: AiProvider;
   message: string;
 };
@@ -260,7 +260,7 @@ export class AiGatewayError extends Error {
   constructor(
     public readonly code: string,
     message: string,
-    public readonly attempts: ProviderError[]
+    public readonly attempts: AiProviderAttempt[]
   ) {
     super(message);
     this.name = "AiGatewayError";
@@ -277,7 +277,7 @@ export const callAiGatewayJson = async (input: AiGatewayRequest): Promise<AiGate
     throw new AiGatewayError("NO_PROVIDER_AVAILABLE", "未找到可用 AI 提供方配置", []);
   }
 
-  const attempts: ProviderError[] = [];
+  const attempts: AiProviderAttempt[] = [];
 
   for (const plan of plans) {
     try {

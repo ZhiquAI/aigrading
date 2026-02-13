@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { callAiGatewayJson } from "@ai-grading/ai-gateway";
+import { callAiGatewayJson, isAiGatewayError, type AiProviderAttempt } from "@ai-grading/ai-gateway";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 
 export type RubricLifecycleStatus = "draft" | "published";
@@ -461,6 +461,11 @@ export const generateRubricDraft = async (input: {
 }): Promise<{
   rubric: Record<string, unknown>;
   provider: string;
+  providerTrace: {
+    mode: "ai" | "fallback";
+    reason?: string;
+    attempts?: AiProviderAttempt[];
+  };
 }> => {
   const ruleBasedRubric = buildRuleBasedRubric(input);
   const images = [
@@ -508,12 +513,28 @@ export const generateRubricDraft = async (input: {
 
     return {
       provider: `${aiResult.provider}:${aiResult.model}`,
-      rubric: normalizedRubric
+      rubric: normalizedRubric,
+      providerTrace: {
+        mode: "ai"
+      }
     };
-  } catch {
+  } catch (error) {
+    const trace =
+      isAiGatewayError(error)
+        ? {
+            mode: "fallback" as const,
+            reason: error.code,
+            attempts: error.attempts
+          }
+        : {
+            mode: "fallback" as const,
+            reason: "AI_GATEWAY_UNKNOWN_ERROR"
+          };
+
     return {
       provider: "rule-based-generator",
-      rubric: ruleBasedRubric
+      rubric: ruleBasedRubric,
+      providerTrace: trace
     };
   }
 };

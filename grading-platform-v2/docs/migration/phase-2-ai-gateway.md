@@ -15,6 +15,9 @@
 - Integrated gateway into grading evaluation:
   - `evaluateGrading` now calls AI gateway first (supports image input)
   - auto fallback to rule-evaluator when provider call fails
+- Added provider trace metadata in rubric/grading responses:
+  - `providerTrace.mode` indicates `ai` or `fallback`
+  - `providerTrace.reason/attempts` expose fallback reason and provider attempt chain
 - Updated routes to pass through AI inputs:
   - `questionImage/answerImage` for rubric generation routes
   - `imageBase64` for grading evaluate routes
