@@ -1210,9 +1210,9 @@ button:disabled {
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
+  display: grid;
+  place-items: center;
   color: #9aa4b7;
-  font-size: 13px;
-  line-height: 1;
 }
 
 .legacy-settings-actions {
@@ -1250,8 +1250,14 @@ button:disabled {
 }
 
 .legacy-settings-btn-icon {
-  font-size: 12px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.legacy-settings-inline-icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2;
 }
 
 .legacy-settings-group-title {
