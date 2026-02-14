@@ -15,6 +15,13 @@ const maskCode = (code: string | null): string => {
   return `${code.slice(0, 4)}-****-****-${code.slice(-4)}`;
 };
 
+const TEST_LICENSE_CODES = [
+  "TEST-1111-2222-3333",
+  "BASIC-AAAA-BBBB-CCCC",
+  "PRO-XXXX-YYYY-ZZZZ",
+  "PERM-AAAA-BBBB-CCCC"
+];
+
 export const LicensePanel = () => {
   const [inputCode, setInputCode] = useState(getActivationCode() ?? "");
   const [status, setStatus] = useState<LicenseStatusData | null>(null);
@@ -84,6 +91,33 @@ export const LicensePanel = () => {
     }
   };
 
+  const handleFillCode = (code: string): void => {
+    setInputCode(code);
+    setSuccessMessage(`已填充测试激活码：${code}`);
+    setErrorMessage(null);
+  };
+
+  const handlePasteCode = async (): Promise<void> => {
+    if (!navigator.clipboard?.readText) {
+      setErrorMessage("当前环境不支持读取剪贴板");
+      return;
+    }
+
+    try {
+      const pasted = (await navigator.clipboard.readText()).trim();
+      if (!pasted) {
+        setErrorMessage("剪贴板为空");
+        return;
+      }
+
+      setInputCode(pasted.toUpperCase());
+      setSuccessMessage("已从剪贴板粘贴激活码");
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "粘贴失败");
+    }
+  };
+
   return (
     <section className="card">
       <header className="card-header">
@@ -118,6 +152,23 @@ export const LicensePanel = () => {
           placeholder="TEST-1111-2222-3333"
           onChange={(event) => setInputCode(event.target.value)}
         />
+      </div>
+
+      <div className="btn-row">
+        <button type="button" className="secondary-btn" onClick={() => void handlePasteCode()} disabled={activating}>
+          从剪贴板粘贴
+        </button>
+        {TEST_LICENSE_CODES.map((code) => (
+          <button
+            key={code}
+            type="button"
+            className="secondary-btn mini-btn"
+            onClick={() => handleFillCode(code)}
+            disabled={activating}
+          >
+            {code.slice(0, 4)}
+          </button>
+        ))}
       </div>
 
       <div className="btn-row">

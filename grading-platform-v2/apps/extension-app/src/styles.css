@@ -60,6 +60,67 @@ body {
   background: linear-gradient(135deg, #eef3ff 0%, #f8faff 100%);
 }
 
+.context-strip-split {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.context-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.quick-action-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.workflow-progress {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.progress-step {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: #2a3c66;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 8px 10px;
+}
+
+.progress-step-done {
+  border-color: rgba(21, 128, 61, 0.35);
+  background: rgba(21, 128, 61, 0.08);
+  color: #126334;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #7d89a8;
+}
+
+.progress-step-done .progress-dot {
+  background: #15803d;
+}
+
 .workspace-main {
   margin-top: 16px;
   display: grid;
@@ -91,6 +152,10 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .nav-btn:hover {
@@ -102,6 +167,24 @@ body {
   background: rgba(36, 88, 255, 0.12);
   border-color: rgba(36, 88, 255, 0.3);
   color: var(--primary-strong);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #425986;
+  background: #f7f9ff;
+  flex-shrink: 0;
+}
+
+.status-chip-done {
+  border-color: rgba(21, 128, 61, 0.35);
+  color: #126334;
+  background: rgba(21, 128, 61, 0.08);
 }
 
 .workspace-tip {
@@ -354,6 +437,14 @@ th {
   .workspace-nav {
     position: static;
   }
+
+  .context-strip-split {
+    align-items: flex-start;
+  }
+
+  .quick-actions {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 640px) {
@@ -367,5 +458,23 @@ th {
 
   .btn-row button {
     width: 100%;
+  }
+
+  .workflow-progress {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nav-btn {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .quick-actions {
+    width: 100%;
+  }
+
+  .quick-actions .quick-action-btn {
+    flex: 1;
+    min-width: 112px;
   }
 }

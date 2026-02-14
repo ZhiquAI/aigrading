@@ -99,6 +99,9 @@ const formatDateTime = (iso: string): string => {
 };
 
 export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: RecordsPanelProps) => {
+  const defaultQuestionNo = questionKey || "Q1";
+  const defaultExamNo = examName || examId || "EX-2026-001";
+
   const [page, setPage] = useState("1");
   const [limit, setLimit] = useState("20");
   const [filterQuestionKey, setFilterQuestionKey] = useState(questionKey);
@@ -106,8 +109,8 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
   const [recordsData, setRecordsData] = useState<RecordListResultDTO | null>(null);
 
   const [studentName, setStudentName] = useState("张三");
-  const [newQuestionNo, setNewQuestionNo] = useState("Q1");
-  const [examNo, setExamNo] = useState("EX-2026-001");
+  const [newQuestionNo, setNewQuestionNo] = useState(defaultQuestionNo);
+  const [examNo, setExamNo] = useState(defaultExamNo);
   const [score, setScore] = useState("8");
   const [maxScore, setMaxScore] = useState("10");
   const [comment, setComment] = useState("观点完整，史实准确");
@@ -364,6 +367,47 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
     }
   };
 
+  const handleValidateBatchJson = (): void => {
+    try {
+      const parsed = parseBatchRecords(batchJson);
+      setSuccessMessage(`批量 JSON 校验通过，共 ${parsed.length} 条`);
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "批量 JSON 校验失败");
+      setSuccessMessage(null);
+    }
+  };
+
+  const handleResetCreateForm = (): void => {
+    setStudentName("张三");
+    setNewQuestionNo(defaultQuestionNo);
+    setExamNo(defaultExamNo);
+    setScore("8");
+    setMaxScore("10");
+    setComment("观点完整，史实准确");
+    setBreakdown('[{\"label\":\"史实\",\"score\":4,\"max\":5,\"comment\":\"基本准确\"}]');
+    setSuccessMessage("新增表单已重置");
+    setErrorMessage(null);
+  };
+
+  const handleFillFormFromLatest = (): void => {
+    if (!latestGrading) {
+      setErrorMessage("当前没有最近批改结果");
+      setSuccessMessage(null);
+      return;
+    }
+
+    setStudentName(latestGrading.studentName || "未知");
+    setNewQuestionNo(latestGrading.questionNo || latestGrading.questionKey || defaultQuestionNo);
+    setExamNo(latestGrading.examNo || defaultExamNo);
+    setScore(String(latestGrading.score));
+    setMaxScore(String(latestGrading.maxScore));
+    setComment(latestGrading.comment ?? "");
+    setBreakdown(JSON.stringify(latestGrading.breakdown ?? "", null, 2));
+    setSuccessMessage("已将最近批改结果填充到新增表单");
+    setErrorMessage(null);
+  };
+
   useEffect(() => {
     void loadRecords(1);
   }, []);
@@ -495,6 +539,17 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
         <button type="button" className="primary-btn" onClick={() => void handleCreate()} disabled={busy}>
           新增记录
         </button>
+        <button type="button" className="secondary-btn" onClick={handleResetCreateForm} disabled={busy}>
+          重置新增表单
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={handleFillFormFromLatest}
+          disabled={busy || !latestGrading}
+        >
+          填充最近批改
+        </button>
         <button
           type="button"
           className="secondary-btn"
@@ -529,6 +584,9 @@ export const RecordsPanel = ({ questionKey, examId, examName, latestGrading }: R
       <div className="btn-row">
         <button type="button" className="primary-btn" onClick={() => void handleBatchCreate()} disabled={busy}>
           批量导入
+        </button>
+        <button type="button" className="secondary-btn" onClick={handleValidateBatchJson} disabled={busy}>
+          校验批量 JSON
         </button>
         <button type="button" className="secondary-btn" onClick={() => void handleExportCurrentPage()} disabled={busy}>
           导出当前页 JSON

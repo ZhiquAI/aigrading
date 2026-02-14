@@ -35,11 +35,48 @@ export const SettingsPanel = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const applyPreset = (presetKey: string, presetValue: string): void => {
+  const applyPreset = (presetKey: string, presetValue: unknown, presetLabel: string): void => {
     setKey(presetKey);
-    setValue(presetValue);
+    setValue(stringifyValue(presetValue));
     setErrorMessage(null);
-    setSuccessMessage(`已填充预设：${presetKey}`);
+    setSuccessMessage(`已填充预设：${presetLabel}`);
+  };
+
+  const handleValidateJson = (): void => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setSuccessMessage("当前值为空，视为合法");
+      setErrorMessage(null);
+      return;
+    }
+
+    try {
+      JSON.parse(trimmed);
+      setSuccessMessage("JSON 校验通过");
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage("当前值不是合法 JSON");
+      setSuccessMessage(null);
+    }
+  };
+
+  const handleFormatJson = (): void => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setSuccessMessage("当前值为空，无需格式化");
+      setErrorMessage(null);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      setValue(JSON.stringify(parsed, null, 2));
+      setSuccessMessage("JSON 已格式化");
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage("当前值不是合法 JSON，无法格式化");
+      setSuccessMessage(null);
+    }
   };
 
   const handleLoad = async (): Promise<void> => {
@@ -164,7 +201,7 @@ export const SettingsPanel = () => {
         <button
           type="button"
           className="secondary-btn"
-          onClick={() => applyPreset("model.provider", "\"openrouter\"")}
+          onClick={() => applyPreset("model.provider", "openrouter", "Provider")}
           disabled={loading}
         >
           预设: Provider
@@ -172,7 +209,7 @@ export const SettingsPanel = () => {
         <button
           type="button"
           className="secondary-btn"
-          onClick={() => applyPreset("grading.mode", "\"balanced\"")}
+          onClick={() => applyPreset("grading.mode", "balanced", "Grading Mode")}
           disabled={loading}
         >
           预设: Grading Mode
@@ -180,10 +217,27 @@ export const SettingsPanel = () => {
         <button
           type="button"
           className="secondary-btn"
-          onClick={() => applyPreset("ui.language", "\"zh-CN\"")}
+          onClick={() => applyPreset("ui.language", "zh-CN", "Language")}
           disabled={loading}
         >
           预设: Language
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => applyPreset("provider.priority", ["openrouter", "gemini", "glm"], "Provider Priority")}
+          disabled={loading}
+        >
+          预设: Provider Priority
+        </button>
+      </div>
+
+      <div className="btn-row">
+        <button type="button" className="secondary-btn" onClick={handleValidateJson} disabled={loading}>
+          校验 JSON
+        </button>
+        <button type="button" className="secondary-btn" onClick={handleFormatJson} disabled={loading}>
+          格式化 JSON
         </button>
       </div>
 
