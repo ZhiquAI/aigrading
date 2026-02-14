@@ -158,7 +158,9 @@ const App = () => {
   return (
     <main className="legacy-shell">
       <section
-        className={`legacy-page-area ${activeView === "rubric" ? "legacy-page-area-rubric" : "legacy-page-area-plain"}`}
+        className={`legacy-page-area ${
+          activeView === "rubric" ? "legacy-page-area-rubric" : "legacy-page-area-plain"
+        } legacy-page-area-${activeView}`}
       >
         {activeView === "rubric" ? (
           <>
