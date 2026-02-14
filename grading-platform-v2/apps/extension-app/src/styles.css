@@ -91,7 +91,7 @@ body {
 }
 
 .legacy-page-area {
-  height: calc(100% - 40px - 54px);
+  height: calc(100% - 54px);
   overflow-y: auto;
 }
 

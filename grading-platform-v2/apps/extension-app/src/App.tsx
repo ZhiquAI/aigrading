@@ -157,21 +157,6 @@ const App = () => {
 
   return (
     <main className="legacy-shell">
-      <header className="legacy-topbar">
-        <div className="legacy-topbar-title">
-          <span className="legacy-topbar-logo" />
-          <span>AI 智能阅卷助手</span>
-        </div>
-        <div className="legacy-topbar-actions">
-          <button type="button" className="legacy-topbar-btn" aria-label="固定">
-            ⌖
-          </button>
-          <button type="button" className="legacy-topbar-btn" aria-label="关闭">
-            ×
-          </button>
-        </div>
-      </header>
-
       <section
         className={`legacy-page-area ${activeView === "rubric" ? "legacy-page-area-rubric" : "legacy-page-area-plain"}`}
       >
