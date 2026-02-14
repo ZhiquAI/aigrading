@@ -1613,6 +1613,17 @@ th {
   padding: 0;
 }
 
+.legacy-rubric-subheader-link {
+  width: auto;
+  min-width: 40px;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+  background: #eaf0ff !important;
+  color: #38589a !important;
+  font-size: var(--legacy-fs-xs) !important;
+  font-weight: 700 !important;
+}
+
 .legacy-rubric-settings-btn {
   width: 28px;
   height: 28px;
