@@ -245,6 +245,7 @@ const buildRubricResultPreview = (input: {
       const segmentTitle = firstText(segment.title, segment.name, segment.id);
       const segmentContent = toRecord(segment.content) ?? {};
       const points = [
+        ...toRecordList(segment.points),
         ...toRecordList(segmentContent.points),
         ...toRecordList(segmentContent.steps)
       ];
@@ -465,12 +466,15 @@ export const RubricPanel = ({
     }
   };
 
-  const handleSave = async (): Promise<void> => {
+  const handleSave = async (nextRubricText?: string): Promise<void> => {
     setBusy(true);
     resetMessage();
 
     try {
-      const parsed = parseRubricInput(rubricText);
+      const sourceRubricText = typeof nextRubricText === "string"
+        ? nextRubricText
+        : rubricText;
+      const parsed = parseRubricInput(sourceRubricText);
       const result = await upsertRubric({
         questionKey: normalizedQuestionKey || undefined,
         rubric: parsed,
@@ -778,6 +782,7 @@ export const RubricPanel = ({
   return (
     <RubricResultView
       statusMessage={statusMessage}
+      rubricText={rubricText}
       resultPreview={resultPreview}
       lifecycleStatus={lifecycleStatus}
       busy={busy}
@@ -785,8 +790,9 @@ export const RubricPanel = ({
       onOpenList={() => setViewState("list")}
       onOpenSettings={onOpenSettings}
       onRegenerate={() => setViewState("input")}
-      onSave={() => {
-        void handleSave();
+      onRubricTextChange={onRubricTextChange}
+      onSave={(nextRubricText) => {
+        void handleSave(nextRubricText);
       }}
     />
   );
