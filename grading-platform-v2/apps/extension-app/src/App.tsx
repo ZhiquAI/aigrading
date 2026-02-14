@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ExamsPanel } from "./modules/exams/ExamsPanel";
 import { GradingPanel } from "./modules/grading/GradingPanel";
 import { HealthPanel } from "./modules/health/HealthPanel";
@@ -7,13 +7,22 @@ import { RecordsPanel } from "./modules/records/RecordsPanel";
 import { RubricPanel } from "./modules/rubric/RubricPanel";
 import { SettingsPanel } from "./modules/settings/SettingsPanel";
 
-type ModuleView = "health" | "exams" | "rubric" | "grading" | "records";
+type ModuleView = "rubric" | "grading" | "records";
 
-type WorkflowStep = {
-  id: string;
-  label: string;
-  done: boolean;
-  targetView: ModuleView;
+type ActiveTabContext = {
+  tabId: number | null;
+  url: string;
+  title: string;
+  supported: boolean;
+};
+
+type PageContextPayload = {
+  sourceTabId?: number | null;
+  reason?: string;
+  href?: string;
+  title?: string;
+  platform?: string;
+  timestamp?: string;
 };
 
 const DEFAULT_RUBRIC = JSON.stringify(
@@ -44,25 +53,62 @@ const DEFAULT_RUBRIC = JSON.stringify(
   2
 );
 
-const ACTIVE_VIEW_STORAGE_KEY = "extension-app.active-view";
+const ACTIVE_VIEW_STORAGE_KEY = "extension-app.legacy-heroui.active-view";
+
+const getChromeRuntime = (): {
+  sendMessage?: (message: unknown, callback?: (response: unknown) => void) => void;
+  onMessage?: {
+    addListener: (listener: (message: unknown) => void) => void;
+    removeListener: (listener: (message: unknown) => void) => void;
+  };
+} | null => {
+  const runtime = (
+    globalThis as typeof globalThis & {
+      chrome?: {
+        runtime?: {
+          sendMessage?: (message: unknown, callback?: (response: unknown) => void) => void;
+          onMessage?: {
+            addListener: (listener: (message: unknown) => void) => void;
+            removeListener: (listener: (message: unknown) => void) => void;
+          };
+        };
+      };
+    }
+  ).chrome?.runtime;
+
+  return runtime ?? null;
+};
+
+const requestRuntimeData = <T,>(message: unknown): Promise<T | null> => {
+  const runtime = getChromeRuntime();
+  if (!runtime?.sendMessage) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    runtime.sendMessage?.(message, (response) => {
+      const payload = response as { ok?: boolean; data?: T } | undefined;
+      if (!payload?.ok) {
+        resolve(null);
+        return;
+      }
+
+      resolve(payload.data ?? null);
+    });
+  });
+};
 
 const getInitialView = (): ModuleView => {
   if (typeof window === "undefined") {
-    return "health";
+    return "rubric";
   }
 
   const savedView = window.localStorage.getItem(ACTIVE_VIEW_STORAGE_KEY);
-  if (
-    savedView === "health" ||
-    savedView === "exams" ||
-    savedView === "rubric" ||
-    savedView === "grading" ||
-    savedView === "records"
-  ) {
+  if (savedView === "rubric" || savedView === "grading" || savedView === "records") {
     return savedView;
   }
 
-  return "health";
+  return "rubric";
 };
 
 const App = () => {
@@ -71,6 +117,7 @@ const App = () => {
   const [examName, setExamName] = useState("");
   const [rubricText, setRubricText] = useState(DEFAULT_RUBRIC);
   const [activeView, setActiveView] = useState<ModuleView>(() => getInitialView());
+
   const [latestGrading, setLatestGrading] = useState<{
     score: number;
     maxScore: number;
@@ -82,205 +129,361 @@ const App = () => {
     examNo: string;
   } | null>(null);
 
-  const currentExamLabel = useMemo(() => {
-    return examName || examId || "未选择";
-  }, [examId, examName]);
+  const [activeTabContext, setActiveTabContext] = useState<ActiveTabContext | null>(null);
+  const [lastPageContext, setLastPageContext] = useState<PageContextPayload | null>(null);
 
-  const lastScoreLabel = useMemo(() => {
-    return latestGrading ? `${latestGrading.score}/${latestGrading.maxScore}` : "暂无";
-  }, [latestGrading]);
+  const [workspaceView, setWorkspaceView] = useState<ModuleView | null>(null);
+  const [showSettingsSheet, setShowSettingsSheet] = useState(false);
 
-  const hasExamSelection = useMemo(() => examId.trim().length > 0, [examId]);
-  const hasRubricDraft = useMemo(() => rubricText.trim().length > 0, [rubricText]);
-  const hasGradingResult = useMemo(() => latestGrading !== null, [latestGrading]);
-
-  const workflowSteps = useMemo<WorkflowStep[]>(() => {
-    return [
-      { id: "step-1", label: "基础校验", done: true, targetView: "health" },
-      { id: "step-2", label: "选择考试", done: hasExamSelection, targetView: "exams" },
-      { id: "step-3", label: "准备 Rubric", done: hasRubricDraft, targetView: "rubric" },
-      { id: "step-4", label: "AI 批改", done: hasGradingResult, targetView: "grading" },
-      { id: "step-5", label: "记录归档", done: hasGradingResult, targetView: "records" }
-    ];
-  }, [hasExamSelection, hasRubricDraft, hasGradingResult]);
-
-  const completedSteps = useMemo(() => {
-    return workflowSteps.filter((item) => item.done).length;
-  }, [workflowSteps]);
+  const currentExamLabel = examName || examId || "未设置";
+  const hasRubric = rubricText.trim().length > 0;
+  const gradingStatus = hasRubric ? "可开始批改" : "缺少细则";
+  const historyCount = latestGrading ? 1 : 0;
 
   useEffect(() => {
     window.localStorage.setItem(ACTIVE_VIEW_STORAGE_KEY, activeView);
   }, [activeView]);
 
-  const moduleStatusMap = useMemo(() => {
-    return {
-      health: { label: "基础配置", done: true },
-      exams: { label: hasExamSelection ? "已选考试" : "待选择", done: hasExamSelection },
-      rubric: { label: hasRubricDraft ? "已准备" : "待准备", done: hasRubricDraft },
-      grading: { label: hasGradingResult ? "已批改" : "待批改", done: hasGradingResult },
-      records: { label: hasGradingResult ? "可归档" : "等待结果", done: hasGradingResult }
+  useEffect(() => {
+    const runtime = getChromeRuntime();
+    if (!runtime?.onMessage?.addListener) {
+      return;
+    }
+
+    const handleMessage = (message: unknown): void => {
+      const payload = message as
+        | {
+            type?: string;
+            payload?: PageContextPayload;
+          }
+        | undefined;
+
+      if (payload?.type === "PAGE_CONTEXT_BROADCAST" && payload.payload) {
+        setLastPageContext(payload.payload);
+      }
     };
-  }, [hasExamSelection, hasRubricDraft, hasGradingResult]);
+
+    runtime.onMessage.addListener(handleMessage);
+
+    return () => {
+      runtime.onMessage?.removeListener(handleMessage);
+    };
+  }, []);
+
+  useEffect(() => {
+    void requestRuntimeData<ActiveTabContext>({ type: "GET_ACTIVE_TAB_CONTEXT" }).then((data) => {
+      if (data) {
+        setActiveTabContext(data);
+      }
+    });
+
+    void requestRuntimeData<PageContextPayload>({ type: "GET_LAST_PAGE_CONTEXT" }).then((data) => {
+      if (data) {
+        setLastPageContext(data);
+      }
+    });
+  }, []);
 
   return (
-    <main className="workspace-shell">
-      <header className="workspace-header">
-        <h1>Extension App V2 Workbench</h1>
-        <p>阶段 B-2（可控重设计）：保留 v2 业务契约，升级交互与可维护性。</p>
+    <main className="legacy-app-shell">
+      <header className="legacy-chrome-bar">
+        <div className="legacy-chrome-title">
+          <span className="legacy-chrome-app-dot" />
+          AI 智能阅卷助手
+        </div>
+        <div className="legacy-chrome-actions">
+          <button type="button" className="legacy-chrome-btn" aria-label="固定">
+            ⌖
+          </button>
+          <button type="button" className="legacy-chrome-btn" aria-label="关闭">
+            ×
+          </button>
+        </div>
       </header>
 
-      <section className="context-strip context-strip-rich context-strip-split">
-        <div className="context-metrics">
-          <span>
-            <strong>流程进度:</strong> {completedSteps}/{workflowSteps.length}
-          </span>
-          <span>
-            <strong>当前题目:</strong> {questionKey || "-"}
-          </span>
-          <span>
-            <strong>当前考试:</strong> {currentExamLabel}
-          </span>
-          <span>
-            <strong>最近得分:</strong> {lastScoreLabel}
-          </span>
-        </div>
-        <div className="quick-actions">
-          <button type="button" className="secondary-btn quick-action-btn" onClick={() => setActiveView("exams")}>
-            去考试
-          </button>
-          <button type="button" className="secondary-btn quick-action-btn" onClick={() => setActiveView("rubric")}>
-            去 Rubric
-          </button>
-          <button type="button" className="secondary-btn quick-action-btn" onClick={() => setActiveView("grading")}>
-            去批改
-          </button>
-          <button type="button" className="secondary-btn quick-action-btn" onClick={() => setActiveView("records")}>
-            去记录
-          </button>
-        </div>
+      <section className="legacy-body">
+        {activeView === "rubric" ? (
+          <>
+            <header className="legacy-page-header">
+              <div className="legacy-brand">
+                <span className="legacy-brand-badge">AI</span>
+                <span className="legacy-brand-title">智能阅卷</span>
+              </div>
+              <div className="legacy-header-right">
+                <span className="legacy-trial-chip">试用版</span>
+                <button
+                  type="button"
+                  className="legacy-settings-btn"
+                  aria-label="设置"
+                  onClick={() => setShowSettingsSheet(true)}
+                >
+                  ⚙
+                </button>
+              </div>
+            </header>
+
+            <section className="legacy-content">
+              <article className="legacy-hero-card">
+                <div className="legacy-hero-top">
+                  <div className="legacy-hero-icon">🪄</div>
+                  <span className="legacy-hero-chip">AI 驱动</span>
+                </div>
+                <h2>智能创建细则</h2>
+                <p>上传试题与答案，让 AI 自动分析并生成可编辑评分标准。</p>
+                <button type="button" className="legacy-primary-action" onClick={() => setWorkspaceView("rubric")}>
+                  立即开始
+                </button>
+              </article>
+
+              <section className="legacy-grid-two">
+                <article className="legacy-mini-card">
+                  <div className="legacy-mini-icon legacy-mini-icon-blue">📄</div>
+                  <h3>导入细则</h3>
+                  <p>支持 JSON 文件继续编辑</p>
+                </article>
+                <article className="legacy-mini-card">
+                  <div className="legacy-mini-icon legacy-mini-icon-purple">🧩</div>
+                  <span className="legacy-mini-count">0</span>
+                  <h3>模板库</h3>
+                  <p>常用标准合集</p>
+                </article>
+              </section>
+
+              <article className="legacy-recent-card">
+                <header>
+                  <span>最近细则</span>
+                  <span className="legacy-mini-count">{hasRubric ? 1 : 0}</span>
+                </header>
+                <div className="legacy-empty-box">
+                  <strong>{hasRubric ? "已有可用细则" : "暂无评分细则"}</strong>
+                  <p>{hasRubric ? "可点击“立即开始”继续编辑" : "先创建或导入一个细则开始使用"}</p>
+                </div>
+              </article>
+            </section>
+          </>
+        ) : null}
+
+        {activeView === "grading" ? (
+          <>
+            <header className="legacy-page-header legacy-page-header-simple">
+              <h1>AI 批改</h1>
+              <div className="legacy-header-right">
+                <span className="legacy-trial-chip">试用版</span>
+                <button
+                  type="button"
+                  className="legacy-settings-btn"
+                  aria-label="设置"
+                  onClick={() => setShowSettingsSheet(true)}
+                >
+                  ⚙
+                </button>
+              </div>
+            </header>
+
+            <section className="legacy-content">
+              <article className="legacy-card">
+                <header className="legacy-card-head">
+                  <div>
+                    <h2>GradingView</h2>
+                    <p>默认主题批改工作台</p>
+                  </div>
+                  <span className="legacy-warn-chip">{gradingStatus}</span>
+                </header>
+
+                <div className="legacy-action-row">
+                  <button type="button" className="legacy-btn-primary" onClick={() => setWorkspaceView("grading")}>
+                    开始批改
+                  </button>
+                  <button type="button" className="legacy-btn-muted">
+                    重新检测
+                  </button>
+                </div>
+
+                <div className="legacy-info-grid">
+                  <div className="legacy-info-box">
+                    <span>当前题目标识</span>
+                    <strong>{questionKey || "未设置"}</strong>
+                  </div>
+                  <div className="legacy-info-box">
+                    <span>检测状态</span>
+                    <strong>{activeTabContext?.supported ? "已检测到" : "未检测到"}</strong>
+                  </div>
+                </div>
+
+                <div className="legacy-student-box">
+                  <div>
+                    <span>学生</span>
+                    <strong>{latestGrading?.studentName || "未识别"}</strong>
+                  </div>
+                  <span className="legacy-mode-chip">辅助模式</span>
+                </div>
+              </article>
+
+              <article className="legacy-warning-panel">
+                <p>尚未配置评分细则，当前无法进行批改。</p>
+                <button type="button" className="legacy-warning-btn" onClick={() => setWorkspaceView("rubric")}>
+                  前往配置
+                </button>
+              </article>
+            </section>
+          </>
+        ) : null}
+
+        {activeView === "records" ? (
+          <>
+            <header className="legacy-page-header legacy-page-header-simple">
+              <h1>批改历史</h1>
+              <div className="legacy-header-right">
+                <span className="legacy-trial-chip">试用版</span>
+                <button
+                  type="button"
+                  className="legacy-settings-btn"
+                  aria-label="设置"
+                  onClick={() => setShowSettingsSheet(true)}
+                >
+                  ⚙
+                </button>
+              </div>
+            </header>
+
+            <section className="legacy-content">
+              <article className="legacy-card">
+                <header className="legacy-card-head">
+                  <div>
+                    <h2>HistoryView</h2>
+                    <p>历史记录检索与导出</p>
+                  </div>
+                  <span className="legacy-count-chip">{historyCount} 条</span>
+                </header>
+
+                <div className="legacy-search-box">搜索题号、题目标识或评语关键词</div>
+
+                <div className="legacy-export-row">
+                  <button type="button" className="legacy-btn-muted" onClick={() => setWorkspaceView("records")}>
+                    导出 CSV
+                  </button>
+                  <button type="button" className="legacy-btn-muted" onClick={() => setWorkspaceView("records")}>
+                    导出 JSON
+                  </button>
+                </div>
+
+                <div className="legacy-table-head">
+                  <span>时间</span>
+                  <span>题目</span>
+                  <span>得分</span>
+                  <span>操作</span>
+                </div>
+
+                <div className="legacy-empty-history">暂无历史记录</div>
+              </article>
+            </section>
+          </>
+        ) : null}
       </section>
 
-      <section className="workflow-progress">
-        {workflowSteps.map((step) => (
-          <button
-            key={step.id}
-            type="button"
-            className={`progress-step ${step.done ? "progress-step-done" : ""}`}
-            onClick={() => setActiveView(step.targetView)}
-          >
-            <span className="progress-dot" />
-            <span>{step.label}</span>
-          </button>
-        ))}
-      </section>
+      <footer className="legacy-bottom-nav">
+        <button
+          type="button"
+          className={`legacy-nav-btn ${activeView === "rubric" ? "legacy-nav-btn-active" : ""}`}
+          onClick={() => setActiveView("rubric")}
+        >
+          <span>🧾</span>
+          <span>评分细则</span>
+        </button>
+        <button
+          type="button"
+          className={`legacy-nav-btn ${activeView === "grading" ? "legacy-nav-btn-active" : ""}`}
+          onClick={() => setActiveView("grading")}
+        >
+          <span>▦</span>
+          <span>智能批改</span>
+        </button>
+        <button
+          type="button"
+          className={`legacy-nav-btn ${activeView === "records" ? "legacy-nav-btn-active" : ""}`}
+          onClick={() => setActiveView("records")}
+        >
+          <span>↺</span>
+          <span>阅卷记录</span>
+        </button>
+      </footer>
 
-      <div className="workspace-main">
-        <aside className="workspace-nav">
-          <button
-            type="button"
-            className={`nav-btn ${activeView === "health" ? "nav-btn-active" : ""}`}
-            onClick={() => setActiveView("health")}
-          >
-            健康 / 授权 / 设置
-            <span className={`status-chip ${moduleStatusMap.health.done ? "status-chip-done" : ""}`}>
-              {moduleStatusMap.health.label}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`nav-btn ${activeView === "exams" ? "nav-btn-active" : ""}`}
-            onClick={() => setActiveView("exams")}
-          >
-            考试会话
-            <span className={`status-chip ${moduleStatusMap.exams.done ? "status-chip-done" : ""}`}>
-              {moduleStatusMap.exams.label}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`nav-btn ${activeView === "rubric" ? "nav-btn-active" : ""}`}
-            onClick={() => setActiveView("rubric")}
-          >
-            评分细则
-            <span className={`status-chip ${moduleStatusMap.rubric.done ? "status-chip-done" : ""}`}>
-              {moduleStatusMap.rubric.label}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`nav-btn ${activeView === "grading" ? "nav-btn-active" : ""}`}
-            onClick={() => setActiveView("grading")}
-          >
-            AI 批改
-            <span className={`status-chip ${moduleStatusMap.grading.done ? "status-chip-done" : ""}`}>
-              {moduleStatusMap.grading.label}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`nav-btn ${activeView === "records" ? "nav-btn-active" : ""}`}
-            onClick={() => setActiveView("records")}
-          >
-            批改记录
-            <span className={`status-chip ${moduleStatusMap.records.done ? "status-chip-done" : ""}`}>
-              {moduleStatusMap.records.label}
-            </span>
-          </button>
+      {workspaceView ? (
+        <div className="legacy-sheet-overlay">
+          <section className="legacy-sheet">
+            <header className="legacy-sheet-header">
+              <strong>
+                {workspaceView === "rubric"
+                  ? "评分细则工作区"
+                  : workspaceView === "grading"
+                    ? "智能批改工作区"
+                    : "记录工作区"}
+              </strong>
+              <button type="button" className="legacy-sheet-close" onClick={() => setWorkspaceView(null)}>
+                关闭
+              </button>
+            </header>
 
-          <div className="workspace-tip">
-            <h3>工作流建议</h3>
-            <p>先建立考试，再创建 rubric，接着批改并写入记录。</p>
-          </div>
-        </aside>
+            <div className="legacy-sheet-content">
+              {workspaceView === "rubric" ? (
+                <RubricPanel
+                  questionKey={questionKey}
+                  onQuestionKeyChange={setQuestionKey}
+                  examId={examId}
+                  onExamIdChange={setExamId}
+                  rubricText={rubricText}
+                  onRubricTextChange={setRubricText}
+                />
+              ) : null}
 
-        <section className="workspace-content">
-          <section className={`panel-stage ${activeView === "health" ? "panel-stage-active" : ""}`}>
-            <div className="module-grid">
-              <HealthPanel />
-              <LicensePanel />
-              <SettingsPanel />
+              {workspaceView === "grading" ? (
+                <GradingPanel
+                  questionKey={questionKey}
+                  examId={examId}
+                  examName={examName}
+                  rubricText={rubricText}
+                  onGradingCompleted={setLatestGrading}
+                />
+              ) : null}
+
+              {workspaceView === "records" ? (
+                <RecordsPanel
+                  questionKey={questionKey}
+                  examId={examId}
+                  examName={examName}
+                  latestGrading={latestGrading}
+                />
+              ) : null}
             </div>
           </section>
+        </div>
+      ) : null}
 
-          <section className={`panel-stage ${activeView === "exams" ? "panel-stage-active" : ""}`}>
-            <ExamsPanel
-              selectedExamId={examId}
-              onSelectExamId={setExamId}
-              onSelectedExamNameChange={setExamName}
-            />
-          </section>
+      {showSettingsSheet ? (
+        <div className="legacy-sheet-overlay">
+          <section className="legacy-sheet">
+            <header className="legacy-sheet-header">
+              <strong>设置与基础环境</strong>
+              <button type="button" className="legacy-sheet-close" onClick={() => setShowSettingsSheet(false)}>
+                关闭
+              </button>
+            </header>
 
-          <section className={`panel-stage ${activeView === "rubric" ? "panel-stage-active" : ""}`}>
-            <RubricPanel
-              questionKey={questionKey}
-              onQuestionKeyChange={setQuestionKey}
-              examId={examId}
-              onExamIdChange={setExamId}
-              rubricText={rubricText}
-              onRubricTextChange={setRubricText}
-            />
+            <div className="legacy-sheet-content">
+              <div className="module-grid">
+                <HealthPanel />
+                <LicensePanel />
+                <SettingsPanel />
+              </div>
+              <ExamsPanel
+                selectedExamId={examId}
+                onSelectExamId={setExamId}
+                onSelectedExamNameChange={setExamName}
+              />
+            </div>
           </section>
-
-          <section className={`panel-stage ${activeView === "grading" ? "panel-stage-active" : ""}`}>
-            <GradingPanel
-              questionKey={questionKey}
-              examId={examId}
-              examName={examName}
-              rubricText={rubricText}
-              onGradingCompleted={setLatestGrading}
-            />
-          </section>
-
-          <section className={`panel-stage ${activeView === "records" ? "panel-stage-active" : ""}`}>
-            <RecordsPanel
-              questionKey={questionKey}
-              examId={examId}
-              examName={examName}
-              latestGrading={latestGrading}
-            />
-          </section>
-        </section>
-      </div>
+        </div>
+      ) : null}
     </main>
   );
 };
