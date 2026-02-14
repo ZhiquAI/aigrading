@@ -344,10 +344,10 @@ const App = () => {
         ) : null}
       </section>
 
-      <footer className="legacy-nav">
+      <footer className={`legacy-nav legacy-nav-${activeView}`}>
         <button
           type="button"
-          className={`legacy-nav-item ${activeView === "rubric" ? "legacy-nav-item-active" : ""}`}
+          className={`legacy-nav-item legacy-nav-item-rubric ${activeView === "rubric" ? "legacy-nav-item-active" : ""}`}
           onClick={() => setActiveView("rubric")}
         >
           <span className="legacy-nav-icon">🧾</span>
@@ -356,7 +356,7 @@ const App = () => {
 
         <button
           type="button"
-          className={`legacy-nav-item ${activeView === "grading" ? "legacy-nav-item-active" : ""}`}
+          className={`legacy-nav-item legacy-nav-item-grading ${activeView === "grading" ? "legacy-nav-item-active" : ""}`}
           onClick={() => setActiveView("grading")}
         >
           <span className="legacy-nav-icon">▦</span>
@@ -365,7 +365,7 @@ const App = () => {
 
         <button
           type="button"
-          className={`legacy-nav-item ${activeView === "records" ? "legacy-nav-item-active" : ""}`}
+          className={`legacy-nav-item legacy-nav-item-records ${activeView === "records" ? "legacy-nav-item-active" : ""}`}
           onClick={() => setActiveView("records")}
         >
           <span className="legacy-nav-icon">↻</span>
