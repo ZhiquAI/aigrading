@@ -25,6 +25,83 @@ type PageContextPayload = {
   timestamp?: string;
 };
 
+type IconProps = {
+  className?: string;
+};
+
+const GearIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 9.25a2.75 2.75 0 1 0 0 5.5a2.75 2.75 0 0 0 0-5.5Z" />
+    <path d="M19.4 14.25v-4.5l-2.2-.55a5.6 5.6 0 0 0-.65-1.58l1.2-1.93l-3.18-3.18l-1.93 1.2a5.6 5.6 0 0 0-1.58-.65l-.55-2.2h-4.5l-.55 2.2a5.6 5.6 0 0 0-1.58.65l-1.93-1.2l-3.18 3.18l1.2 1.93c-.3.5-.52 1.03-.65 1.58l-2.2.55v4.5l2.2.55c.13.55.35 1.08.65 1.58l-1.2 1.93l3.18 3.18l1.93-1.2c.5.3 1.03.52 1.58.65l.55 2.2h4.5l.55-2.2c.55-.13 1.08-.35 1.58-.65l1.93 1.2l3.18-3.18l-1.2-1.93c.3-.5.52-1.03.65-1.58l2.2-.55Z" />
+  </svg>
+);
+
+const WandIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="m4 20l9-9" />
+    <path d="m6 10l8 8" />
+    <path d="M15 4v3" />
+    <path d="M13.5 5.5H16.5" />
+    <path d="M19 8v2" />
+    <path d="M18 9h2" />
+  </svg>
+);
+
+const FileIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M7 3h7l4 4v14H7z" />
+    <path d="M14 3v4h4" />
+    <path d="M9.5 13h6" />
+    <path d="M9.5 17h6" />
+  </svg>
+);
+
+const PuzzleIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9.5 3h5v3.1a1.9 1.9 0 1 1 0 3.8V13H18v5h-3.1a1.9 1.9 0 1 1-3.8 0V15H6v-5h3.1a1.9 1.9 0 1 0 0-3.8V3z" />
+  </svg>
+);
+
+const UserIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M16 19c0-2.2-1.8-4-4-4s-4 1.8-4 4" />
+    <circle cx="12" cy="9" r="3" />
+  </svg>
+);
+
+const SearchIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="11" cy="11" r="6" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+
+const ClipboardIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="7" y="4.5" width="10" height="15" rx="2" />
+    <path d="M9.5 4.5h5v2h-5z" />
+    <path d="M9.5 10h5" />
+    <path d="M9.5 14h5" />
+  </svg>
+);
+
+const GridIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="4" y="4" width="7" height="7" rx="1.5" />
+    <rect x="13" y="4" width="7" height="7" rx="1.5" />
+    <rect x="4" y="13" width="7" height="7" rx="1.5" />
+    <rect x="13" y="13" width="7" height="7" rx="1.5" />
+  </svg>
+);
+
+const HistoryIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M5 9a7 7 0 1 1 2.1 5" />
+    <path d="M5 4v5h5" />
+    <path d="M12 8v4l2.5 1.5" />
+  </svg>
+);
+
 const ACTIVE_VIEW_STORAGE_KEY = "extension-app.legacy-heroui.active-view";
 
 const getChromeRuntime = (): {
@@ -178,7 +255,7 @@ const App = () => {
                   aria-label="打开设置"
                   onClick={() => setShowSettingsSheet(true)}
                 >
-                  ⚙
+                  <GearIcon className="legacy-symbol-icon legacy-gear-icon" />
                 </button>
               </div>
             </header>
@@ -186,7 +263,9 @@ const App = () => {
             <div className="legacy-rubric-scroll">
               <button type="button" className="legacy-hero-card" onClick={() => setWorkspaceView("rubric")}>
                 <div className="legacy-hero-card-top">
-                  <span className="legacy-wand-icon">🪄</span>
+                  <span className="legacy-wand-icon">
+                    <WandIcon className="legacy-symbol-icon legacy-wand-svg" />
+                  </span>
                   <span className="legacy-ai-chip">AI 驱动</span>
                 </div>
                 <h2>智能创建细则</h2>
@@ -196,13 +275,17 @@ const App = () => {
 
               <div className="legacy-action-grid">
                 <button type="button" className="legacy-action-card" onClick={() => setWorkspaceView("rubric")}>
-                  <span className="legacy-action-icon legacy-action-icon-cyan">📄</span>
+                  <span className="legacy-action-icon legacy-action-icon-cyan">
+                    <FileIcon className="legacy-symbol-icon legacy-action-svg" />
+                  </span>
                   <strong>导入细则</strong>
                   <span>支持 JSON 文件继续编辑</span>
                 </button>
 
                 <button type="button" className="legacy-action-card" onClick={() => setWorkspaceView("rubric")}>
-                  <span className="legacy-action-icon legacy-action-icon-purple">🧩</span>
+                  <span className="legacy-action-icon legacy-action-icon-purple">
+                    <PuzzleIcon className="legacy-symbol-icon legacy-action-svg" />
+                  </span>
                   <span className="legacy-action-count">{rubricCountLabel}</span>
                   <strong>模板库</strong>
                   <span>常用标准合集</span>
@@ -235,7 +318,7 @@ const App = () => {
                   aria-label="打开设置"
                   onClick={() => setShowSettingsSheet(true)}
                 >
-                  ⚙
+                  <GearIcon className="legacy-symbol-icon legacy-gear-icon" />
                 </button>
               </div>
             </header>
@@ -277,7 +360,7 @@ const App = () => {
                   </div>
                   <div className="legacy-student-right">
                     <span className="legacy-mode-chip">辅助模式</span>
-                    <span className="legacy-student-icon">◌</span>
+                    <UserIcon className="legacy-symbol-icon legacy-student-icon" />
                   </div>
                 </div>
               </article>
@@ -304,7 +387,7 @@ const App = () => {
                   aria-label="打开设置"
                   onClick={() => setShowSettingsSheet(true)}
                 >
-                  ⚙
+                  <GearIcon className="legacy-symbol-icon legacy-gear-icon" />
                 </button>
               </div>
             </header>
@@ -319,7 +402,10 @@ const App = () => {
                   <span className="legacy-count-chip">{latestGrading ? 1 : 0} 条</span>
                 </header>
 
-                <div className="legacy-search-input">搜索题号、题目标识或评语关键词</div>
+                <div className="legacy-search-input">
+                  <SearchIcon className="legacy-symbol-icon legacy-search-svg" />
+                  <span>搜索题号、题目标识或评语关键词</span>
+                </div>
 
                 <div className="legacy-export-buttons">
                   <button type="button" className="legacy-btn-flat" onClick={() => setWorkspaceView("records")}>
@@ -350,7 +436,7 @@ const App = () => {
           className={`legacy-nav-item legacy-nav-item-rubric ${activeView === "rubric" ? "legacy-nav-item-active" : ""}`}
           onClick={() => setActiveView("rubric")}
         >
-          <span className="legacy-nav-icon">🧾</span>
+          <ClipboardIcon className="legacy-symbol-icon legacy-nav-icon" />
           <span>评分细则</span>
         </button>
 
@@ -359,7 +445,7 @@ const App = () => {
           className={`legacy-nav-item legacy-nav-item-grading ${activeView === "grading" ? "legacy-nav-item-active" : ""}`}
           onClick={() => setActiveView("grading")}
         >
-          <span className="legacy-nav-icon">▦</span>
+          <GridIcon className="legacy-symbol-icon legacy-nav-icon" />
           <span>智能批改</span>
         </button>
 
@@ -368,7 +454,7 @@ const App = () => {
           className={`legacy-nav-item legacy-nav-item-records ${activeView === "records" ? "legacy-nav-item-active" : ""}`}
           onClick={() => setActiveView("records")}
         >
-          <span className="legacy-nav-icon">↻</span>
+          <HistoryIcon className="legacy-symbol-icon legacy-nav-icon" />
           <span>阅卷记录</span>
         </button>
       </footer>

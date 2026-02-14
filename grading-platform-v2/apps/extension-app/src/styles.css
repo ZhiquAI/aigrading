@@ -51,6 +51,17 @@
   box-sizing: border-box;
 }
 
+.legacy-symbol-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 html,
 body,
 #root {
@@ -237,6 +248,11 @@ body {
   cursor: pointer;
 }
 
+.legacy-gear-icon {
+  width: 15px;
+  height: 15px;
+}
+
 .legacy-rubric-scroll,
 .legacy-page-scroll {
   padding: 10px 6px 12px;
@@ -274,7 +290,13 @@ body {
   background: rgba(255, 255, 255, 0.2);
   display: grid;
   place-items: center;
-  font-size: var(--legacy-fs-lg);
+  color: #f8fbff;
+}
+
+.legacy-wand-svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 2.1;
 }
 
 .legacy-ai-chip {
@@ -342,7 +364,12 @@ body {
   display: grid;
   place-items: center;
   margin-bottom: 8px;
-  font-size: var(--legacy-fs-base);
+  color: inherit;
+}
+
+.legacy-action-svg {
+  width: 17px;
+  height: 17px;
 }
 
 .legacy-action-icon-cyan {
@@ -613,7 +640,8 @@ body {
 
 .legacy-student-icon {
   color: #6b7280;
-  font-size: var(--legacy-fs-base);
+  width: 15px;
+  height: 15px;
 }
 
 .legacy-attention-card {
@@ -645,24 +673,27 @@ body {
 }
 
 .legacy-search-input {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 10px;
   border: 1px solid var(--legacy-glass-border);
   border-radius: 10px;
   background: var(--legacy-glass-bg-strong);
   color: #6b7280;
-  padding: 8px 10px 8px 28px;
+  padding: 8px 10px;
   font-size: var(--legacy-fs-sm);
   font-weight: 500;
 }
 
-.legacy-search-input::before {
-  content: "⌕";
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+.legacy-search-svg {
+  width: 14px;
+  height: 14px;
   color: #9ca3af;
+}
+
+.legacy-search-input span {
+  line-height: 1.3;
 }
 
 .legacy-export-buttons {
@@ -762,7 +793,8 @@ body {
 }
 
 .legacy-nav-icon {
-  font-size: var(--legacy-fs-sm);
+  width: 13px;
+  height: 13px;
 }
 
 .legacy-sheet-mask {
