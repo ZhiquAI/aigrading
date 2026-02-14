@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ExamsPanel } from "./modules/exams/ExamsPanel";
 import { GradingPanel } from "./modules/grading/GradingPanel";
 import { HealthPanel } from "./modules/health/HealthPanel";
@@ -40,6 +40,9 @@ const App = () => {
   const [examId, setExamId] = useState("");
   const [examName, setExamName] = useState("");
   const [rubricText, setRubricText] = useState(DEFAULT_RUBRIC);
+  const [activeView, setActiveView] = useState<
+    "health" | "exams" | "rubric" | "grading" | "records"
+  >("health");
   const [latestGrading, setLatestGrading] = useState<{
     score: number;
     maxScore: number;
@@ -51,58 +54,124 @@ const App = () => {
     examNo: string;
   } | null>(null);
 
+  const currentExamLabel = useMemo(() => {
+    return examName || examId || "未选择";
+  }, [examId, examName]);
+
+  const lastScoreLabel = useMemo(() => {
+    return latestGrading ? `${latestGrading.score}/${latestGrading.maxScore}` : "暂无";
+  }, [latestGrading]);
+
   return (
-    <main className="app-shell">
-      <header className="app-header">
-        <h1>Extension App V2</h1>
-        <p>阶段 B-1：延续原有 UI，完成 Health / Exams / Rubric / Grading / Records / License / Settings 接入</p>
+    <main className="workspace-shell">
+      <header className="workspace-header">
+        <h1>Extension App V2 Workbench</h1>
+        <p>阶段 B-2（可控重设计）：保留 v2 业务契约，升级交互与可维护性。</p>
       </header>
 
-      <section className="context-strip">
+      <section className="context-strip context-strip-rich">
         <span>
           <strong>当前题目:</strong> {questionKey || "-"}
         </span>
         <span>
-          <strong>当前考试:</strong> {examName || examId || "未选择"}
+          <strong>当前考试:</strong> {currentExamLabel}
         </span>
         <span>
-          <strong>最近得分:</strong> {latestGrading ? `${latestGrading.score}/${latestGrading.maxScore}` : "暂无"}
+          <strong>最近得分:</strong> {lastScoreLabel}
         </span>
       </section>
 
-      <div className="module-grid">
-        <HealthPanel />
-        <LicensePanel />
-        <SettingsPanel />
-        <ExamsPanel
-          selectedExamId={examId}
-          onSelectExamId={setExamId}
-          onSelectedExamNameChange={setExamName}
-        />
-      </div>
+      <div className="workspace-main">
+        <aside className="workspace-nav">
+          <button
+            type="button"
+            className={`nav-btn ${activeView === "health" ? "nav-btn-active" : ""}`}
+            onClick={() => setActiveView("health")}
+          >
+            健康 / 授权 / 设置
+          </button>
+          <button
+            type="button"
+            className={`nav-btn ${activeView === "exams" ? "nav-btn-active" : ""}`}
+            onClick={() => setActiveView("exams")}
+          >
+            考试会话
+          </button>
+          <button
+            type="button"
+            className={`nav-btn ${activeView === "rubric" ? "nav-btn-active" : ""}`}
+            onClick={() => setActiveView("rubric")}
+          >
+            评分细则
+          </button>
+          <button
+            type="button"
+            className={`nav-btn ${activeView === "grading" ? "nav-btn-active" : ""}`}
+            onClick={() => setActiveView("grading")}
+          >
+            AI 批改
+          </button>
+          <button
+            type="button"
+            className={`nav-btn ${activeView === "records" ? "nav-btn-active" : ""}`}
+            onClick={() => setActiveView("records")}
+          >
+            批改记录
+          </button>
 
-      <div className="module-stack">
-        <RubricPanel
-          questionKey={questionKey}
-          onQuestionKeyChange={setQuestionKey}
-          examId={examId}
-          onExamIdChange={setExamId}
-          rubricText={rubricText}
-          onRubricTextChange={setRubricText}
-        />
-        <GradingPanel
-          questionKey={questionKey}
-          examId={examId}
-          examName={examName}
-          rubricText={rubricText}
-          onGradingCompleted={setLatestGrading}
-        />
-        <RecordsPanel
-          questionKey={questionKey}
-          examId={examId}
-          examName={examName}
-          latestGrading={latestGrading}
-        />
+          <div className="workspace-tip">
+            <h3>工作流建议</h3>
+            <p>先建立考试，再创建 rubric，接着批改并写入记录。</p>
+          </div>
+        </aside>
+
+        <section className="workspace-content">
+          <section className={`panel-stage ${activeView === "health" ? "panel-stage-active" : ""}`}>
+            <div className="module-grid">
+              <HealthPanel />
+              <LicensePanel />
+              <SettingsPanel />
+            </div>
+          </section>
+
+          <section className={`panel-stage ${activeView === "exams" ? "panel-stage-active" : ""}`}>
+            <ExamsPanel
+              selectedExamId={examId}
+              onSelectExamId={setExamId}
+              onSelectedExamNameChange={setExamName}
+            />
+          </section>
+
+          <section className={`panel-stage ${activeView === "rubric" ? "panel-stage-active" : ""}`}>
+            <RubricPanel
+              questionKey={questionKey}
+              onQuestionKeyChange={setQuestionKey}
+              examId={examId}
+              onExamIdChange={setExamId}
+              rubricText={rubricText}
+              onRubricTextChange={setRubricText}
+            />
+          </section>
+
+          <section className={`panel-stage ${activeView === "grading" ? "panel-stage-active" : ""}`}>
+            <GradingPanel
+              questionKey={questionKey}
+              examId={examId}
+              examName={examName}
+              rubricText={rubricText}
+              onGradingCompleted={setLatestGrading}
+            />
+          </section>
+
+          <section className={`panel-stage ${activeView === "records" ? "panel-stage-active" : ""}`}>
+            <RecordsPanel
+              questionKey={questionKey}
+              examId={examId}
+              examName={examName}
+              latestGrading={latestGrading}
+            />
+          </section>
+        </section>
       </div>
     </main>
   );

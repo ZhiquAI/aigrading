@@ -1,7 +1,21 @@
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #0f172a;
-  background: #f8fafc;
+  --bg: #f3f6ff;
+  --bg-deep: #eaf0ff;
+  --surface: #ffffff;
+  --surface-muted: #f8faff;
+  --text: #102144;
+  --text-soft: #5f6c89;
+  --border: #d9e2ff;
+  --primary: #2458ff;
+  --primary-strong: #1e47d3;
+  --danger: #dc2626;
+  --success: #15803d;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow: 0 12px 32px rgba(30, 71, 211, 0.08);
+  font-family: "Noto Sans SC", "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 700px at 0% 0%, #ffffff 0%, var(--bg) 56%, var(--bg-deep) 100%);
 }
 
 * {
@@ -13,54 +27,127 @@ body {
   min-height: 100vh;
 }
 
-.app-shell {
-  max-width: 980px;
+.workspace-shell {
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px;
 }
 
-.app-header h1 {
+.workspace-header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
+  letter-spacing: 0.2px;
 }
 
-.app-header p {
-  margin: 8px 0 0;
-  color: #475569;
+.workspace-header p {
+  margin: 6px 0 0;
+  color: var(--text-soft);
+  font-size: 14px;
 }
 
 .context-strip {
-  margin-top: 12px;
+  margin-top: 14px;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #dbeafe;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   font-size: 13px;
-  color: #1e3a8a;
+}
+
+.context-strip-rich {
+  background: linear-gradient(135deg, #eef3ff 0%, #f8faff 100%);
+}
+
+.workspace-main {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.workspace-nav {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  position: sticky;
+  top: 12px;
+}
+
+.nav-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.nav-btn:hover {
+  background: var(--surface-muted);
+  border-color: var(--border);
+}
+
+.nav-btn-active {
+  background: rgba(36, 88, 255, 0.12);
+  border-color: rgba(36, 88, 255, 0.3);
+  color: var(--primary-strong);
+}
+
+.workspace-tip {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f7f9ff;
+  border: 1px dashed var(--border);
+}
+
+.workspace-tip h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.workspace-tip p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+.workspace-content {
+  min-width: 0;
+}
+
+.panel-stage {
+  display: none;
+}
+
+.panel-stage-active {
+  display: block;
 }
 
 .module-grid {
-  margin-top: 20px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-.module-stack {
-  margin-top: 16px;
-  display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
 }
 
 .card {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #ffffff;
-  padding: 16px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 14px;
+  box-shadow: var(--shadow);
 }
 
 .card-wide {
@@ -69,7 +156,7 @@ body {
 
 .card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 12px;
   gap: 8px;
@@ -88,7 +175,7 @@ body {
 
 .info-grid code {
   font-size: 12px;
-  color: #334155;
+  color: #233459;
 }
 
 .inline-action-row {
@@ -101,14 +188,14 @@ body {
 .label {
   display: block;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-soft);
   margin-bottom: 4px;
 }
 
 .field-row {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .field-group {
@@ -118,7 +205,7 @@ body {
 .field-group label {
   display: block;
   font-size: 12px;
-  color: #334155;
+  color: #2f456f;
   margin-bottom: 6px;
 }
 
@@ -126,12 +213,12 @@ input,
 textarea,
 select {
   width: 100%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
-  color: #0f172a;
+  color: var(--text);
   background: #fff;
 }
 
@@ -161,17 +248,26 @@ button:disabled {
 }
 
 .primary-btn {
-  background: #2563eb;
+  background: var(--primary);
   color: #fff;
 }
 
+.primary-btn:hover:not(:disabled) {
+  background: var(--primary-strong);
+}
+
 .secondary-btn {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #edf2ff;
+  color: #1d2f5a;
+  border: 1px solid var(--border);
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: #e4ecff;
 }
 
 .danger-btn {
-  background: #dc2626;
+  background: var(--danger);
   color: #fff;
 }
 
@@ -189,7 +285,7 @@ button:disabled {
 
 .success-text {
   margin: 10px 0 0;
-  color: #166534;
+  color: var(--success);
   font-size: 13px;
 }
 
@@ -201,26 +297,27 @@ button:disabled {
 
 .hint {
   margin: 10px 0 0;
-  color: #475569;
+  color: var(--text-soft);
   font-size: 12px;
 }
 
 .status-box {
   margin-top: 12px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border);
   border-radius: 10px;
   padding: 10px;
+  background: #fcfdff;
 }
 
 .status-box h3 {
   margin: 0 0 8px;
   font-size: 13px;
-  color: #334155;
+  color: #2c4068;
 }
 
 .status-box pre {
   margin: 0;
-  max-height: 240px;
+  max-height: 260px;
   overflow: auto;
   font-size: 12px;
 }
@@ -238,20 +335,30 @@ table {
 
 th,
 td {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f6;
   text-align: left;
   padding: 8px 10px;
   vertical-align: top;
 }
 
 th {
-  color: #334155;
-  background: #f8fafc;
+  color: #334b78;
+  background: #f6f9ff;
+}
+
+@media (max-width: 980px) {
+  .workspace-main {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-nav {
+    position: static;
+  }
 }
 
 @media (max-width: 640px) {
-  .app-shell {
-    padding: 14px;
+  .workspace-shell {
+    padding: 12px;
   }
 
   .card {
