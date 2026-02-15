@@ -6,6 +6,8 @@
 - Owner: extension-app / extension-bridge
 - Scope baseline: `docs/migration/phase-4-dual-platform-e2e-checklist.md`
 - Overall status: `Pending Manual Run`
+- Release gate:
+  - `pnpm check:phase4-gate`
 - Version baseline:
   - UI naming closeout commit: `b6b6cb1`
   - visual selector fix commit: `9cab022`
