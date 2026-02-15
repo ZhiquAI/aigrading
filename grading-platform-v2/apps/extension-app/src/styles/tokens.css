@@ -1,0 +1,97 @@
+:root {
+  --color-primary: #006fee;
+  --color-primary-hover: #005bc4;
+  --color-primary-active: #004799;
+  --color-primary-subtle: rgba(0, 111, 238, 0.12);
+  --color-primary-border: rgba(0, 111, 238, 0.28);
+  --color-secondary: #7828c8;
+  --color-secondary-hover: #6622aa;
+  --color-secondary-subtle: rgba(120, 40, 200, 0.12);
+  --color-secondary-border: rgba(120, 40, 200, 0.28);
+  --color-accent: #dca476;
+  --color-accent-hover: #cc9668;
+  --color-accent-subtle: rgba(220, 164, 118, 0.12);
+  --color-accent-border: rgba(220, 164, 118, 0.28);
+  --color-danger: #ef4444;
+  --color-danger-subtle: rgba(239, 68, 68, 0.12);
+  --color-warning: #f59e0b;
+  --color-warning-subtle: rgba(245, 158, 11, 0.12);
+  --color-success: #10b981;
+  --color-success-subtle: rgba(16, 185, 129, 0.12);
+  --color-text-main: #111827;
+  --color-text-body: #526179;
+  --color-text-muted: #8a96aa;
+  --color-text-light: #6a768d;
+  --color-bg-app: #edf2f3;
+  --color-bg-card: #ffffff;
+  --color-bg-float: rgba(255, 255, 255, 0.9);
+  --color-bg-elevated: #f8fafc;
+  --color-border: #dfe5ed;
+  --color-border-subtle: #eaf0f5;
+  --gradient-hero: linear-gradient(135deg, #006fee 0%, #7828c8 100%);
+  --gradient-energetic: linear-gradient(135deg, #006fee 0%, #7828c8 100%);
+  --gradient-neon: linear-gradient(135deg, #006fee 0%, #7828c8 100%);
+  --gradient-dark-panel: linear-gradient(180deg, #fdfeff 0%, #f4f7fb 45%, #eef2f6 100%);
+  --shadow-xs: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 2px 5px 0 rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 6px 14px -4px rgba(16, 24, 40, 0.09);
+  --shadow-lg: 0 14px 28px -8px rgba(16, 24, 40, 0.12);
+  --shadow-xl: 0 22px 42px -14px rgba(16, 24, 40, 0.16);
+  --shadow-inner: inset 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+  --shadow-float: 0 18px 36px -14px rgba(16, 24, 40, 0.16), 0 0 0 1px rgba(0, 111, 238, 0.1);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+  --font-sans: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --classic-topbar: #4b5b3f;
+  --classic-bg: #f2f6fd;
+  --classic-surface: #ffffff;
+  --classic-border: #d7dbe3;
+  --classic-primary: #2f6fe4;
+  --classic-primary-strong: #245ed6;
+  --classic-secondary: #7130d7;
+  --classic-accent-cyan: #0ea5e9;
+  --classic-accent-teal: #14b8a6;
+  --classic-accent-violet: #7c3aed;
+  --classic-text: #17233a;
+  --classic-muted: #6b7280;
+  --classic-warning-bg: #fff7ec;
+  --classic-warning-border: #f2d9b8;
+  --classic-warning-text: #8b5a1f;
+  --classic-shadow-soft: 0 10px 24px rgba(37, 99, 235, 0.1);
+  --classic-glass-bg: rgba(255, 255, 255, 0.68);
+  --classic-glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --classic-glass-border: rgba(255, 255, 255, 0.84);
+  --classic-mesh-rubric:
+    radial-gradient(circle at 5% -12%, #d9ecff 0%, rgba(217, 236, 255, 0) 44%),
+    radial-gradient(circle at 102% -4%, #e9d7ff 0%, rgba(233, 215, 255, 0) 43%),
+    radial-gradient(circle at 92% 106%, #ccf2e8 0%, rgba(204, 242, 232, 0) 38%),
+    linear-gradient(160deg, #ecf4ff 0%, #f4ebff 50%, #e7f3f7 100%);
+  --classic-mesh-grading:
+    radial-gradient(circle at 0% -10%, #d4e9ff 0%, rgba(212, 233, 255, 0) 48%),
+    radial-gradient(circle at 110% 0%, #e7d8ff 0%, rgba(231, 216, 255, 0) 44%),
+    radial-gradient(circle at 100% 120%, #c9f4e9 0%, rgba(201, 244, 233, 0) 40%),
+    linear-gradient(165deg, #eff6ff 0%, #f3ecff 52%, #e8f7f3 100%);
+  --classic-mesh-records:
+    radial-gradient(circle at -2% 0%, #d8ecff 0%, rgba(216, 236, 255, 0) 46%),
+    radial-gradient(circle at 108% -6%, #eadcff 0%, rgba(234, 220, 255, 0) 44%),
+    radial-gradient(circle at 90% 110%, #d8f7ef 0%, rgba(216, 247, 239, 0) 40%),
+    linear-gradient(166deg, #f1f7ff 0%, #f4efff 52%, #eaf6f2 100%);
+  --classic-brand-gradient: linear-gradient(135deg, var(--classic-primary), var(--classic-primary-strong));
+  --classic-nav-rubric-bg: linear-gradient(135deg, rgba(47, 111, 228, 0.16), rgba(14, 165, 233, 0.13));
+  --classic-nav-grading-bg: linear-gradient(135deg, rgba(113, 48, 215, 0.14), rgba(47, 111, 228, 0.12));
+  --classic-nav-records-bg: linear-gradient(135deg, rgba(20, 184, 166, 0.14), rgba(47, 111, 228, 0.12));
+  --classic-fs-xxs: 10px;
+  --classic-fs-xs: 11px;
+  --classic-fs-sm: 12px;
+  --classic-fs-md: 13px;
+  --classic-fs-base: 14px;
+  --classic-fs-lg: 16px;
+  --classic-fs-xl: 18px;
+  --classic-fs-2xl: 20px;
+}
+

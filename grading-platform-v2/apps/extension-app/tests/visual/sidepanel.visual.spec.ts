@@ -10,6 +10,13 @@ const SETTINGS_MAP: Record<string, string> = {
   "grading.intervalMs": "3000"
 };
 
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const tinyPngBuffer = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgM2lrV4AAAAASUVORK5CYII=",
+  "base64"
+);
+
 const jsonResponse = async (route: Route, data: unknown): Promise<void> => {
   await route.fulfill({
     status: 200,
@@ -106,6 +113,51 @@ const installApiMocks = async (page: Page): Promise<void> => {
       return;
     }
 
+    if (url.pathname === "/api/v2/rubrics/generate" && request.method() === "POST") {
+      await wait(1200);
+      await jsonResponse(route, {
+        rubric: {
+          metadata: {
+            title: "自动生成评分细则",
+            questionId: "13-1",
+            totalScore: 10
+          },
+          content: {
+            segments: [
+              {
+                segment: "第一问",
+                points: [
+                  {
+                    id: "p-1",
+                    content: "观点正确且表述完整",
+                    score: 5,
+                    keywords: ["观点", "完整"]
+                  }
+                ]
+              },
+              {
+                segment: "第二问",
+                points: [
+                  {
+                    id: "p-2",
+                    content: "能结合材料说明原因",
+                    score: 5,
+                    keywords: ["材料", "原因"]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        provider: "visual-mock",
+        providerTrace: {
+          mode: "fallback",
+          reason: "visual-baseline"
+        }
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -144,6 +196,12 @@ test("records home baseline", async ({ page }) => {
   await page.getByRole("button", { name: "阅卷记录" }).click();
   await expect(page.getByRole("heading", { name: "批改历史" })).toBeVisible();
   await expectShellSnapshot(page, "03-records-home.png");
+});
+
+test("records empty state v2 baseline", async ({ page }) => {
+  await page.getByRole("button", { name: "阅卷记录" }).click();
+  await expect(page.getByText("暂无历史记录")).toBeVisible();
+  await expectShellSnapshot(page, "07-records-empty-state-v2.png");
 });
 
 test("rubric input baseline", async ({ page }) => {
@@ -209,4 +267,22 @@ test("settings sheet baseline", async ({ page }) => {
   await expect(page.getByText("系统设置")).toBeVisible();
   await expect(page.getByText("SettingsView")).toBeVisible();
   await expectShellSnapshot(page, "06-settings-sheet.png");
+});
+
+test("rubric generating baseline", async ({ page }) => {
+  await page.getByRole("button", { name: "立即开始" }).click();
+  await expect(page.getByRole("heading", { name: "生成评分细则" })).toBeVisible();
+
+  await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({
+    name: "question.png",
+    mimeType: "image/png",
+    buffer: tinyPngBuffer
+  });
+
+  await page.getByLabel("题号 *").fill("13-1");
+  await page.getByLabel("总分 *").fill("10");
+  await page.getByRole("button", { name: "生成细则" }).click();
+
+  await expect(page.getByRole("heading", { name: "正在生成细则" })).toBeVisible();
+  await expectShellSnapshot(page, "08-rubric-generating.png");
 });

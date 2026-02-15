@@ -6,17 +6,22 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:extension": "vite build",
     "preview": "vite preview",
     "lint": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "echo \"No tests yet for @ai-grading/extension-app\""
+    "test": "if [ \"${RUN_VISUAL_TESTS:-0}\" = \"1\" ]; then pnpm run test:visual; else echo \"No tests yet for @ai-grading/extension-app (set RUN_VISUAL_TESTS=1 to run visual tests)\"; fi",
+    "test:visual": "playwright test -c playwright.config.ts",
+    "test:visual:update": "playwright test -c playwright.config.ts --update-snapshots"
   },
   "dependencies": {
     "@ai-grading/domain-core": "workspace:*",
+    "@ai-grading/ui-kit": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

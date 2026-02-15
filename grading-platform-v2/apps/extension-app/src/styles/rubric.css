@@ -1,0 +1,936 @@
+.classic-rubric-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.classic-rubric-banner {
+  margin: 0;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: var(--classic-fs-sm);
+  font-weight: 700;
+}
+
+.classic-rubric-banner-success {
+  border: 1px solid #b9e6cb;
+  background: #eaf9f0;
+  color: #1f7a4a;
+}
+
+.classic-rubric-banner-error {
+  border: 1px solid #f4c7cb;
+  background: #fef2f2;
+  color: #b5232f;
+}
+
+.classic-rubric-hero {
+  width: 100%;
+  border: 1px solid rgba(47, 111, 228, 0.22);
+  border-radius: 24px;
+  text-align: left;
+  padding: 16px;
+  color: #fff;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 88% 92%, rgba(113, 48, 215, 0.85), rgba(113, 48, 215, 0.08) 40%),
+    linear-gradient(135deg, var(--classic-primary) 0%, var(--classic-primary-strong) 68%);
+  box-shadow:
+    0 18px 36px -10px rgba(0, 111, 238, 0.32),
+    0 0 20px rgba(120, 40, 200, 0.2);
+}
+
+.classic-rubric-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.classic-rubric-hero-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.classic-rubric-hero-chip {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 700;
+}
+
+.classic-rubric-hero h3 {
+  margin: 0;
+  font-size: var(--classic-fs-xl);
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.classic-rubric-hero p {
+  margin: 8px 0 12px;
+  font-size: var(--classic-fs-sm);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
+}
+
+.classic-rubric-hero-cta {
+  border-radius: 14px;
+  background: #fff;
+  color: var(--classic-primary);
+  text-align: center;
+  font-size: var(--classic-fs-lg);
+  font-weight: 800;
+  padding: 9px 10px;
+}
+
+.classic-rubric-shortcuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.classic-rubric-shortcut {
+  border: 1px solid var(--classic-glass-border);
+  border-radius: 20px;
+  background: var(--classic-glass-bg);
+  text-align: left;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.classic-rubric-shortcut-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #d6f3ff, #e7f6ff);
+  color: #0f79a9;
+  display: grid;
+  place-items: center;
+  margin-bottom: 7px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.classic-rubric-shortcut strong {
+  display: block;
+  color: #1f2937;
+  font-size: var(--classic-fs-base);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.classic-rubric-shortcut span {
+  display: block;
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: var(--classic-fs-xs);
+  line-height: 1.4;
+}
+
+.classic-rubric-recent {
+  border: 1px solid var(--classic-glass-border);
+  border-radius: 20px;
+  background: var(--classic-glass-bg);
+  padding: 10px;
+}
+
+.classic-rubric-recent-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: var(--classic-fs-sm);
+  font-weight: 700;
+  color: #7c879b;
+}
+
+.classic-rubric-count {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #dce8ff;
+  color: var(--classic-primary);
+  display: grid;
+  place-items: center;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.classic-rubric-empty {
+  border: 1px dashed #ced7e7;
+  border-radius: 12px;
+  background: rgba(244, 247, 252, 0.74);
+  color: #7b869b;
+  text-align: center;
+  font-size: var(--classic-fs-sm);
+  font-weight: 600;
+  padding: 14px 10px;
+}
+
+.classic-rubric-empty.ag-empty-state {
+  gap: 4px;
+}
+
+.classic-rubric-empty.ag-empty-state .ag-empty-state-title {
+  font-size: var(--classic-fs-sm);
+  color: #7b869b;
+}
+
+.classic-rubric-empty.ag-empty-state .ag-empty-state-description {
+  margin-top: 0;
+  font-size: var(--classic-fs-xs);
+  color: #8a96aa;
+}
+
+.classic-rubric-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.classic-rubric-recent-item {
+  width: 100%;
+  border: 1px solid #d6deeb;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 9px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.classic-rubric-recent-item strong {
+  display: block;
+  color: #1f2d48;
+  font-size: var(--classic-fs-sm);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.classic-rubric-recent-item span {
+  display: block;
+  margin-top: 3px;
+  color: #75829a;
+  font-size: var(--classic-fs-xs);
+}
+
+.classic-rubric-recent-item em {
+  font-style: normal;
+  color: var(--classic-primary);
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-hidden-input {
+  display: none;
+}
+
+.classic-rubric-subheader {
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #dbe3f0;
+  background: rgba(255, 255, 255, 0.85);
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.classic-rubric-subheader button {
+  border: 0;
+  border-radius: 8px;
+  height: 28px;
+  background: #eef3ff;
+  color: #31529f;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.classic-rubric-subheader h3 {
+  margin: 0;
+  text-align: center;
+  color: #1f2d48;
+  font-size: var(--classic-fs-base);
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.classic-rubric-subheader-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.classic-rubric-subheader-actions .classic-trial-chip {
+  padding: 2px 7px;
+}
+
+.classic-rubric-subheader-actions button {
+  width: 26px;
+  min-width: 26px;
+  padding: 0;
+}
+
+.classic-rubric-subheader-link {
+  width: auto;
+  min-width: 40px;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+  background: #eaf0ff !important;
+  color: #38589a !important;
+  font-size: var(--classic-fs-xs) !important;
+  font-weight: 700 !important;
+}
+
+.classic-rubric-settings-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid #d1d9e8;
+  background: #ffffff;
+  color: #66758f;
+}
+
+.classic-rubric-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.classic-rubric-toolbar input {
+  width: 100%;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #dbe3f0;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0 10px;
+  font-size: var(--classic-fs-sm);
+  font-weight: 600;
+  color: #223356;
+}
+
+.classic-rubric-toolbar button {
+  border: 0;
+  border-radius: 10px;
+  background: var(--classic-brand-gradient);
+  color: #fff;
+  padding: 0 14px;
+  font-size: var(--classic-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.classic-rubric-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.classic-rubric-list li button {
+  width: 100%;
+  border: 1px solid #dbe3f0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.classic-rubric-lifecycle-badge {
+  margin-left: auto;
+  min-width: 48px;
+  justify-content: center;
+}
+
+.classic-rubric-list strong {
+  display: block;
+  color: #1f2d48;
+  font-size: var(--classic-fs-base);
+  font-weight: 700;
+}
+
+.classic-rubric-list span {
+  display: block;
+  margin-top: 4px;
+  color: #74839d;
+  font-size: var(--classic-fs-xs);
+}
+
+.classic-rubric-list em {
+  font-style: normal;
+  color: #64748b;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-generating {
+  min-height: 220px;
+}
+
+.classic-rubric-progress-card {
+  border: 1px solid #dbe4f4;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.classic-rubric-loader {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 3px solid #dce9ff;
+  border-top-color: #2f6fe4;
+  animation: classic-spin 1s linear infinite;
+}
+
+.classic-rubric-progress-card strong {
+  color: #1f2d48;
+  font-size: var(--classic-fs-base);
+  font-weight: 700;
+}
+
+.classic-rubric-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e6edf8;
+  overflow: hidden;
+}
+
+.classic-rubric-progress-track.ag-progress .ag-progress-value {
+  background: linear-gradient(90deg, #2f6fe4, #5d4ee2);
+}
+
+.classic-rubric-progress-card p {
+  margin: 0;
+  color: #74839d;
+  font-size: var(--classic-fs-sm);
+  font-weight: 600;
+}
+
+.classic-rubric-form-card {
+  border: 1px solid #dbe3f0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.classic-rubric-form-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #475a7b;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-form-card input,
+.classic-rubric-form-card select,
+.classic-rubric-form-card textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #dbe3f0;
+  background: rgba(247, 250, 255, 0.86);
+  color: #1f2d48;
+  font-size: var(--classic-fs-sm);
+  font-weight: 600;
+  padding: 8px 10px;
+  font-family: "Inter", "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.classic-rubric-form-card textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.classic-rubric-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.classic-rubric-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.classic-rubric-actions button {
+  border: 0;
+  border-radius: 11px;
+  padding: 8px 12px;
+  font-size: var(--classic-fs-sm);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.classic-rubric-actions button.secondary {
+  background: #edf2fb;
+  color: #3f5578;
+}
+
+.classic-rubric-actions button.primary {
+  background: var(--classic-brand-gradient);
+  color: #fff;
+}
+
+.classic-rubric-actions button.danger {
+  background: #fce8ea;
+  color: #b4232f;
+}
+
+.classic-rubric-actions button:disabled,
+.classic-rubric-subheader button:disabled,
+.classic-rubric-toolbar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.classic-rubric-generate-panel {
+  border: 1px solid #d6deeb;
+  border-radius: 14px;
+  background: rgba(247, 250, 255, 0.88);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.classic-rubric-generate-panel section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.classic-rubric-generate-panel h4 {
+  margin: 0;
+  color: #2e3d58;
+  font-size: var(--classic-fs-base);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.classic-rubric-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.classic-rubric-upload-btn {
+  position: relative;
+  min-height: 94px;
+  border: 2px dashed #d6dbe5;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #6a7284;
+  padding: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.classic-rubric-upload-btn-primary {
+  border-color: #9bc0ff;
+  background: #f3f8ff;
+}
+
+.classic-rubric-upload-btn img {
+  width: 100%;
+  height: 100%;
+  min-height: 76px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.classic-rubric-upload-placeholder {
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+}
+
+.classic-rubric-upload-placeholder strong {
+  color: #234a93;
+  font-size: var(--classic-fs-base);
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.classic-rubric-upload-badge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  border-radius: 999px;
+  background: #20a16f;
+  color: #fff;
+  padding: 2px 7px;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 700;
+}
+
+.classic-rubric-upload-remove {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.56);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.classic-rubric-rules-textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #dbe3f0;
+  background: #f2f4f8;
+  color: #1f2d48;
+  font-size: var(--classic-fs-sm);
+  font-weight: 600;
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 74px;
+  font-family: "Inter", "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.classic-rubric-rules-hint {
+  margin: 0;
+  color: #69768f;
+  font-size: var(--classic-fs-xs);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.classic-rubric-ai-note {
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid #a8c5f0;
+  background: #e8f1ff;
+  color: #1f4f99;
+  font-size: var(--classic-fs-sm);
+  line-height: 1.35;
+  font-weight: 800;
+  padding: 8px 10px;
+}
+
+.classic-rubric-result-summary {
+  border: 1px solid #d8e4f7;
+  border-radius: 14px;
+  background: linear-gradient(140deg, #ffffff 0%, #f6f9ff 100%);
+  padding: 10px;
+  box-shadow: 0 6px 18px rgba(27, 54, 109, 0.08);
+}
+
+.classic-rubric-result-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.classic-rubric-result-label {
+  margin: 0;
+  color: #5f78a4;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.classic-rubric-result-summary h4 {
+  margin: 4px 0 0;
+  color: #1a2a49;
+  font-size: var(--classic-fs-lg);
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.classic-rubric-result-meta {
+  margin: 4px 0 0;
+  color: #5f6f8b;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-score {
+  min-width: 52px;
+  text-align: right;
+}
+
+.classic-rubric-result-score strong {
+  display: block;
+  color: #1f4d9e;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.classic-rubric-result-score span {
+  display: block;
+  margin-top: 2px;
+  color: #7487ac;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-tags {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.classic-rubric-result-tags span {
+  border-radius: 999px;
+  border: 1px solid #d6e2f7;
+  background: #f4f8ff;
+  color: #355a99;
+  padding: 2px 8px;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-readonly {
+  margin: 8px 0 0;
+  border-radius: 10px;
+  border: 1px solid #dce5f4;
+  background: #f3f7ff;
+  color: #5671a8;
+  padding: 6px 8px;
+  font-size: var(--classic-fs-xs);
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.classic-rubric-result-table {
+  border: 1px solid #dbe4f4;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.classic-rubric-result-table-head {
+  display: grid;
+  grid-template-columns: 28px 64px 1fr 56px 92px;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid #e8edf7;
+  background: #f7faff;
+  color: #5b74a5;
+  font-size: var(--classic-fs-xxs);
+  line-height: 1;
+  font-weight: 800;
+}
+
+.classic-rubric-result-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.classic-rubric-result-table-row {
+  display: grid;
+  grid-template-columns: 28px 64px 1fr 56px 92px;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid #edf2fa;
+  align-items: start;
+}
+
+.classic-rubric-result-table-row:last-child {
+  border-bottom: 0;
+}
+
+.classic-rubric-result-table-index {
+  height: 28px;
+  border-radius: 999px;
+  background: #edf2fb;
+  color: #5d7399;
+  display: grid;
+  place-items: center;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-table-row input,
+.classic-rubric-result-table-row textarea {
+  width: 100%;
+  border: 1px solid #d9e2f0;
+  border-radius: 8px;
+  background: #f9fbff;
+  color: #243b63;
+  font-size: var(--classic-fs-xs);
+  line-height: 1.4;
+  padding: 6px 7px;
+  font-weight: 600;
+}
+
+.classic-rubric-result-table-row textarea {
+  min-height: 52px;
+  resize: vertical;
+  font-family: "Inter", "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.classic-rubric-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.classic-rubric-result-item {
+  border: 1px solid #d8e3f2;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+}
+
+.classic-rubric-result-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.classic-rubric-result-index {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #596f97;
+  background: #edf2fb;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-segment {
+  color: #6d7890;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-point {
+  margin-left: auto;
+  border-radius: 999px;
+  background: #e9f9f0;
+  color: #248a57;
+  padding: 2px 8px;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 800;
+}
+
+.classic-rubric-result-item p {
+  margin: 0;
+  color: #263857;
+  font-size: var(--classic-fs-sm);
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.classic-rubric-result-keywords {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.classic-rubric-result-keywords span {
+  border: 1px solid #e5ecf8;
+  border-radius: 6px;
+  background: #f8fafe;
+  color: #62718b;
+  padding: 2px 7px;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 700;
+}
+
+.classic-rubric-result-note {
+  border: 1px solid #f2deba;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #8a5b20;
+  padding: 8px 10px;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+}
+
+.classic-rubric-bottom-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  border: 1px solid rgba(214, 223, 238, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  padding: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+}
+
+.classic-rubric-bottom-bar button {
+  border: 0;
+  border-radius: 11px;
+  height: 40px;
+  font-size: var(--classic-fs-base);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.classic-rubric-bottom-bar button.secondary {
+  background: #e9edf4;
+  color: #4c5f7f;
+}
+
+.classic-rubric-bottom-bar button.primary {
+  background: linear-gradient(135deg, #7da5df 0%, #7ea9e7 100%);
+  color: #fff;
+}
+
+.classic-rubric-bottom-bar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes classic-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
