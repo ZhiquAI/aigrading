@@ -173,6 +173,9 @@ type ScopeIdentity = {
 4. `features/records`
 5. `features/settings`
 6. `features/license`
+7. `features/exams`
+8. `features/health`
+9. 移除 `src/modules/*` 兼容层，统一仅使用 `features/*`。
 
 ## 2) 状态管理拆分
 `useRootStore` 由以下 slices 组成：
@@ -308,3 +311,19 @@ src/shared/
 6. 迁移策略：旧系统隔离 + 灰度。
 7. 部署：Docker + 云主机。
 8. 质量门禁：核心链路强测。
+
+---
+
+## 十五、当前执行状态（2026-02-15）
+1. `Phase 0`：完成（Monorepo 基线与 CI 骨架已稳定）。
+2. `Phase 1`：完成（激活与身份主链路已切到 v2）。
+3. `Phase 2`：完成（rubric/grading 已接入 ai-gateway，含 fallback）。
+4. `Phase 3`：完成（records/settings 在 v2 上稳定，错误处理与命名收口已完成）。
+5. `Phase 4`：进行中（bridge/adapters 已落地，双平台真实账号回归待执行）。
+
+本阶段新增对齐项：
+1. 后端 `src/shared` 已补齐 `middleware/scope-resolver/errors/validators/telemetry` 目录能力。
+2. Prisma 已补齐 `RubricTemplate`、`GradingRecordItem` 模型，向架构建议模型收敛。
+3. 已新增双平台回归执行文档：`docs/migration/phase-4-dual-platform-e2e-checklist.md`。
+4. 已新增双平台回归报告：`docs/migration/phase-4-dual-platform-e2e-report.md`。
+5. 已补充旧链路冻结窗口与回滚步骤：`docs/migration/phase-4-extension-bridge.md`。
