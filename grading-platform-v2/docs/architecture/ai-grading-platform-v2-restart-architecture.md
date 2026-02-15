@@ -327,3 +327,4 @@ src/shared/
 3. 已新增双平台回归执行文档：`docs/migration/phase-4-dual-platform-e2e-checklist.md`。
 4. 已新增双平台回归报告：`docs/migration/phase-4-dual-platform-e2e-report.md`。
 5. 已补充旧链路冻结窗口与回滚步骤：`docs/migration/phase-4-extension-bridge.md`。
+6. `extension-app` 视觉基线回归已通过（Playwright 6/6），当前仅剩双平台真实账号手工回归。
