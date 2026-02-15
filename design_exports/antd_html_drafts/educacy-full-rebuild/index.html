@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Educacy 全盘重构设计稿总览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+  <style>
+    .module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .module-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      background: #fff;
+      display: grid;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .module-card:hover { border-color: #d4def8; background: #fbfcff; }
+    .module-card h4 { margin: 0; font-size: 17px; }
+    .module-card p { margin: 0; font-size: 13px; color: #7a879b; line-height: 1.65; }
+    .preview {
+      border: 1px solid #edf0f4;
+      border-radius: 10px;
+      padding: 10px;
+      background: linear-gradient(180deg, #fafbfd, #f6f8fb);
+      display: grid;
+      gap: 7px;
+    }
+    .line { height: 8px; border-radius: 999px; background: #e7ebf1; }
+    .line.s { width: 45%; }
+    .line.m { width: 72%; }
+    .line.l { width: 95%; }
+    @media (max-width: 760px) { .module-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo"></span><span>Educacy</span></div>
+      <nav class="nav">
+        <a class="nav-item active" href="./index.html">总览</a>
+        <a class="nav-item" href="./rubric.html">细则模块</a>
+        <a class="nav-item" href="./grading.html">阅卷模块</a>
+        <a class="nav-item" href="./records.html">记录模块</a>
+        <a class="nav-item" href="./settings.html">设置模块</a>
+      </nav>
+      <div class="side-label">重构范围</div>
+      <div class="module-list">
+        <div class="module-pill">Rubric</div>
+        <div class="module-pill">Grading</div>
+        <div class="module-pill">Records</div>
+        <div class="module-pill">Settings</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">UI 重构设计总览</h1>
+          <p class="page-sub">基于 draft-d-educacy-replica 风格统一四大核心模块</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary">确认后实施</button>
+          <span class="icon-btn">?</span>
+          <span class="avatar"></span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="grid-4">
+          <article class="metric"><p>设计稿页面</p><strong>4</strong><small>细则/阅卷/记录/设置</small></article>
+          <article class="metric"><p>统一视觉 Token</p><strong>1</strong><small>shared.css</small></article>
+          <article class="metric"><p>模块组件覆盖</p><strong>93%</strong><small>关键场景已覆盖</small></article>
+          <article class="metric"><p>预计实施周期</p><strong>7-10d</strong><small>分阶段替换</small></article>
+        </div>
+
+        <div class="module-grid">
+          <a class="module-card" href="./rubric.html">
+            <h4>细则模块（Rubric）</h4>
+            <p>覆盖模板筛选、细则卡片、创建入口、状态管理，强化信息层次与编辑路径。</p>
+            <div class="preview"><div class="line l"></div><div class="line m"></div><div class="line l"></div><div class="line s"></div></div>
+          </a>
+
+          <a class="module-card" href="./grading.html">
+            <h4>阅卷模块（Grading）</h4>
+            <p>覆盖扫描态、AI评分态、结果确认态、自动倒计时提示与提交动作。</p>
+            <div class="preview"><div class="line m"></div><div class="line l"></div><div class="line l"></div><div class="line m"></div></div>
+          </a>
+
+          <a class="module-card" href="./records.html">
+            <h4>记录模块（Records）</h4>
+            <p>覆盖搜索筛选、成绩列表、展开详情、导出入口与删除动作。</p>
+            <div class="preview"><div class="line l"></div><div class="line l"></div><div class="line m"></div><div class="line s"></div></div>
+          </a>
+
+          <a class="module-card" href="./settings.html">
+            <h4>设置模块（Settings）</h4>
+            <p>覆盖账户配额、激活状态、API平台切换、模型配置与连接测试反馈。</p>
+            <div class="preview"><div class="line m"></div><div class="line l"></div><div class="line m"></div><div class="line l"></div></div>
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

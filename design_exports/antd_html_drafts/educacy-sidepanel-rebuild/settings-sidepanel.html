@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏版 - 设置模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Settings Console</h1><p>账户与平台配置</p></div></div>
+        <div class="top-actions"><button class="cta">保存</button><span class="icon-btn">✓</span></div>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <article class="metric"><p>身份</p><strong>PRO</strong><small>专业版</small></article>
+          <article class="metric"><p>额度</p><strong>1246</strong><small>剩余</small></article>
+          <article class="metric"><p>平台</p><strong>OpenRouter</strong><small>当前</small></article>
+          <article class="metric"><p>状态</p><strong>Online</strong><small>连接正常</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head"><h3>账号与激活</h3><span class="status ok">ACTIVE</span></header>
+          <div class="surface-body">
+            <div class="meta">激活码：PRO-XXXX-YYYY-ZZZZ</div>
+            <div class="progress"><span style="width:76%"></span></div>
+            <div class="meta">本周期已使用 74%</div>
+            <div class="btn-row"><button class="btn ghost">复制信息</button><button class="btn solid">重新校验</button></div>
+          </div>
+        </section>
+
+        <section class="surface">
+          <header class="surface-head"><h3>AI 平台</h3><span class="meta">Provider</span></header>
+          <div class="surface-body">
+            <div class="chips"><span class="chip active">OpenRouter</span><span class="chip">Gemini</span><span class="chip">GLM</span></div>
+            <div class="form-grid">
+              <div class="field"><label>Endpoint</label><input value="https://openrouter.ai/api/v1" /></div>
+              <div class="field"><label>API Key</label><input value="sk-or-xxxxxxxxxxxx" /></div>
+              <div class="field"><label>Model</label><select><option>gpt-4o-mini</option></select></div>
+            </div>
+            <div class="btn-row"><button class="btn ghost">测试连接</button><button class="btn solid">保存配置</button></div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a href="./rubric-sidepanel.html">细则</a>
+        <a href="./grading-sidepanel.html">阅卷</a>
+        <a href="./records-sidepanel.html">记录</a>
+        <a class="active" href="./settings-sidepanel.html">设置</a>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>

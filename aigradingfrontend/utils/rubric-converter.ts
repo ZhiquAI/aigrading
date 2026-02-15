@@ -4,9 +4,63 @@
 
 import type { RubricJSONV3, RubricPoint } from '../types/rubric-v3';
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item));
+}
+
+function resolveSegmentRows(rubric: RubricJSONV3): Array<{ id: string; content: string; score: number }> {
+    const content = asRecord(rubric.content) || {};
+    const segments = asRecordArray(content.segments);
+    if (segments.length === 0) return [];
+
+    const rows: Array<{ id: string; content: string; score: number }> = [];
+    segments.forEach((segment, index) => {
+        const segmentId = String(segment.id || `segment-${index + 1}`);
+        const segmentTitle = typeof segment.title === 'string' && segment.title.trim().length > 0
+            ? segment.title.trim()
+            : `分段 ${index + 1}`;
+        const segmentContent = asRecord(segment.content) || {};
+        const strategyType = String(segment.strategyType || '');
+
+        if (strategyType === 'rubric_matrix') {
+            asRecordArray(segmentContent.dimensions).forEach((dimension, dimIndex) => {
+                const topScore = asRecordArray(dimension.levels).reduce((best, level) => Math.max(best, Number(level.score) || 0), 0);
+                rows.push({
+                    id: `${segmentId}:${String(dimension.id || `dimension-${dimIndex + 1}`)}`,
+                    content: `${segmentTitle} · ${String(dimension.name || '')}`.trim(),
+                    score: topScore
+                });
+            });
+            return;
+        }
+
+        const points = strategyType === 'sequential_logic'
+            ? asRecordArray(segmentContent.steps)
+            : asRecordArray(segmentContent.points);
+        points.forEach((point, pointIndex) => {
+            rows.push({
+                id: `${segmentId}:${String(point.id || `point-${pointIndex + 1}`)}`,
+                content: String(point.content || ''),
+                score: Number(point.score) || 0
+            });
+        });
+    });
+
+    return rows;
+}
+
 function getPointRows(rubric: RubricJSONV3): Array<{ id: string; content: string; score: number }> {
+    const segmentRows = resolveSegmentRows(rubric);
+    if (segmentRows.length > 0) return segmentRows;
+
     if (rubric.strategyType === 'rubric_matrix') {
-        return rubric.content.dimensions.map((dimension) => {
+        return (rubric.content.dimensions || []).map((dimension) => {
             const topScore = dimension.levels.reduce((best, level) => Math.max(best, level.score), 0);
             return {
                 id: dimension.id,
@@ -17,8 +71,8 @@ function getPointRows(rubric: RubricJSONV3): Array<{ id: string; content: string
     }
 
     const points: RubricPoint[] = rubric.strategyType === 'sequential_logic'
-        ? rubric.content.steps
-        : rubric.content.points;
+        ? (rubric.content.steps || [])
+        : (rubric.content.points || []);
 
     return points.map((point) => ({
         id: point.id,
@@ -28,12 +82,42 @@ function getPointRows(rubric: RubricJSONV3): Array<{ id: string; content: string
 }
 
 function getTotalScore(rubric: RubricJSONV3): number {
-    if (rubric.strategyType === 'rubric_matrix') {
-        return rubric.content.totalScore
-            ?? rubric.content.dimensions.reduce((sum, dimension) => sum + (dimension.weight ?? 0), 0);
+    const content = asRecord(rubric.content) || {};
+    const segments = asRecordArray(content.segments);
+    if (segments.length > 0) {
+        if (typeof content.totalScore === 'number') return content.totalScore;
+        const aggregation = content.aggregation === 'weighted_sum' || content.aggregation === 'max'
+            ? content.aggregation
+            : 'sum';
+        const segmentMaxList = segments.map((segment) => {
+            const segmentContent = asRecord(segment.content) || {};
+            if (typeof segment.maxScore === 'number') return Math.max(0, segment.maxScore);
+            if (typeof segmentContent.totalScore === 'number') return Math.max(0, segmentContent.totalScore);
+            if (segment.strategyType === 'rubric_matrix') {
+                return asRecordArray(segmentContent.dimensions).reduce((sum, dimension) => sum + (Number(dimension.weight) || 0), 0);
+            }
+            if (segment.strategyType === 'sequential_logic') {
+                return asRecordArray(segmentContent.steps).reduce((sum, step) => sum + (Number(step.score) || 0), 0);
+            }
+            return asRecordArray(segmentContent.points).reduce((sum, point) => sum + (Number(point.score) || 0), 0);
+        });
+        if (aggregation === 'max') {
+            return segmentMaxList.reduce((best, value) => Math.max(best, value), 0);
+        }
+        if (aggregation === 'weighted_sum') {
+            return segments.reduce((sum, segment, index) => sum + Math.max(0, Number(segment.weight) || segmentMaxList[index]), 0);
+        }
+        return segmentMaxList.reduce((sum, value) => sum + value, 0);
     }
 
-    const points = rubric.strategyType === 'sequential_logic' ? rubric.content.steps : rubric.content.points;
+    if (rubric.strategyType === 'rubric_matrix') {
+        return rubric.content.totalScore
+            ?? (rubric.content.dimensions || []).reduce((sum, dimension) => sum + (dimension.weight ?? 0), 0);
+    }
+
+    const points = rubric.strategyType === 'sequential_logic'
+        ? (rubric.content.steps || [])
+        : (rubric.content.points || []);
     return rubric.content.totalScore ?? points.reduce((sum, point) => sum + point.score, 0);
 }
 
@@ -41,7 +125,12 @@ function formatStrategyRule(rubric: RubricJSONV3, totalScore: number): string | 
     if (rubric.strategyType === 'rubric_matrix') {
         return null;
     }
-    const strategy = rubric.content.scoringStrategy;
+    const strategy = rubric.content.scoringStrategy || {
+        type: 'weighted',
+        allowAlternative: false,
+        strictMode: false,
+        openEnded: false
+    };
     if (strategy.type === 'pick_n' && strategy.maxPoints) {
         return `> 评分规则：每点${strategy.pointValue ?? 2}分，答对任意${strategy.maxPoints}点得满分（${totalScore}分）`;
     }

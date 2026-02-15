@@ -198,6 +198,134 @@ const parseErrorMessage = async (response: Response): Promise<string> => {
   }
 };
 
+const normalizeText = (value: unknown): string => {
+  return typeof value === "string" ? value.trim() : "";
+};
+
+const normalizeNumber = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeLifecycleStatus = (value: unknown): RubricLifecycleStatus => {
+  return value === "published" ? "published" : "draft";
+};
+
+const coerceRubricSummaries = (input: unknown): RubricSummaryDTO[] => {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const record = item as Record<string, unknown>;
+      const questionId = normalizeText(record.questionId)
+        || normalizeText(record.questionKey)
+        || normalizeText(record.id);
+
+      if (!questionId) {
+        return null;
+      }
+
+      const title = normalizeText(record.title) || questionId;
+      const updatedAt = normalizeText(record.updatedAt) || new Date().toISOString();
+      const examId = normalizeText(record.examId) || null;
+
+      return {
+        questionId,
+        title,
+        totalScore: normalizeNumber(record.totalScore),
+        pointCount: normalizeNumber(record.pointCount),
+        updatedAt,
+        examId,
+        lifecycleStatus: normalizeLifecycleStatus(record.lifecycleStatus)
+      };
+    })
+    .filter((item): item is RubricSummaryDTO => Boolean(item));
+};
+
+const coerceRubricDetail = (input: unknown): RubricDetailDTO => {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+
+  const record = input as Record<string, unknown>;
+  const hasRubricField = Object.prototype.hasOwnProperty.call(record, "rubric");
+  const rubric = hasRubricField ? record.rubric : input;
+
+  return {
+    rubric,
+    lifecycleStatus: normalizeLifecycleStatus(record.lifecycleStatus)
+  };
+};
+
+const coerceRubricUpsertResult = (input: unknown): RubricUpsertResultDTO => {
+  if (!input || typeof input !== "object") {
+    throw new Error("保存 Rubric 返回数据格式非法");
+  }
+
+  const record = input as Record<string, unknown>;
+  const questionKey = normalizeText(record.questionKey)
+    || normalizeText(record.questionId)
+    || normalizeText(record.id);
+
+  if (!questionKey) {
+    throw new Error("保存 Rubric 返回缺少 questionKey");
+  }
+
+  return {
+    questionKey,
+    rubric: Object.prototype.hasOwnProperty.call(record, "rubric") ? record.rubric : input,
+    examId: normalizeText(record.examId) || null,
+    lifecycleStatus: normalizeLifecycleStatus(record.lifecycleStatus)
+  };
+};
+
+const coerceRubricGenerateResult = (input: unknown): RubricGenerateResultDTO => {
+  if (!input || typeof input !== "object") {
+    throw new Error("生成 Rubric 返回数据格式非法");
+  }
+
+  const record = input as Record<string, unknown>;
+  const rubric = (
+    (record.rubric && typeof record.rubric === "object" && !Array.isArray(record.rubric))
+      ? record.rubric
+      : record
+  ) as Record<string, unknown>;
+
+  return {
+    rubric,
+    provider: normalizeText(record.provider) || "rule-based",
+    providerTrace: (record.providerTrace && typeof record.providerTrace === "object"
+      ? record.providerTrace
+      : { mode: "fallback", message: "provider trace unavailable" }) as ProviderTraceDTO
+  };
+};
+
+const coerceRubricStandardizeResult = (input: unknown): RubricStandardizeResultDTO => {
+  if (!input || typeof input !== "object") {
+    throw new Error("标准化 Rubric 返回数据格式非法");
+  }
+
+  const record = input as Record<string, unknown>;
+  const rubricRaw = record.rubric;
+  const rubric = typeof rubricRaw === "string"
+    ? rubricRaw
+    : JSON.stringify(rubricRaw ?? {}, null, 2);
+
+  return {
+    rubric,
+    provider: normalizeText(record.provider) || "rule-based",
+    providerTrace: (record.providerTrace && typeof record.providerTrace === "object"
+      ? record.providerTrace
+      : { mode: "fallback", message: "provider trace unavailable" }) as ProviderTraceDTO
+  };
+};
+
 const requestJson = async <T>(
   path: string,
   init: RequestInit,
@@ -371,7 +499,7 @@ export const fetchRubricSummaries = async (input?: { examId?: string }): Promise
   }
 
   const suffix = query.toString();
-  return requestJson<RubricSummaryDTO[]>(
+  const data = await requestJson<unknown>(
     `/api/v2/rubrics${suffix ? `?${suffix}` : ""}`,
     {
       method: "GET",
@@ -379,11 +507,13 @@ export const fetchRubricSummaries = async (input?: { examId?: string }): Promise
     },
     "读取 Rubric 列表失败"
   );
+
+  return coerceRubricSummaries(data);
 };
 
 export const fetchRubricByQuestionKey = async (questionKey: string): Promise<RubricDetailDTO> => {
   const query = new URLSearchParams({ questionKey }).toString();
-  return requestJson<RubricDetailDTO>(
+  const data = await requestJson<unknown>(
     `/api/v2/rubrics?${query}`,
     {
       method: "GET",
@@ -391,6 +521,8 @@ export const fetchRubricByQuestionKey = async (questionKey: string): Promise<Rub
     },
     "读取 Rubric 失败"
   );
+
+  return coerceRubricDetail(data);
 };
 
 export const upsertRubric = async (input: {
@@ -399,7 +531,7 @@ export const upsertRubric = async (input: {
   examId?: string | null;
   lifecycleStatus?: RubricLifecycleStatus;
 }): Promise<RubricUpsertResultDTO> => {
-  return requestJson<RubricUpsertResultDTO>(
+  const data = await requestJson<unknown>(
     "/api/v2/rubrics",
     {
       method: "POST",
@@ -408,6 +540,8 @@ export const upsertRubric = async (input: {
     },
     "保存 Rubric 失败"
   );
+
+  return coerceRubricUpsertResult(data);
 };
 
 export const deleteRubricByQuestionKey = async (questionKey: string): Promise<void> => {
@@ -434,7 +568,7 @@ export const generateRubric = async (input: {
   totalScore?: number;
   customRules?: string[];
 }): Promise<RubricGenerateResultDTO> => {
-  return requestJson<RubricGenerateResultDTO>(
+  const data = await requestJson<unknown>(
     "/api/v2/rubrics/generate",
     {
       method: "POST",
@@ -443,13 +577,15 @@ export const generateRubric = async (input: {
     },
     "生成 Rubric 失败"
   );
+
+  return coerceRubricGenerateResult(data);
 };
 
 export const standardizeRubric = async (input: {
   rubric: string | Record<string, unknown>;
   maxScore?: number;
 }): Promise<RubricStandardizeResultDTO> => {
-  return requestJson<RubricStandardizeResultDTO>(
+  const data = await requestJson<unknown>(
     "/api/v2/rubrics/standardize",
     {
       method: "POST",
@@ -458,6 +594,8 @@ export const standardizeRubric = async (input: {
     },
     "标准化 Rubric 失败"
   );
+
+  return coerceRubricStandardizeResult(data);
 };
 
 export const fetchQuotaStatus = async (): Promise<QuotaStatusDTO> => {

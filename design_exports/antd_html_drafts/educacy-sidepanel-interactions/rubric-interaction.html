@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏交互稿 - 细则模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Rubric Workspace</h1><p>细则模块交互审查</p></div></div>
+        <div class="top-actions"><button class="cta" data-toast-message="进入新建细则流程">+ 新建</button><span class="icon-btn">⋯</span></div>
+      </header>
+
+      <div class="state-rail">
+        <button class="state-chip active" data-switch="welcome">欢迎页</button>
+        <button class="state-chip" data-switch="list">模板列表</button>
+        <button class="state-chip" data-switch="input">创建表单</button>
+        <button class="state-chip" data-switch="generating">生成中</button>
+        <button class="state-chip" data-switch="result">结果页</button>
+      </div>
+
+      <main class="content">
+        <section class="scene" data-scene="welcome">
+          <section class="surface">
+            <header class="surface-head"><h3>开始方式</h3><span class="meta">3 条主路径</span></header>
+            <div class="surface-body card-list">
+              <article class="card"><h4>创建评分细则</h4><div class="meta">上传题目与答案，AI自动生成可编辑细则</div><div class="btn-row"><button class="btn solid" data-switch="input">进入</button><button class="btn ghost">示例</button></div></article>
+              <article class="card"><h4>导入已有细则</h4><div class="meta">导入 Rubric JSON 直接进入编辑</div><div class="btn-row"><button class="btn ghost" data-toast-message="模拟打开文件选择器">导入</button><button class="btn ghost">格式说明</button></div></article>
+              <article class="card"><h4>进入模板库</h4><div class="meta">按学科筛选并快速复用历史模板</div><div class="btn-row"><button class="btn solid" data-switch="list">查看</button><button class="btn ghost">最近使用</button></div></article>
+            </div>
+          </section>
+        </section>
+
+        <section class="scene" data-scene="list">
+          <div class="grid-2">
+            <article class="metric"><p>模板总数</p><strong>136</strong><small>系统+自定义</small></article>
+            <article class="metric"><p>当前命中</p><strong>24</strong><small>筛选后</small></article>
+            <article class="metric"><p>已发布</p><strong>89</strong><small>可复用</small></article>
+            <article class="metric"><p>草稿</p><strong>31</strong><small>待确认</small></article>
+          </div>
+          <section class="surface">
+            <header class="surface-head"><h3>筛选与搜索</h3><span class="meta">多维筛选</span></header>
+            <div class="surface-body">
+              <div class="chips"><span class="chip active">历史</span><span class="chip">语文</span><span class="chip">数学</span><span class="chip">英语</span></div>
+              <div class="chips"><span class="chip active">已发布</span><span class="chip">草稿</span><span class="chip">全部</span></div>
+              <div class="search-row">⌕ 搜索模板名称 / 题号 / 策略...</div>
+            </div>
+          </section>
+          <section class="surface">
+            <header class="surface-head"><h3>模板列表</h3><span class="meta">点击卡片进入结果页</span></header>
+            <div class="surface-body card-list">
+              <article class="card" data-switch="result"><div class="card-top"><span class="badge">weighted</span><span class="badge ok">published</span></div><h4>期末卷第15题：工业革命影响评析</h4><div class="card-foot"><span class="status ok">当前考试匹配</span><span class="meta">编辑</span></div></article>
+              <article class="card"><div class="card-top"><span class="badge gray">all</span><span class="badge warn">draft</span></div><h4>月考第8题：三则史料比较分析</h4><div class="card-foot"><span class="status partial">待发布</span><span class="meta">发布</span></div></article>
+            </div>
+          </section>
+        </section>
+
+        <section class="scene" data-scene="input">
+          <section class="surface">
+            <header class="surface-head"><h3>创建表单</h3><span class="meta">Step 1/2</span></header>
+            <div class="surface-body form-grid">
+              <div class="field"><label>考试名称</label><input value="2026春季期中考试" /></div>
+              <div class="field"><label>科目</label><select><option>历史</option></select></div>
+              <div class="field"><label>题号</label><input value="15" /></div>
+              <div class="field"><label>总分</label><input value="18" /></div>
+              <div class="field"><label>个性化规则</label><textarea>观点必须明确；至少引用2条史料证据；结论需回扣主题。</textarea></div>
+              <div class="btn-row"><button class="btn ghost" data-switch="list">返回模板库</button><button class="btn solid" data-switch="generating">生成细则</button></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="scene" data-scene="generating">
+          <section class="surface">
+            <header class="surface-head"><h3>AI 正在生成评分细则</h3><span class="status warn">预计 5-10 秒</span></header>
+            <div class="surface-body">
+              <div class="meta">正在识别题型 → 推断策略 → 生成得分点 → 构建扣分规则</div>
+              <div class="progress"><span style="width:72%"></span></div>
+              <div class="meta">当前阶段：构建得分点与关键词映射</div>
+              <div class="btn-row"><button class="btn ghost" data-switch="input">取消返回</button><button class="btn solid" data-switch="result">查看结果</button></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="scene" data-scene="result">
+          <section class="surface">
+            <header class="surface-head"><h3>细则结果预览</h3><span class="status ok">生成成功</span></header>
+            <div class="surface-body card-list">
+              <article class="card"><div class="card-top"><span class="badge ok">得分点 #1</span><span class="meta">+4</span></div><h4>观点明确，能够准确概括工业革命影响</h4></article>
+              <article class="card"><div class="card-top"><span class="badge ok">得分点 #2</span><span class="meta">+6</span></div><h4>至少引用2条史料并完成对比分析</h4></article>
+              <article class="card"><div class="card-top"><span class="badge warn">扣分规则</span><span class="meta">-1.5</span></div><h4>史料出处不明、论证链断裂时扣分</h4></article>
+              <div class="btn-row"><button class="btn ghost" data-switch="input">继续编辑</button><button class="btn solid" data-toast-message="已保存为草稿">保存并使用</button></div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a class="active" href="./rubric-interaction.html">细则</a>
+        <a href="./grading-interaction.html">阅卷</a>
+        <a href="./records-interaction.html">记录</a>
+        <a href="./settings-interaction.html">设置</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast" data-toast></div>
+  <script src="./shared.js"></script>
+</body>
+</html>

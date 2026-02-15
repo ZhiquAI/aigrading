@@ -263,17 +263,17 @@ export const SettingsSheetPanel = () => {
   };
 
   return (
-    <div className="legacy-settings-sheet">
-      <section className="legacy-settings-card">
-        <header className="legacy-settings-card-head">
+    <div className="settings-sheet classic-settings-sheet">
+      <section className="settings-card classic-settings-card">
+        <header className="settings-card-head classic-settings-card-head">
           <div>
             <h3>SettingsView</h3>
             <p>账户、批改策略与模型配置</p>
           </div>
-          <span className="legacy-trial-chip">试用版</span>
+          <span className="app-trial-chip classic-trial-chip">试用版</span>
         </header>
 
-        <div className="legacy-settings-metrics">
+        <div className="settings-metrics classic-settings-metrics">
           <article>
             <span>剩余额度</span>
             <strong>{licenseStatus?.remainingQuota ?? 0}</strong>
@@ -284,11 +284,11 @@ export const SettingsSheetPanel = () => {
           </article>
         </div>
 
-        <label className="legacy-settings-field">
+        <label className="settings-field classic-settings-field">
           激活码
-          <div className="legacy-settings-input-with-icon">
-            <span className="legacy-settings-input-icon" aria-hidden="true">
-              <KeyIcon className="legacy-symbol-icon legacy-settings-inline-icon" />
+          <div className="settings-input-with-icon classic-settings-input-with-icon">
+            <span className="settings-input-icon classic-settings-input-icon" aria-hidden="true">
+              <KeyIcon className="classic-symbol-icon settings-inline-icon classic-settings-inline-icon" />
             </span>
             <input
               value={activationCodeInput}
@@ -298,32 +298,32 @@ export const SettingsSheetPanel = () => {
           </div>
         </label>
 
-        <div className="legacy-settings-actions legacy-settings-actions-split">
+        <div className="settings-actions settings-actions-split classic-settings-actions classic-settings-actions-split">
           <button type="button" className="primary-btn" onClick={() => void handleActivateCode()} disabled={activating}>
-            <span className="legacy-settings-btn-icon" aria-hidden="true">
-              <ShieldIcon className="legacy-symbol-icon legacy-settings-inline-icon" />
+            <span className="settings-btn-icon classic-settings-btn-icon" aria-hidden="true">
+              <ShieldIcon className="classic-symbol-icon settings-inline-icon classic-settings-inline-icon" />
             </span>
             {activating ? "更新中..." : "更新激活码"}
           </button>
           <button type="button" className="secondary-btn" onClick={() => void loadLicenseStatus()} disabled={loading}>
-            <span className="legacy-settings-btn-icon" aria-hidden="true">
-              <RefreshIcon className="legacy-symbol-icon legacy-settings-inline-icon" />
+            <span className="settings-btn-icon classic-settings-btn-icon" aria-hidden="true">
+              <RefreshIcon className="classic-symbol-icon settings-inline-icon classic-settings-inline-icon" />
             </span>
             {loading ? "刷新中..." : "刷新额度"}
           </button>
         </div>
       </section>
 
-      <section className="legacy-settings-card">
-        <header className="legacy-settings-card-head">
+      <section className="settings-card classic-settings-card">
+        <header className="settings-card-head classic-settings-card-head">
           <div>
             <h3>批改偏好</h3>
           </div>
         </header>
 
-        <div className="legacy-settings-group-title">批改模式</div>
-        <div className="legacy-settings-radio-row">
-          <label className="legacy-settings-radio-option">
+        <div className="settings-group-title classic-settings-group-title">批改模式</div>
+        <div className="settings-radio-row classic-settings-radio-row">
+          <label className="settings-radio-option classic-settings-radio-option">
             <input
               type="radio"
               name="grading-mode"
@@ -332,7 +332,7 @@ export const SettingsSheetPanel = () => {
             />
             <span>辅助模式</span>
           </label>
-          <label className="legacy-settings-radio-option">
+          <label className="settings-radio-option classic-settings-radio-option">
             <input
               type="radio"
               name="grading-mode"
@@ -343,9 +343,9 @@ export const SettingsSheetPanel = () => {
           </label>
         </div>
 
-        <div className="legacy-settings-group-title">AI 策略</div>
-        <div className="legacy-settings-radio-row">
-          <label className="legacy-settings-radio-option">
+        <div className="settings-group-title classic-settings-group-title">AI 策略</div>
+        <div className="settings-radio-row classic-settings-radio-row">
+          <label className="settings-radio-option classic-settings-radio-option">
             <input
               type="radio"
               name="grading-strategy"
@@ -354,7 +354,7 @@ export const SettingsSheetPanel = () => {
             />
             <span>快速</span>
           </label>
-          <label className="legacy-settings-radio-option">
+          <label className="settings-radio-option classic-settings-radio-option">
             <input
               type="radio"
               name="grading-strategy"
@@ -363,7 +363,7 @@ export const SettingsSheetPanel = () => {
             />
             <span>精准</span>
           </label>
-          <label className="legacy-settings-radio-option">
+          <label className="settings-radio-option classic-settings-radio-option">
             <input
               type="radio"
               name="grading-strategy"
@@ -374,12 +374,12 @@ export const SettingsSheetPanel = () => {
           </label>
         </div>
 
-        <div className="legacy-settings-slider-head">
+        <div className="settings-slider-head classic-settings-slider-head">
           <span>自动模式提交倒计时（秒）</span>
           <strong>{intervalSeconds}</strong>
         </div>
         <input
-          className="legacy-settings-slider"
+          className="settings-slider classic-settings-slider"
           type="range"
           min={1}
           max={20}
@@ -389,14 +389,14 @@ export const SettingsSheetPanel = () => {
         />
       </section>
 
-      <section className="legacy-settings-card">
-        <header className="legacy-settings-card-head">
+      <section className="settings-card classic-settings-card">
+        <header className="settings-card-head classic-settings-card-head">
           <div>
             <h3>模型配置（BYOK）</h3>
           </div>
         </header>
 
-        <label className="legacy-settings-field">
+        <label className="settings-field classic-settings-field">
           服务商
           <select value={provider} onChange={(event) => setProvider(event.target.value as ProviderType)}>
             {PROVIDER_OPTIONS.map((item) => (
@@ -405,17 +405,17 @@ export const SettingsSheetPanel = () => {
           </select>
         </label>
 
-        <label className="legacy-settings-field">
+        <label className="settings-field classic-settings-field">
           Endpoint
           <input value={endpoint} onChange={(event) => setEndpoint(event.target.value)} />
         </label>
 
-        <label className="legacy-settings-field">
+        <label className="settings-field classic-settings-field">
           模型名称
           <input value={modelName} onChange={(event) => setModelName(event.target.value)} />
         </label>
 
-        <label className="legacy-settings-field">
+        <label className="settings-field classic-settings-field">
           API Key
           <input
             type="password"
@@ -425,16 +425,16 @@ export const SettingsSheetPanel = () => {
           />
         </label>
 
-        <div className="legacy-settings-actions legacy-settings-actions-split">
+        <div className="settings-actions settings-actions-split classic-settings-actions classic-settings-actions-split">
           <button type="button" className="secondary-btn" onClick={() => void handleTestConnection()} disabled={testing}>
-            <span className="legacy-settings-btn-icon" aria-hidden="true">
-              <PlugIcon className="legacy-symbol-icon legacy-settings-inline-icon" />
+            <span className="settings-btn-icon classic-settings-btn-icon" aria-hidden="true">
+              <PlugIcon className="classic-symbol-icon settings-inline-icon classic-settings-inline-icon" />
             </span>
             {testing ? "测试中..." : "测试连接"}
           </button>
           <button type="button" className="primary-btn" onClick={() => void handleSaveConfig()} disabled={saving}>
-            <span className="legacy-settings-btn-icon" aria-hidden="true">
-              <SaveIcon className="legacy-symbol-icon legacy-settings-inline-icon" />
+            <span className="settings-btn-icon classic-settings-btn-icon" aria-hidden="true">
+              <SaveIcon className="classic-symbol-icon settings-inline-icon classic-settings-inline-icon" />
             </span>
             {saving ? "保存中..." : "保存配置"}
           </button>

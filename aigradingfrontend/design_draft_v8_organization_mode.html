@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>生成评分细则 - 评分点统一版设计稿 v8</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans SC"', '"Outfit"', 'sans-serif']
+          },
+          colors: {
+            ink: '#13213A',
+            wave: '#2C6EF2',
+            mint: '#11B686',
+            amber: '#F59E0B',
+            coral: '#F06543',
+            shell: '#F6F9FF'
+          },
+          boxShadow: {
+            float: '0 18px 42px -20px rgba(19, 33, 58, 0.5)',
+            glow: '0 12px 30px -15px rgba(44, 110, 242, 0.45)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(circle at 10% 10%, rgba(44, 110, 242, 0.15), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(17, 182, 134, 0.14), transparent 38%),
+        radial-gradient(circle at 50% 90%, rgba(240, 101, 67, 0.12), transparent 42%),
+        #ebf1fb;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px 12px;
+      font-family: "Noto Sans SC", "Outfit", sans-serif;
+      color: #13213a;
+    }
+
+    .phone {
+      width: 390px;
+      min-height: 844px;
+      border-radius: 30px;
+      background: linear-gradient(170deg, #fcfdff 0%, #f3f8ff 100%);
+      border: 4px solid #fff;
+      box-shadow: 0 26px 55px -24px rgba(19, 33, 58, 0.42);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+    }
+
+    .question-pill[data-active="true"],
+    .submode-btn[data-active="true"] {
+      background: linear-gradient(135deg, #2c6ef2 0%, #4b86ff 100%);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 12px 24px -16px rgba(44, 110, 242, 0.85);
+    }
+
+    .segment-card {
+      border: 1px solid #d8e5ff;
+      background: #f7faff;
+    }
+
+    .scrollbar-none::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="phone">
+    <header class="sticky top-0 z-30 h-14 px-4 flex items-center justify-between border-b border-white/70 bg-white/78 backdrop-blur-xl">
+      <button class="w-8 h-8 rounded-full grid place-items-center text-slate-600 hover:bg-slate-100" aria-label="返回">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="text-[17px] font-black tracking-tight">生成评分细则</h1>
+      <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border border-amber-200 bg-amber-50 text-amber-700">试用版</span>
+    </header>
+
+    <main class="h-[calc(100%-56px)] overflow-y-auto scrollbar-none px-3 py-3 space-y-3">
+      <section class="glass rounded-3xl p-3.5 shadow-float">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 rounded-full bg-wave text-white text-[10px] font-black grid place-items-center">1</span>
+          <h2 class="text-sm font-black">上传试题图片</h2>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="h-28 rounded-2xl border-2 border-dashed border-wave/40 bg-wave/5 p-2.5 flex flex-col justify-between">
+            <p class="text-[10px] font-bold text-wave">试题图（已上传）</p>
+            <div class="rounded-xl bg-white/85 border border-wave/20 p-2 text-[9px] leading-4 text-slate-600">13. (1) 伯里克利；罗马民法大全；瓦特；蒸汽机……</div>
+            <button class="text-[11px] font-bold text-wave">重新上传试题</button>
+          </div>
+          <div class="h-28 rounded-2xl border-2 border-dashed border-slate-300 bg-white/70 p-2.5 flex flex-col justify-between">
+            <p class="text-[10px] font-bold text-slate-500">参考答案图（选填）</p>
+            <div class="rounded-xl bg-white border border-slate-200 p-2 text-[9px] leading-4 text-slate-400">可上传标注版答案，提升评分点拆分准确率</div>
+            <button class="text-[11px] font-bold text-slate-600">重新上传答案</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="glass rounded-3xl p-3.5 shadow-float space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-[#6135D1] text-white text-[10px] font-black grid place-items-center">2</span>
+          <h2 class="text-sm font-black">设置基本信息</h2>
+        </div>
+
+        <div class="grid grid-cols-[1fr_auto] gap-2 items-end">
+          <label class="block">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">考试名称</p>
+            <input value="期末考试" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold focus:outline-none focus:border-wave" />
+          </label>
+          <button class="h-10 px-3 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">+ 创建</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <label class="block">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">批改范围</p>
+            <input value="整题" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+          </label>
+          <label class="block">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">题号</p>
+            <input value="13" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+          </label>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <label class="block col-span-1">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">包含问数</p>
+            <input value="3" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+          </label>
+          <label class="block col-span-1">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">学科</p>
+            <input value="历史" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+          </label>
+          <label class="block col-span-1">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">题型</p>
+            <input value="材料解析题" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+          </label>
+        </div>
+
+      </section>
+
+      <section class="glass rounded-3xl p-3.5 shadow-float space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-mint text-white text-[10px] font-black grid place-items-center">3</span>
+            <h2 class="text-sm font-black">配置评分策略</h2>
+          </div>
+          <span class="text-[10px] font-bold text-wave bg-wave/10 rounded-full px-2 py-0.5">第13题综合混合模式</span>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+          <p class="text-[10px] font-bold text-slate-500">统一说明</p>
+          <p class="text-[11px] font-semibold text-slate-700 mt-1">本页统一按“评分点”组织：<span class="text-wave font-black">1个评分点 = 原单一策略</span>；2个及以上评分点 = 混合策略。</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-2.5">
+          <div class="flex gap-1.5" id="questionTabs"></div>
+          <div class="mt-2 flex items-center justify-between text-[11px]">
+            <p class="font-bold text-slate-700" id="questionMeta">第3问 · 2个评分点</p>
+            <p class="font-black text-wave" id="questionScore">3 分</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-[#cfe0ff] bg-[#eef4ff] p-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-[11px] font-black text-ink">本问评分点数</p>
+            <div id="localSegmentCount" class="grid grid-cols-3 gap-1.5 w-52">
+              <button class="submode-btn h-8 rounded-lg border border-white/70 bg-white text-[11px] font-bold" data-count="1" data-active="false">1 点</button>
+              <button class="submode-btn h-8 rounded-lg border border-white/70 bg-white text-[11px] font-bold" data-count="2" data-active="true">2 点</button>
+              <button class="submode-btn h-8 rounded-lg border border-white/70 bg-white text-[11px] font-bold" data-count="3" data-active="false">3 点</button>
+            </div>
+          </div>
+          <p class="mt-1 text-[10px] font-semibold text-slate-600">提示：本题第2/3问均为混合结构，建议设置为 2 个评分点避免串分</p>
+        </div>
+
+        <div id="segmentEditor" class="space-y-2"></div>
+
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-2.5">
+          <p class="text-[10px] font-black text-amber-800">实时校验</p>
+          <div class="mt-1 grid grid-cols-3 gap-2 text-center">
+            <div class="rounded-lg bg-white/90 border border-amber-100 p-1.5">
+              <p class="text-[9px] text-amber-700">整题目标</p>
+              <p class="text-xs font-black text-amber-900" id="targetTotal">10</p>
+            </div>
+            <div class="rounded-lg bg-white/90 border border-amber-100 p-1.5">
+              <p class="text-[9px] text-amber-700">当前汇总</p>
+              <p class="text-xs font-black text-amber-900" id="sumTotal">10</p>
+            </div>
+            <div class="rounded-lg bg-white/90 border border-amber-100 p-1.5">
+              <p class="text-[9px] text-amber-700">风险条目</p>
+              <p class="text-xs font-black text-coral" id="riskCount">1</p>
+            </div>
+          </div>
+          <p class="text-[10px] font-semibold text-amber-800 mt-1" id="riskHint">风险：第3问若不拆评分点，“郑和下西洋”客观点与“认识”开放点会被同一规则处理。</p>
+        </div>
+      </section>
+
+      <section class="glass rounded-3xl p-3.5 shadow-float space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-coral text-white text-[10px] font-black grid place-items-center">4</span>
+          <h2 class="text-sm font-black">添加特殊规则</h2>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-2.5 space-y-2">
+          <label class="block">
+            <p class="text-[10px] font-bold text-slate-500 mb-1">规则内容</p>
+            <input value="史事部分出现“郑和”必须出现“下西洋”" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+          </label>
+
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block">
+              <p class="text-[10px] font-bold text-slate-500 mb-1">计分方式</p>
+              <input value="扣分" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+            </label>
+            <label class="block">
+              <p class="text-[10px] font-bold text-slate-500 mb-1">分值</p>
+              <input value="1" class="w-full h-10 rounded-xl bg-slate-100 border border-transparent px-3 text-sm font-semibold" />
+            </label>
+          </div>
+
+          <div>
+            <p class="text-[10px] font-bold text-slate-500 mb-1">快捷规则</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-700">史事错误扣1分</button>
+              <button class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-700">跨时代表述扣1分</button>
+              <button class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-700">观点无依据扣1分</button>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2">
+            <p class="text-[10px] font-black text-amber-800">规则预览</p>
+            <p class="text-[10px] font-semibold text-amber-700 mt-0.5">若史事部分出现“郑和”但未提及“下西洋”，扣 1 分（最多扣 1 分）。</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.08em]">规则映射预览</p>
+          <div id="jsonPreview" class="mt-1.5 rounded-xl bg-[#0f1b33] text-[#dbe8ff] p-2.5 text-[10px] leading-5 font-mono overflow-x-auto"></div>
+        </div>
+      </section>
+
+      <div class="h-20"></div>
+    </main>
+
+    <footer class="absolute bottom-0 left-0 right-0 h-20 px-3 border-t border-white/70 bg-white/82 backdrop-blur-xl flex items-center gap-2.5">
+      <button class="h-11 flex-1 rounded-2xl bg-slate-100 text-sm font-black text-slate-600">清空</button>
+      <button class="h-11 flex-[1.7] rounded-2xl bg-gradient-to-r from-wave to-[#3f8bff] text-white text-sm font-black shadow-glow">生成细则</button>
+    </footer>
+  </div>
+
+  <script>
+    const state = {
+      activeQuestion: 3,
+      targetTotal: 10,
+      questions: [
+        {
+          id: 1,
+          title: '华夏族认同',
+          score: 3,
+          strategy: 'weighted(strictMode=true)',
+          points: ['华夏族', '仁', '大学']
+        },
+        {
+          id: 2,
+          title: '历史价值与举措',
+          score: 4,
+          segments: [
+            {
+              name: '评分点A · 历史价值',
+              strategy: 'pick_n(maxPoints=2, pointValue=1)',
+              score: 2,
+              points: ['民族政策开放', '唐与吐蕃友好关系', '多元文化交流与包容', '研究唐代绘画风格资料价值'],
+              hint: '任答 2 点得 2 分；按关键词命中累计'
+            },
+            {
+              name: '评分点B · 举措',
+              strategy: 'pick_n(maxPoints=2, pointValue=1)',
+              score: 2,
+              points: ['皇帝赐拐杖示尊重', '政府设机构收容贫困者', '宗族义田/义学/义宅资助贫困者'],
+              hint: '任答 2 点得 2 分；容许同义表述'
+            }
+          ]
+        },
+        {
+          id: 3,
+          title: '史事与认识',
+          score: 3,
+          segments: [
+            {
+              name: '评分点A · 史事',
+              strategy: 'all(strictMode=true)',
+              score: 1,
+              points: ['郑和下西洋'],
+              hint: '固定答案，需精确匹配'
+            },
+            {
+              name: '评分点B · 认识',
+              strategy: 'pick_n(maxPoints=2, pointValue=1, openEnded=true)',
+              score: 2,
+              points: ['“和”强调人与自然和谐共生', '“和”注重人际关系和谐（仁者爱人）', '“和”体现民族交融与中华文明传承创新'],
+              hint: '观点正确、言之有理，任答 2 点得 2 分'
+            }
+          ]
+        }
+      ]
+    };
+
+    const questionTabs = document.getElementById('questionTabs');
+    const segmentEditor = document.getElementById('segmentEditor');
+    const questionMeta = document.getElementById('questionMeta');
+    const questionScore = document.getElementById('questionScore');
+    const jsonPreview = document.getElementById('jsonPreview');
+
+    const localSegmentCount = document.getElementById('localSegmentCount');
+
+    function getSegmentCount(question) {
+      if (!question || typeof question !== 'object') return 1;
+      return Array.isArray(question.segments) && question.segments.length > 0 ? question.segments.length : 1;
+    }
+
+    function distributeScores(total, count) {
+      if (count <= 1) return [total];
+      const base = Math.floor((total / count) * 10) / 10;
+      const arr = Array.from({ length: count }, () => base);
+      const used = arr.reduce((sum, value) => sum + value, 0);
+      arr[count - 1] = Math.max(0.1, Math.round((total - used + arr[count - 1]) * 10) / 10);
+      return arr;
+    }
+
+    function toSingleStrategy(question) {
+      if (!Array.isArray(question.segments) || question.segments.length === 0) return;
+      const first = question.segments[0];
+      question.strategy = first?.strategy || 'weighted';
+      question.points = Array.isArray(first?.points) && first.points.length > 0 ? first.points : ['待配置采分点'];
+      delete question.segments;
+    }
+
+    function toSegmented(question, count) {
+      const nextCount = Math.max(2, Math.min(3, count));
+      const currentSegments = Array.isArray(question.segments) ? [...question.segments] : [];
+      const distributed = distributeScores(question.score, nextCount);
+
+      if (currentSegments.length === 0) {
+        const basePoints = Array.isArray(question.points) && question.points.length > 0 ? question.points : ['待配置采分点'];
+        question.segments = Array.from({ length: nextCount }, (_, index) => ({
+          name: `评分点${String.fromCharCode(65 + index)}`,
+          strategy: index === 0 ? (question.strategy || 'all(strictMode=true)') : 'weighted(allowAlternative=true)',
+          score: distributed[index],
+          points: index === 0 ? basePoints.slice(0, Math.max(1, Math.ceil(basePoints.length / 2))) : basePoints.slice(Math.max(1, Math.ceil(basePoints.length / 2))),
+          hint: index === 0 ? '可配置客观匹配/顺序匹配' : '可配置关键词累计/任答策略'
+        }));
+        return;
+      }
+
+      question.segments = Array.from({ length: nextCount }, (_, index) => {
+        const exist = currentSegments[index];
+        return {
+          name: exist?.name || `评分点${String.fromCharCode(65 + index)}`,
+          strategy: exist?.strategy || (index === 0 ? 'all(strictMode=true)' : 'weighted(allowAlternative=true)'),
+          score: distributed[index],
+          points: Array.isArray(exist?.points) && exist.points.length > 0 ? exist.points : ['待配置采分点'],
+          hint: exist?.hint || '请补充该评分点策略与采分点'
+        };
+      });
+    }
+
+    function setSegmentCount(question, count) {
+      if (count <= 1) {
+        toSingleStrategy(question);
+        return;
+      }
+      toSegmented(question, count);
+    }
+
+    function activeQuestionData() {
+      return state.questions.find((q) => q.id === state.activeQuestion);
+    }
+
+    function scoreSum() {
+      return state.questions.reduce((sum, q) => sum + q.score, 0);
+    }
+
+    function strategyRiskCount() {
+      return state.questions.reduce((risk, q) => {
+        if (q.id === 2 || q.id === 3) {
+          return risk + (getSegmentCount(q) < 2 ? 1 : 0);
+        }
+        return risk;
+      }, 0);
+    }
+
+    function renderTabs() {
+      questionTabs.innerHTML = state.questions.map((q) => {
+        const active = q.id === state.activeQuestion;
+        const segmentCount = getSegmentCount(q);
+        return `
+          <button class="question-pill flex-1 rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-left" data-id="${q.id}" data-active="${active}">
+            <p class="text-[10px] font-black">第${q.id}问</p>
+            <p class="text-[9px] text-slate-500 mt-0.5 truncate">${segmentCount}个评分点 · ${q.score}分</p>
+          </button>
+        `;
+      }).join('');
+
+      questionTabs.querySelectorAll('.question-pill').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.activeQuestion = Number(el.dataset.id);
+          renderAll();
+        });
+      });
+    }
+
+    function renderEditor() {
+      const q = activeQuestionData();
+      const segmentCount = getSegmentCount(q);
+      questionMeta.textContent = `第${q.id}问 · ${segmentCount}个评分点`;
+      questionScore.textContent = `${q.score} 分`;
+
+      localSegmentCount.querySelectorAll('button').forEach((btn) => {
+        btn.dataset.active = String(Number(btn.dataset.count) === segmentCount);
+      });
+
+      if (segmentCount === 1) {
+        segmentEditor.innerHTML = `
+          <article class="segment-card rounded-2xl p-2.5">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] font-black text-ink">单评分点配置（等价单一策略）</p>
+              <span class="text-[10px] font-black text-wave">${q.strategy}</span>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              ${q.points.map((p) => `<span class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700">${p}</span>`).join('')}
+            </div>
+          </article>
+        `;
+        return;
+      }
+
+      segmentEditor.innerHTML = q.segments.map((seg, i) => `
+        <article class="segment-card rounded-2xl p-2.5">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-black text-ink">${seg.name}</p>
+            <span class="text-[10px] font-black text-wave">${seg.score} 分</span>
+          </div>
+          <p class="mt-1 text-[10px] font-bold text-slate-600">策略：${seg.strategy}</p>
+          <p class="text-[10px] font-medium text-slate-500 mt-0.5">${seg.hint}</p>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            ${seg.points.map((p) => `<span class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700">${p}</span>`).join('')}
+          </div>
+          <button class="mt-2 text-[10px] font-black text-wave">+ 新增评分点内采分点</button>
+        </article>
+      `).join('') + `<button class="w-full h-9 rounded-xl border border-dashed border-wave/40 bg-wave/5 text-xs font-bold text-wave">+ 新增评分点</button>`;
+    }
+
+    function renderValidation() {
+      const sum = scoreSum();
+      const mismatch = sum !== state.targetTotal;
+      const riskCount = strategyRiskCount();
+      document.getElementById('targetTotal').textContent = String(state.targetTotal);
+      document.getElementById('sumTotal').textContent = String(sum);
+      document.getElementById('sumTotal').className = `text-xs font-black ${mismatch ? 'text-coral' : 'text-amber-900'}`;
+      document.getElementById('riskCount').textContent = String(riskCount);
+      if (riskCount === 0) {
+        document.getElementById('riskHint').textContent = '当前评分点拆分覆盖良好：第2/3问均已拆分，客观点与开放点不会串分。';
+        return;
+      }
+      const riskyQuestions = [];
+      if (getSegmentCount(state.questions.find((q) => q.id === 2)) < 2) riskyQuestions.push('第2问');
+      if (getSegmentCount(state.questions.find((q) => q.id === 3)) < 2) riskyQuestions.push('第3问');
+      document.getElementById('riskHint').textContent = `风险：${riskyQuestions.join('、')}未拆分为 2 个评分点，混合题型可能被同一规则处理。`;
+    }
+
+    function renderPreview() {
+      const q = activeQuestionData();
+      const segmentCount = getSegmentCount(q);
+      const preview = {
+        organization: 'scoring_points_unified',
+        activeQuestion: q.id,
+        segmentCount,
+        questionId: `13-${q.id}`,
+        suggestion: segmentCount > 1 ? 'content.segments + aggregation=sum（按评分点组织）' : 'content.points（单评分点）',
+        strategyDigest: segmentCount > 1
+          ? q.segments.map((s) => ({ segment: s.name, strategy: s.strategy, score: s.score }))
+          : [{ strategy: q.strategy, score: q.score }],
+        specialRules: [
+          {
+            type: 'deduction_fixed',
+            condition: '史事部分出现“郑和”但未提及“下西洋”',
+            points: 1,
+            maxDeduct: 1
+          }
+        ]
+      };
+      jsonPreview.textContent = JSON.stringify(preview, null, 2);
+    }
+
+    function renderAll() {
+      renderTabs();
+      renderEditor();
+      renderValidation();
+      renderPreview();
+    }
+
+    localSegmentCount.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const q = activeQuestionData();
+        const count = Number(btn.dataset.count || '1');
+        setSegmentCount(q, count);
+        renderAll();
+      });
+    });
+
+    renderAll();
+  </script>
+</body>
+
+</html>

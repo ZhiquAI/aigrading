@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Grading V2 - Education Theme Preview</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      :root {
+        --radius: 14px;
+
+        --background: 210 33% 98%;
+        --foreground: 222 47% 14%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 14%;
+
+        --primary: 218 76% 46%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 28% 92%;
+        --secondary-foreground: 222 35% 20%;
+        --accent: 169 62% 38%;
+        --accent-foreground: 0 0% 100%;
+        --muted: 210 22% 95%;
+        --muted-foreground: 215 18% 42%;
+        --destructive: 3 75% 47%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 214 24% 86%;
+        --input: 214 24% 86%;
+        --ring: 218 76% 46%;
+
+        --success: 154 60% 35%;
+        --warning: 36 88% 46%;
+        --info: 198 78% 43%;
+
+        --shadow-lg: 0 20px 45px hsla(220, 47%, 14%, 0.1);
+      }
+
+      body.dark {
+        --background: 222 35% 10%;
+        --foreground: 210 33% 96%;
+        --card: 222 30% 13%;
+        --card-foreground: 210 33% 96%;
+        --primary: 213 88% 62%;
+        --primary-foreground: 222 47% 10%;
+        --secondary: 219 18% 22%;
+        --secondary-foreground: 210 33% 96%;
+        --accent: 168 60% 46%;
+        --accent-foreground: 0 0% 100%;
+        --muted: 220 16% 20%;
+        --muted-foreground: 214 16% 72%;
+        --destructive: 3 74% 57%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 217 15% 27%;
+        --input: 217 15% 27%;
+        --ring: 213 88% 62%;
+        --success: 154 55% 45%;
+        --warning: 36 85% 58%;
+        --info: 198 76% 56%;
+        --shadow-lg: 0 20px 45px hsla(210, 33%, 4%, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 28px;
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: hsl(var(--foreground));
+        background:
+          radial-gradient(circle at 0% 0%, hsla(218, 76%, 46%, 0.12), transparent 35%),
+          radial-gradient(circle at 100% 0%, hsla(169, 62%, 38%, 0.12), transparent 35%),
+          hsl(var(--background));
+      }
+
+      .container {
+        max-width: 1240px;
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+
+      .title-wrap h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+
+      .title-wrap p {
+        margin: 8px 0 0;
+        color: hsl(var(--muted-foreground));
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid hsl(var(--border));
+        padding: 6px 12px;
+        background: hsl(var(--card));
+        box-shadow: var(--shadow-lg);
+        font-size: 13px;
+      }
+
+      .token-panel,
+      .component-panel {
+        background: hsl(var(--card));
+        color: hsl(var(--card-foreground));
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 16px;
+      }
+
+      .token-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      .token-item {
+        border-radius: 12px;
+        border: 1px solid hsl(var(--border));
+        padding: 10px;
+        background: hsl(var(--muted));
+      }
+
+      .swatch {
+        height: 26px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+      }
+
+      .swatch-primary {
+        background: hsl(var(--primary));
+      }
+
+      .swatch-secondary {
+        background: hsl(var(--secondary));
+      }
+
+      .swatch-accent {
+        background: hsl(var(--accent));
+      }
+
+      .swatch-success {
+        background: hsl(var(--success));
+      }
+
+      .swatch-warning {
+        background: hsl(var(--warning));
+      }
+
+      .swatch-destructive {
+        background: hsl(var(--destructive));
+      }
+
+      .mono {
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 2px solid hsl(var(--ring));
+        outline-offset: 1px;
+      }
+
+      .btn-primary {
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+      }
+
+      .btn-secondary {
+        background: hsl(var(--secondary));
+        color: hsl(var(--secondary-foreground));
+        border-color: hsl(var(--border));
+      }
+
+      .btn-accent {
+        background: hsl(var(--accent));
+        color: hsl(var(--accent-foreground));
+      }
+
+      .btn-danger {
+        background: hsl(var(--destructive));
+        color: hsl(var(--destructive-foreground));
+      }
+
+      .status-row {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .status {
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      .status-success {
+        background: hsla(154, 60%, 35%, 0.14);
+        border: 1px solid hsla(154, 60%, 35%, 0.35);
+      }
+
+      .status-warning {
+        background: hsla(36, 88%, 46%, 0.14);
+        border: 1px solid hsla(36, 88%, 46%, 0.35);
+      }
+
+      .status-error {
+        background: hsla(3, 75%, 47%, 0.14);
+        border: 1px solid hsla(3, 75%, 47%, 0.35);
+      }
+
+      .module-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+      }
+
+      .card {
+        grid-column: span 6;
+        background: hsl(var(--card));
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .card-wide {
+        grid-column: span 12;
+      }
+
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .hint {
+        margin: 0 0 12px;
+        color: hsl(var(--muted-foreground));
+        font-size: 13px;
+      }
+
+      .field {
+        margin-bottom: 10px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: hsl(var(--muted-foreground));
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid hsl(var(--input));
+        border-radius: 10px;
+        background: hsl(var(--card));
+        color: hsl(var(--foreground));
+        padding: 9px 11px;
+        font: inherit;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 86px;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .status-box {
+        margin-top: 10px;
+        border: 1px dashed hsl(var(--border));
+        border-radius: 10px;
+        padding: 10px;
+        background: hsl(var(--muted));
+      }
+
+      pre {
+        margin: 0;
+        overflow: auto;
+        color: hsl(var(--muted-foreground));
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid hsl(var(--border));
+        padding: 10px;
+        text-align: left;
+      }
+
+      thead {
+        background: hsl(var(--muted));
+      }
+
+      tbody tr:hover {
+        background: hsla(169, 62%, 38%, 0.08);
+      }
+
+      @media (max-width: 960px) {
+        body {
+          padding: 16px;
+        }
+
+        .card {
+          grid-column: span 12;
+        }
+
+        .split {
+          grid-template-columns: 1fr;
+        }
+
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="title-wrap">
+          <h1>AI 智能批改助手 V2 主题设计稿</h1>
+          <p>教育产品风格（Academic Calm）| shadcn/ui + Tailwind Token 预览</p>
+        </div>
+        <div class="btn-row">
+          <span class="badge">贴合现有模块：License / Settings / Rubric / Grading / Records</span>
+          <button id="theme-toggle" class="btn btn-secondary" type="button">切换暗色</button>
+        </div>
+      </header>
+
+      <section class="token-panel">
+        <h3>主题 Token 色板</h3>
+        <div class="token-grid">
+          <article class="token-item">
+            <div class="swatch swatch-primary"></div>
+            <strong>Primary</strong>
+            <div class="mono">--primary: 218 76% 46%</div>
+          </article>
+          <article class="token-item">
+            <div class="swatch swatch-secondary"></div>
+            <strong>Secondary</strong>
+            <div class="mono">--secondary: 210 28% 92%</div>
+          </article>
+          <article class="token-item">
+            <div class="swatch swatch-accent"></div>
+            <strong>Accent</strong>
+            <div class="mono">--accent: 169 62% 38%</div>
+          </article>
+          <article class="token-item">
+            <div class="swatch swatch-success"></div>
+            <strong>Success</strong>
+            <div class="mono">--success: 154 60% 35%</div>
+          </article>
+          <article class="token-item">
+            <div class="swatch swatch-warning"></div>
+            <strong>Warning</strong>
+            <div class="mono">--warning: 36 88% 46%</div>
+          </article>
+          <article class="token-item">
+            <div class="swatch swatch-destructive"></div>
+            <strong>Destructive</strong>
+            <div class="mono">--destructive: 3 75% 47%</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="component-panel">
+        <h3>组件语义预览</h3>
+        <div class="btn-row">
+          <button class="btn btn-primary" type="button">Primary（激活/保存/批改）</button>
+          <button class="btn btn-secondary" type="button">Secondary（读取/刷新）</button>
+          <button class="btn btn-accent" type="button">Accent（AI 生成）</button>
+          <button class="btn btn-danger" type="button">Destructive（删除）</button>
+        </div>
+        <div class="status-row">
+          <div class="status status-success">成功：Rubric 保存成功，已同步 questionKey=Q1</div>
+          <div class="status status-warning">提醒：剩余配额不足，建议充值或切换模型</div>
+          <div class="status status-error">失败：激活码无效，请检查格式 TEST-1111-2222-3333</div>
+        </div>
+      </section>
+
+      <section class="module-grid">
+        <article class="card">
+          <h3>License</h3>
+          <p class="hint">接口：/api/v2/licenses/*</p>
+          <div class="field">
+            <label>设备 ID</label>
+            <input value="device_7a82c1d3" readonly />
+          </div>
+          <div class="field">
+            <label>激活码</label>
+            <input placeholder="TEST-1111-2222-3333" />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="button">激活并写入本地</button>
+            <button class="btn btn-secondary" type="button">刷新状态</button>
+          </div>
+          <div class="status-box mono">
+            <pre>{
+  "isActive": true,
+  "expiresAt": "2026-12-31T23:59:59Z"
+}</pre>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Settings</h3>
+          <p class="hint">接口：/api/v2/settings</p>
+          <div class="field">
+            <label>Key</label>
+            <input value="model.provider" />
+          </div>
+          <div class="field">
+            <label>Value (JSON)</label>
+            <textarea>{"openrouter"}</textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-secondary" type="button">读取</button>
+            <button class="btn btn-primary" type="button">保存</button>
+            <button class="btn btn-danger" type="button">删除</button>
+          </div>
+        </article>
+
+        <article class="card card-wide">
+          <h3>Rubric + Grading 快速工作台</h3>
+          <p class="hint">接口：/api/v2/rubrics* 与 /api/v2/gradings/evaluate</p>
+          <div class="split">
+            <div>
+              <div class="field">
+                <label>Question Key</label>
+                <input value="Q1" />
+              </div>
+              <div class="field">
+                <label>Rubric JSON</label>
+                <textarea>{"version":"2.0","answerPoints":[{"point":"史实准确","score":5}]}</textarea>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-secondary" type="button">列表</button>
+                <button class="btn btn-primary" type="button">保存</button>
+                <button class="btn btn-accent" type="button">AI 生成草稿</button>
+              </div>
+            </div>
+            <div>
+              <div class="field">
+                <label>学生姓名</label>
+                <input value="张三" />
+              </div>
+              <div class="field">
+                <label>答案图片 Base64</label>
+                <textarea placeholder="data:image/png;base64,..."></textarea>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-secondary" type="button">刷新配额</button>
+                <button class="btn btn-primary" type="button">开始批改</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card card-wide">
+          <h3>Records</h3>
+          <p class="hint">接口：/api/v2/records*</p>
+          <table>
+            <thead>
+              <tr>
+                <th>学生</th>
+                <th>题号</th>
+                <th>分数</th>
+                <th>评语</th>
+                <th>时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>张三</td>
+                <td>Q1</td>
+                <td>8 / 10</td>
+                <td>观点完整，史实准确</td>
+                <td>2026-02-13 10:28</td>
+                <td><button class="btn btn-danger" type="button">删除</button></td>
+              </tr>
+              <tr>
+                <td>李四</td>
+                <td>Q2</td>
+                <td>7 / 10</td>
+                <td>结构完整，论据略弱</td>
+                <td>2026-02-13 10:33</td>
+                <td><button class="btn btn-danger" type="button">删除</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+    </div>
+
+    <script>
+      const toggleButton = document.getElementById("theme-toggle");
+      toggleButton.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+      });
+    </script>
+  </body>
+</html>

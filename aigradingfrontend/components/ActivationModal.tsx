@@ -108,7 +108,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#EAF0F8]/70 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={onClose}
         >
             <div
@@ -116,7 +116,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
                 onClick={e => e.stopPropagation()}
             >
                 {/* Visual Header */}
-                <div className="relative h-32 bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center overflow-hidden">
+                <div className="relative h-32 bg-gradient-to-br from-[#2F6FFF] to-[#5F92FF] flex items-center justify-center overflow-hidden">
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-16 -mt-16 blur-3xl"></div>
                         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full -ml-16 -mb-16 blur-3xl"></div>
@@ -124,7 +124,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
 
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
+                        className="absolute top-4 right-4 p-2 rounded-full bg-white/18 text-white/85 hover:bg-white/26 transition-colors"
                     >
                         <X size={18} />
                     </button>
@@ -152,7 +152,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
                                 placeholder="XXXX-XXXX-XXXX-XXXX"
                                 className={`w-full bg-slate-50 border-2 px-4 py-4 rounded-2xl text-center font-mono text-lg font-bold tracking-widest outline-none transition-all ${messageType === 'error' && message
                                     ? 'border-red-100 focus:border-red-400 text-red-600'
-                                    : 'border-slate-100 group-hover:border-slate-200 focus:border-indigo-500 focus:bg-white focus:shadow-lg focus:shadow-indigo-500/10 text-slate-700'
+                                    : 'border-slate-100 group-hover:border-slate-200 focus:border-[#2F6FFF] focus:bg-white focus:shadow-lg focus:shadow-[#BED2FF]/50 text-slate-700'
                                     }`}
                                 autoFocus
                                 disabled={loading}
@@ -163,7 +163,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
                                         setCode(clipboardCode);
                                         setClipboardCode(''); // Clear hint after use
                                     }}
-                                    className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-xl shadow-indigo-300 animate-in zoom-in-90 fade-in duration-300 hover:bg-indigo-700 transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap z-10 group/magic"
+                                    className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-[#2F6FFF] text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-xl shadow-[#BED2FF] animate-in zoom-in-90 fade-in duration-300 hover:bg-[#235EEA] transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap z-10 group/magic"
                                 >
                                     <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center animate-[pulse_1.5s_infinite]">
                                         <Zap size={10} className="fill-current group-hover/magic:scale-110 transition-transform" />
@@ -176,7 +176,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
                             )}
                             {loading && (
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                    <div className="w-5 h-5 border-2 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin"></div>
+                                    <div className="w-5 h-5 border-2 border-[#2F6FFF]/20 border-t-[#2F6FFF] rounded-full animate-spin"></div>
                                 </div>
                             )}
                         </div>
@@ -194,7 +194,7 @@ export default function ActivationModal({ onSuccess, onClose }: ActivationModalP
                             onClick={handleActivate}
                             disabled={loading || code.replace(/-/g, '').length === 0}
                             fullWidth
-                            className={`py-4 rounded-2xl shadow-lg shadow-indigo-200 font-black tracking-widest text-base group active:scale-95 transition-all ${loading ? 'opacity-90' : ''}`}
+                            className={`py-4 rounded-2xl shadow-lg shadow-[#B4C7EA] font-black tracking-widest text-base group active:scale-95 transition-all ${loading ? 'opacity-90' : ''}`}
                         >
                             {loading ? (
                                 <span className="flex items-center gap-2">

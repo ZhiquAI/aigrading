@@ -16,7 +16,7 @@ import {
 import { toast } from '../../../../components/Toast';
 
 const AnalysisViewV2: React.FC = () => {
-    const { historyRecords, isHistoryLoading, loadHistory, setHeaderActions, addTask, updateTask, removeTask } = useAppStore();
+    const { historyRecords, isHistoryLoading, loadHistory, addTask, updateTask, removeTask } = useAppStore();
     const [selectedQuestion, setSelectedQuestion] = useState<string>('');
 
     // Initial Data Load & Header Action Registration
@@ -205,23 +205,6 @@ const AnalysisViewV2: React.FC = () => {
             downloadBlob(blob, `${filename}.csv`);
         }
     }, [filteredRecords, selectedQuestion, stats]);
-
-    // Register Header Actions
-    useEffect(() => {
-        setHeaderActions([
-            {
-                id: 'export-analysis',
-                label: '导出',
-                icon: 'Download',
-                dropdown: [
-                    { label: '导出 CSV', onClick: () => handleExport('csv') },
-                    { label: '导出 JSON', onClick: () => handleExport('json') },
-                    { label: '导出 PDF', onClick: () => handleExport('pdf') }
-                ]
-            }
-        ]);
-        return () => setHeaderActions([]);
-    }, [setHeaderActions, uniqueQuestions, filteredRecords, handleExport]);
 
     const downloadBlob = (blob: Blob, name: string) => {
         const url = URL.createObjectURL(blob);

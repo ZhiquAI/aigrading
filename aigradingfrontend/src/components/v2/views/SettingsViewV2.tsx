@@ -95,7 +95,7 @@ const SettingsViewV2: React.FC = () => {
             <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-50 bg-slate-50/5 flex justify-between items-center text-slate-800">
                     <h3 className="font-black text-xs flex items-center gap-2 uppercase tracking-widest text-slate-500">
-                        {quota.isPaid ? <Crown className="w-4 h-4 text-orange-500" /> : <Zap className="w-4 h-4 text-indigo-500" />}
+                        {quota.isPaid ? <Crown className="w-4 h-4 text-orange-500" /> : <Zap className="w-4 h-4 text-[#2F6FFF]" />}
                         {quota.isPaid ? '专业版配额' : '试用版配额'}
                     </h3>
                     <span className={`text-[10px] px-2 py-0.5 rounded-md font-black border tracking-wider transition-colors animate-shimmer-fast
@@ -103,7 +103,7 @@ const SettingsViewV2: React.FC = () => {
                             ? 'bg-red-50 text-red-600 border-red-100 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
                             : quota.isPaid
                                 ? 'bg-orange-50 text-orange-600 border-orange-100 shadow-[0_0_10px_rgba(245,158,11,0.1)]'
-                                : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
+                                : 'bg-[#EEF3FF] text-[#3E59C9] border-[#D8E4F7]'}`}>
                         {quota.status === 'expired' ? 'EXPIRED' : quota.isPaid ? 'PRO' : 'TRIAL'}
                     </span>
                 </div>
@@ -122,8 +122,8 @@ const SettingsViewV2: React.FC = () => {
 
             {/* 2. Activation / Account Card */}
             {quota.isPaid ? (
-                /* PROFESSIONAL STATE: Sleek ID Card with Shimmer */
-                <div className="bg-[#0f172a] rounded-[32px] p-6 text-white shadow-2xl relative overflow-hidden group border border-white/10">
+                /* PROFESSIONAL STATE: Soft premium card */
+                <div className="bg-gradient-to-br from-[#F9FCFF] via-white to-[#F2F7FF] rounded-[32px] p-6 text-[#17243D] shadow-[0_18px_34px_rgba(23,39,68,0.12)] relative overflow-hidden group border border-[#DFE8F4]">
                     <style dangerouslySetInnerHTML={{
                         __html: `
                         @keyframes shimmer {
@@ -155,29 +155,29 @@ const SettingsViewV2: React.FC = () => {
                     `}} />
 
                     <div className="shimmer-mask absolute inset-0 pointer-events-none"></div>
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[60px] opacity-10"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#BFD4FF] rounded-full blur-[60px] opacity-35"></div>
 
                     <div className="flex justify-between items-center mb-6 relative z-10">
                         <div className="flex items-center gap-2">
-                            <div className="bg-gradient-to-tr from-amber-200 to-yellow-500 p-0.5 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                                <div className="bg-[#0f172a] rounded-full p-1">
-                                    <Crown size={12} className="text-yellow-400 fill-current" />
+                            <div className="bg-gradient-to-tr from-[#EED7AE] to-[#DCA476] p-0.5 rounded-full shadow-[0_0_12px_rgba(220,164,118,0.32)]">
+                                <div className="bg-white rounded-full p-1">
+                                    <Crown size={12} className="text-[#C58D59] fill-current" />
                                 </div>
                             </div>
-                            <h3 className="font-black text-sm tracking-tight text-white/90">账号身份</h3>
+                            <h3 className="font-black text-sm tracking-tight text-[#223252]">账号身份</h3>
                         </div>
-                        <span className="text-[10px] font-black text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-400/20">
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200">
                             <Shield className="w-3 h-3" /> 已认证
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-4 mb-8 relative z-10 bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-900 flex items-center justify-center border border-white/10 shadow-xl">
-                            <UserCircle className="w-8 h-8 text-indigo-400" />
+                    <div className="flex items-center gap-4 mb-8 relative z-10 bg-[#F6FAFF] rounded-2xl p-4 border border-[#E1EAF6]">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#EBF2FF] to-[#DDE9FF] flex items-center justify-center border border-[#D9E4F6] shadow-sm">
+                            <UserCircle className="w-8 h-8 text-[#2F6FFF]" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Account ID</p>
-                            <h3 className="text-lg font-mono font-bold tracking-widest text-white/90">
+                            <p className="text-[10px] text-[#8B99AD] font-black uppercase tracking-widest mb-1">Account ID</p>
+                            <h3 className="text-lg font-mono font-bold tracking-widest text-[#223252]">
                                 {activationCode ? `${activationCode.substring(0, 4)}-****-****-${activationCode.slice(-4)}` : 'UNKNOWN-ID'}
                             </h3>
                         </div>
@@ -188,19 +188,19 @@ const SettingsViewV2: React.FC = () => {
                             size="sm"
                             variant="primary"
                             onClick={() => setIsActivationOpen(true)}
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm py-3 rounded-xl shadow-lg shadow-indigo-500/20 border-0 active:scale-95 transition-all"
+                            className="flex-1 bg-[#2F6FFF] hover:bg-[#235EEA] text-white font-black text-sm py-3 rounded-xl shadow-lg shadow-[#AFC7F5]/70 border-0 active:scale-95 transition-all"
                         >
                             追加额度
                         </Button>
-                        <button className="px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-400 rounded-xl transition-colors border border-white/5">
+                        <button className="px-4 py-3 bg-white hover:bg-[#F4F7FC] text-[#8A99AF] rounded-xl transition-colors border border-[#E3EAF5]">
                             <LogOut className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
             ) : (
-                /* TRIAL STATE: Premium Conversion Card */
-                <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden group">
-                    <div className="absolute -top-4 -right-4 w-28 h-28 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                /* TRIAL STATE: Soft conversion card */
+                <div className="bg-gradient-to-br from-[#2F6FFF] to-[#7A95E2] rounded-[32px] p-6 text-white shadow-xl shadow-[#B9CCEE] relative overflow-hidden group">
+                    <div className="absolute -top-4 -right-4 w-28 h-28 bg-white/22 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
 
                     <div className="flex justify-between items-start mb-6">
                         <div className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
@@ -208,19 +208,19 @@ const SettingsViewV2: React.FC = () => {
                         </div>
                         <div className="text-right">
                             <h3 className="font-black text-xl tracking-tight">年度专业版</h3>
-                            <p className="text-[11px] text-indigo-100 font-bold opacity-80">开启极致阅卷体验</p>
+                            <p className="text-[11px] text-[#DDE7FF] font-bold opacity-90">开启极致阅卷体验</p>
                         </div>
                     </div>
 
                     {/* Benefit Comparison List */}
-                    <div className="space-y-2.5 mb-8 bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                    <div className="space-y-2.5 mb-8 bg-white/14 backdrop-blur-md rounded-2xl p-4 border border-white/18">
                         {[
                             '云端永久存储评分细则',
                             '全平台同步批改历史记录',
                             '优先响应级 AI 专家模型',
                             '专属“已批阅”精美印章'
                         ].map((benefit, i) => (
-                            <div key={i} className="flex items-center gap-3 text-xs font-bold text-indigo-50">
+                            <div key={i} className="flex items-center gap-3 text-xs font-bold text-[#EEF3FF]">
                                 <div className="w-4 h-4 rounded-full bg-emerald-400/30 flex items-center justify-center border border-emerald-400/20">
                                     <CheckCircle2 className="w-2.5 h-2.5 text-emerald-300" strokeWidth={4} />
                                 </div>
@@ -242,7 +242,7 @@ const SettingsViewV2: React.FC = () => {
                     `}} />
                     <Button
                         onClick={() => setIsActivationOpen(true)}
-                        className="w-full bg-white text-indigo-900 hover:bg-indigo-50 active:scale-95 transition-all border-0 font-black text-base py-4 rounded-2xl shadow-xl shadow-indigo-900/20 animate-shadow-pulse"
+                        className="w-full bg-white text-[#3358B5] hover:bg-[#F2F6FF] active:scale-95 transition-all border-0 font-black text-base py-4 rounded-2xl shadow-xl shadow-[#2E4D99]/20 animate-shadow-pulse"
                     >
                         输入激活码加入
                     </Button>
@@ -266,11 +266,11 @@ const SettingsViewV2: React.FC = () => {
                                 setApiConfig(prev => ({ ...prev, provider: p, endpoint: defs.endpoint, modelName: defs.model }));
                             }}
                             className={`p-3 rounded-xl border text-sm font-bold flex items-center gap-2 transition-all ${apiConfig.provider === p
-                                ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
-                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                ? 'border-[#A8BCF2] bg-[#EEF3FF] text-[#3E59C9] ring-1 ring-[#A8BCF2]'
+                                : 'border-[#DFE7F2] bg-white text-slate-600 hover:border-slate-300'
                                 }`}
                         >
-                            <Server className={`w-4 h-4 ${apiConfig.provider === p ? 'text-blue-500' : 'text-slate-400'}`} />
+                            <Server className={`w-4 h-4 ${apiConfig.provider === p ? 'text-[#2F6FFF]' : 'text-slate-400'}`} />
                             {p === 'google' ? 'Google Gemini' : p === 'openai' ? 'OpenAI' : p === 'zhipu' ? '智谱 AI' : '阿里云百炼'}
                         </button>
                     ))}
@@ -280,7 +280,7 @@ const SettingsViewV2: React.FC = () => {
             {/* 2. API Key Input */}
             <section className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">API 配置</label>
-                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-sm">
+                <div className="bg-white rounded-xl border border-[#DFE7F2] p-4 space-y-3 shadow-sm">
                     {apiConfig.provider !== 'google' && (
                         <div>
                             <label className="text-xs text-slate-500 font-medium mb-1 block">Endpoint</label>
@@ -288,7 +288,7 @@ const SettingsViewV2: React.FC = () => {
                                 type="text"
                                 value={apiConfig.endpoint}
                                 onChange={e => setApiConfig({ ...apiConfig, endpoint: e.target.value })}
-                                className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none transition-colors font-mono"
+                                className="w-full text-xs p-2 rounded-lg border border-[#DFE7F2] bg-[#F8FBFF] focus:bg-white focus:border-[#A8BCF2] outline-none transition-colors font-mono"
                             />
                         </div>
                     )}
@@ -300,7 +300,7 @@ const SettingsViewV2: React.FC = () => {
                                 value={apiConfig.apiKey}
                                 onChange={e => setApiConfig({ ...apiConfig, apiKey: e.target.value })}
                                 placeholder="sk-..."
-                                className="w-full text-xs p-2 pl-8 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none transition-colors font-mono"
+                                className="w-full text-xs p-2 pl-8 rounded-lg border border-[#DFE7F2] bg-[#F8FBFF] focus:bg-white focus:border-[#A8BCF2] outline-none transition-colors font-mono"
                             />
                             <Key className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                             <button
@@ -341,33 +341,33 @@ const SettingsViewV2: React.FC = () => {
                 <div className="grid grid-cols-1 gap-2">
                     <button
                         onClick={() => setCurrentStrategy('flash')}
-                        className={`p-3 rounded-xl border text-left transition-all ${currentStrategy === 'flash' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                        className={`p-3 rounded-xl border text-left transition-all ${currentStrategy === 'flash' ? 'border-emerald-300 bg-emerald-50 ring-1 ring-emerald-300' : 'border-[#DFE7F2] bg-white hover:border-[#CFDAEA]'}`}
                     >
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-bold text-slate-700">快速模式 (Flash)</span>
-                            <Zap className="w-3.5 h-3.5 text-green-500" />
+                            <Zap className="w-3.5 h-3.5 text-emerald-500" />
                         </div>
                         <p className="text-xs text-slate-500">速度最快，适合简单题。消耗极低。</p>
                     </button>
 
                     <button
                         onClick={() => setCurrentStrategy('pro')}
-                        className={`p-3 rounded-xl border text-left transition-all ${currentStrategy === 'pro' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                        className={`p-3 rounded-xl border text-left transition-all ${currentStrategy === 'pro' ? 'border-[#A8BCF2] bg-[#EEF3FF] ring-1 ring-[#A8BCF2]' : 'border-[#DFE7F2] bg-white hover:border-[#CFDAEA]'}`}
                     >
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-bold text-slate-700">精准模式 (Pro)</span>
-                            <Brain className="w-3.5 h-3.5 text-blue-500" />
+                            <Brain className="w-3.5 h-3.5 text-[#2F6FFF]" />
                         </div>
                         <p className="text-xs text-slate-500">平衡速度与质量，适合大多数场景。</p>
                     </button>
 
                     <button
                         onClick={() => setCurrentStrategy('reasoning')}
-                        className={`p-3 rounded-xl border text-left transition-all ${currentStrategy === 'reasoning' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                        className={`p-3 rounded-xl border text-left transition-all ${currentStrategy === 'reasoning' ? 'border-[#CDBEEA] bg-[#F6F1FF] ring-1 ring-[#CDBEEA]' : 'border-[#DFE7F2] bg-white hover:border-[#CFDAEA]'}`}
                     >
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-bold text-slate-700">深度推理 (Thinking)</span>
-                            <Cpu className="w-3.5 h-3.5 text-violet-500" />
+                            <Cpu className="w-3.5 h-3.5 text-[#8D78C8]" />
                         </div>
                         <p className="text-xs text-slate-500">最强推理能力，适合复杂大题。消耗较高。</p>
                     </button>
@@ -377,9 +377,41 @@ const SettingsViewV2: React.FC = () => {
     );
 
     return (
-        <div className="absolute inset-0 bg-slate-50 flex flex-col">
+        <div className="absolute inset-0 flex flex-col bg-[#F3F7FA]">
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
+                <section className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">模式</label>
+                    <div className="rounded-xl border border-[#DFE7F2] bg-white p-1 shadow-sm">
+                        <div className="grid grid-cols-2 gap-1">
+                            <button
+                                type="button"
+                                onClick={() => setAppMode('enterprise')}
+                                className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                                    appMode === 'enterprise'
+                                        ? 'bg-[#2F6FFF] text-white shadow-sm'
+                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                                }`}
+                            >
+                                <Building2 className="h-3.5 w-3.5" />
+                                企业版
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setAppMode('personal')}
+                                className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                                    appMode === 'personal'
+                                        ? 'bg-[#2F6FFF] text-white shadow-sm'
+                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                                }`}
+                            >
+                                <UserCircle className="h-3.5 w-3.5" />
+                                个人版
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
                 {appMode === 'enterprise' ? renderEnterpriseMode() : renderPersonalMode()}
 
                 <div className="h-px bg-slate-200 my-4" />
@@ -387,10 +419,10 @@ const SettingsViewV2: React.FC = () => {
                 {/* Common Settings */}
                 <section className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">通用</label>
-                    <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-xl border border-[#DFE7F2] divide-y divide-slate-100 shadow-sm overflow-hidden">
                         <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${isDark ? 'bg-indigo-100 text-indigo-600' : 'bg-orange-100 text-orange-600'}`}>
+                                <div className={`p-2 rounded-lg ${isDark ? 'bg-[#EEF3FF] text-[#2F6FFF]' : 'bg-orange-100 text-orange-600'}`}>
                                     {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                                 </div>
                                 <span className="text-sm font-bold text-slate-700">深色模式</span>

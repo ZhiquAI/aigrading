@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Educacy 风格高还原设计稿</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-app: #edf4f4;
+      --bg-shell: #ffffff;
+      --line: #eceef1;
+      --line-strong: #e2e6ea;
+      --text-main: #111118;
+      --text-muted: #8d97a6;
+      --text-soft: #a9b1bc;
+      --blue: #3e59c9;
+      --blue-strong: #063bfe;
+      --mint-card: #eaf7ee;
+      --sky-card: #eef6fc;
+      --violet-card: #f0ebff;
+      --peach-card: #fbeee8;
+      --mint: #67907c;
+      --danger: #ae4f3d;
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 9px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      color: var(--text-main);
+      background: linear-gradient(180deg, #eaf2f2 0%, var(--bg-app) 100%);
+      min-height: 100vh;
+      padding: 36px;
+      display: grid;
+      place-items: start center;
+    }
+
+    .shell {
+      width: min(1280px, 100%);
+      background: var(--bg-shell);
+      border-radius: var(--radius-xl);
+      border: 1px solid #e9ecef;
+      box-shadow: 0 18px 44px rgba(18, 28, 45, 0.08);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 228px 1fr;
+      min-height: 860px;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      padding: 18px 16px;
+      background: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .logo {
+      width: 22px;
+      height: 22px;
+      position: relative;
+    }
+
+    .logo::before,
+    .logo::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 4px;
+      transform-origin: center;
+    }
+
+    .logo::before {
+      background: linear-gradient(145deg, #4e77ff, #2f55da);
+      transform: skewY(-20deg);
+      box-shadow: 0 3px 8px rgba(47, 85, 218, 0.35);
+    }
+
+    .logo::after {
+      inset: 6px 3px 3px 3px;
+      background: #8db1ff;
+      transform: skewY(-20deg);
+      opacity: .9;
+    }
+
+    .brand span {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: .01em;
+    }
+
+    .nav {
+      margin: 16px 0 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-item {
+      height: 42px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: #4f5968;
+      font-weight: 500;
+      cursor: default;
+    }
+
+    .nav-item svg { width: 15px; height: 15px; opacity: .72; }
+
+    .nav-item.active {
+      background: #f5f6f8;
+      color: #1a2130;
+      font-weight: 600;
+    }
+
+    .main {
+      display: grid;
+      grid-template-rows: 74px 1fr;
+      background: #fff;
+    }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .create {
+      border: none;
+      height: 34px;
+      padding: 0 18px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #4692f5, #3f7eed);
+      box-shadow: 0 8px 14px rgba(42, 110, 227, 0.25);
+    }
+
+    .icon-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: #92a1b8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 35%, #ffe5cb, #d29b70 58%, #8c6247 100%);
+      border: 1px solid #e8d2be;
+    }
+
+    .content {
+      padding: 22px 22px 24px;
+      display: grid;
+      gap: 18px;
+      background: #fff;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      border-radius: var(--radius-md);
+      padding: 14px 14px 13px;
+      border: 1px solid #eef1f4;
+      display: grid;
+      gap: 5px;
+      min-height: 102px;
+    }
+
+    .stat:nth-child(1) { background: var(--mint-card); }
+    .stat:nth-child(2) { background: var(--sky-card); }
+    .stat:nth-child(3) { background: var(--violet-card); }
+    .stat:nth-child(4) { background: var(--peach-card); }
+
+    .badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat:nth-child(1) .badge { background: #55bd81; }
+    .stat:nth-child(2) .badge { background: #4194f6; }
+    .stat:nth-child(3) .badge { background: #7b65d8; }
+    .stat:nth-child(4) .badge { background: #e08057; }
+
+    .stat p {
+      margin: 0;
+      font-size: 12px;
+      color: #6a7688;
+      font-weight: 500;
+    }
+
+    .stat strong {
+      font-size: 31px;
+      line-height: 1;
+      letter-spacing: -.03em;
+      font-weight: 700;
+    }
+
+    .stat small {
+      font-size: 11px;
+      color: #7f8b9d;
+      font-weight: 500;
+    }
+
+    .overview {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 14px;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: 13px;
+      color: #616f84;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .rev {
+      margin-top: 3px;
+      font-size: 33px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -.03em;
+    }
+
+    .up {
+      color: #37a26e;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 14px;
+      color: #9aa6b8;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tabs .active { color: var(--blue); }
+
+    .chart {
+      margin-top: 12px;
+      border-top: 1px dashed #edf0f4;
+      padding-top: 14px;
+    }
+
+    .chart svg {
+      width: 100%;
+      height: 222px;
+      display: block;
+    }
+
+    .new-users {
+      border-left: 1px solid var(--line);
+      padding-left: 14px;
+      display: grid;
+      align-content: start;
+    }
+
+    .new-users .big {
+      font-size: 44px;
+      letter-spacing: -.04em;
+      font-weight: 700;
+      margin: 8px 0 0;
+      line-height: 1;
+    }
+
+    .new-users h3 {
+      font-size: 24px;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    .join {
+      margin-top: 20px;
+      color: #5b697f;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .avatars {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .avatars span {
+      width: 33px;
+      height: 33px;
+      border-radius: 999px;
+      border: 2px solid #fff;
+      margin-left: -8px;
+      box-shadow: 0 2px 6px rgba(10, 15, 28, 0.12);
+    }
+
+    .avatars span:first-child { margin-left: 0; }
+
+    .avatars span:nth-child(1) { background: linear-gradient(145deg, #fbc28a, #9f6f4f); }
+    .avatars span:nth-child(2) { background: linear-gradient(145deg, #8ac2fb, #4a79bd); }
+    .avatars span:nth-child(3) { background: linear-gradient(145deg, #f8b3d5, #9a567a); }
+    .avatars span:nth-child(4) { background: linear-gradient(145deg, #c7ef8c, #6b9240); }
+    .avatars span:nth-child(5) { background: linear-gradient(145deg, #d2c1ff, #6d5ca0); }
+    .avatars span:nth-child(6) { background: linear-gradient(145deg, #f4a88f, #a35f46); }
+    .avatars span:nth-child(7) { background: linear-gradient(145deg, #b8e8e0, #5d8f87); }
+    .avatars .more {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      background: #4b82f1;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .table-head {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .table-head h4 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      color: #7d8ba0;
+      font-size: 12px;
+      background: #fff;
+    }
+
+    .search-box {
+      width: 198px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 0 12px;
+      font-size: 12px;
+      color: #8c98ac;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead th {
+      text-align: left;
+      font-weight: 600;
+      color: #78859a;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    tbody td {
+      padding: 14px;
+      border-bottom: 1px solid #f0f2f5;
+      color: #4b5669;
+      font-weight: 500;
+      vertical-align: middle;
+    }
+
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .mini-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #e5c2ff, #8d5ac5);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      height: 24px;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .status-pill.active {
+      color: #2f8860;
+      border-color: #c8ead8;
+      background: #edf9f2;
+    }
+
+    .status-pill.partial {
+      color: #647389;
+      border-color: #d8e0ea;
+      background: #f3f6f9;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 10px;
+      color: #8c99ad;
+    }
+
+    @media (max-width: 1180px) {
+      body { padding: 18px; }
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .overview { grid-template-columns: 1fr; }
+      .new-users { border-left: none; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 14px; padding-left: 0; }
+      .stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    @media (max-width: 720px) {
+      .stats { grid-template-columns: 1fr; }
+      .topbar { padding: 0 14px; }
+      .content { padding: 14px; }
+      .table-head { height: auto; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px; }
+      .tools { justify-content: space-between; }
+      .search-box { width: 100%; }
+      table { min-width: 720px; }
+      .table-wrap { overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" role="application" aria-label="Educacy 风格仪表盘设计稿">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <span>Educacy</span>
+      </div>
+
+      <nav class="nav" aria-label="主导航">
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="6" height="6" rx="1" stroke="currentColor"/><rect x="14" y="4" width="6" height="6" rx="1" stroke="currentColor"/><rect x="4" y="14" width="6" height="6" rx="1" stroke="currentColor"/><rect x="14" y="14" width="6" height="6" rx="1" stroke="currentColor"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor"/><path d="M5 20c0-3.1 3-5 7-5s7 1.9 7 5" stroke="currentColor"/></svg>
+          Users Management
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor"/><path d="M8 9h8M8 13h6" stroke="currentColor"/></svg>
+          Test
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="6" width="16" height="14" rx="2" stroke="currentColor"/><path d="M4 10h16" stroke="currentColor"/></svg>
+          Events
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor"/><path d="M9 9h6M9 13h6" stroke="currentColor"/></svg>
+          Invoices
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor"/><path d="M9.5 9.5a3 3 0 0 1 5 2c0 2-2.5 2.2-2.5 3.8" stroke="currentColor"/><circle cx="12" cy="17.2" r=".8" fill="currentColor"/></svg>
+          Support
+        </div>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1>Dashboard</h1>
+        <div class="actions">
+          <button class="create">+ Create</button>
+          <span class="icon-btn">◦</span>
+          <span class="icon-btn">⟳</span>
+          <span class="avatar"></span>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="stats" aria-label="关键指标卡片">
+          <article class="stat"><span class="badge">S</span><p>Total Students</p><strong>650</strong><small>↑ 10% this week</small></article>
+          <article class="stat"><span class="badge">N</span><p>New Students</p><strong>220</strong><small>↑ 14% this week</small></article>
+          <article class="stat"><span class="badge">A</span><p>Active Users</p><strong>500</strong><small>↑ 8% this week</small></article>
+          <article class="stat"><span class="badge">T</span><p>Total Test</p><strong>28</strong><small>↑ 12% this week</small></article>
+        </section>
+
+        <section class="overview">
+          <article>
+            <div class="card-head">
+              <div>
+                <p class="title">Revenue</p>
+                <div class="rev">$110.64</div>
+                <div class="up">+3.4% from yesterday</div>
+              </div>
+              <div class="tabs"><span class="active">Daily</span><span>Weekly</span><span>Monthly</span></div>
+            </div>
+
+            <div class="chart">
+              <svg viewBox="0 0 640 230" preserveAspectRatio="none" aria-label="Revenue chart">
+                <defs>
+                  <linearGradient id="lineBlue" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#3e59c9"/>
+                    <stop offset="100%" stop-color="#3f8cf2"/>
+                  </linearGradient>
+                </defs>
+
+                <g stroke="#eef1f5" stroke-width="1">
+                  <line x1="35" y1="190" x2="620" y2="190"/>
+                  <line x1="35" y1="145" x2="620" y2="145"/>
+                  <line x1="35" y1="100" x2="620" y2="100"/>
+                  <line x1="35" y1="55" x2="620" y2="55"/>
+                </g>
+
+                <polyline fill="none" stroke="url(#lineBlue)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"
+                  points="60,175 100,115 140,112 180,99 220,115 260,82 300,130 340,86 380,87 420,66 460,72 500,145 540,98 580,56" />
+
+                <line x1="420" y1="42" x2="420" y2="190" stroke="#b9c1d0" stroke-dasharray="3 5" />
+                <circle cx="420" cy="66" r="6" fill="#ffffff" stroke="#4ad08e" stroke-width="3" />
+
+                <g fill="#9ca8ba" font-size="11" font-weight="600">
+                  <text x="52" y="212">Mon</text>
+                  <text x="134" y="212">Tue</text>
+                  <text x="216" y="212">Wed</text>
+                  <text x="298" y="212">Thu</text>
+                  <text x="380" y="212" fill="#22314d">Fri</text>
+                  <text x="462" y="212">Sat</text>
+                  <text x="544" y="212">Sun</text>
+                </g>
+              </svg>
+            </div>
+          </article>
+
+          <article class="new-users">
+            <div class="card-head" style="margin-bottom:0;">
+              <p class="title">New Users Today</p>
+              <div class="tabs"><span class="active">Daily</span><span>Weekly</span><span>Monthly</span></div>
+            </div>
+            <h3 class="big">150</h3>
+            <div class="join">Join Today</div>
+            <div class="avatars">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="more">+24</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="table-wrap" aria-label="用户列表">
+          <header class="table-head">
+            <h4>User List</h4>
+            <div class="tools">
+              <span class="tool">⇩</span>
+              <span class="tool">⎚</span>
+              <div class="search-box">⌕ <span>Search user here...</span></div>
+            </div>
+          </header>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34px;"></th>
+                <th>Name</th>
+                <th>Country</th>
+                <th>ID</th>
+                <th>Age</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td><div class="name-cell"><span class="mini-avatar"></span>Davis Curtis</div></td>
+                <td>🇺🇸 United States</td>
+                <td>1234</td>
+                <td>15</td>
+                <td><span class="status-pill active">Active</span></td>
+                <td><span class="row-actions">✓ ✎ ✉</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td><div class="name-cell"><span class="mini-avatar" style="background:linear-gradient(145deg,#ffd6b8,#b46f3d)"></span>Alena Sintya</div></td>
+                <td>🇩🇪 Italy</td>
+                <td>1234</td>
+                <td>17</td>
+                <td><span class="status-pill partial">Partial</span></td>
+                <td><span class="row-actions">✎</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td><div class="name-cell"><span class="mini-avatar" style="background:linear-gradient(145deg,#bfe8ff,#4f8cb7)"></span>Rasel Ahmed</div></td>
+                <td>🇬🇧 UK</td>
+                <td>1299</td>
+                <td>16</td>
+                <td><span class="status-pill active">Active</span></td>
+                <td><span class="row-actions">✓ ✎</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

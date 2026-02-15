@@ -1,5 +1,27 @@
 @import "./design-tokens.css";
 @import "tailwindcss";
+@plugin "./hero.ts";
+@source "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+@custom-variant dark (&:is(.dark *));
+
+/* Tailwind blue scale override: deeper tech blue */
+:root {
+    --color-blue-50: #e6f1fe;
+    --color-blue-100: #cce3fd;
+    --color-blue-200: #99c7fb;
+    --color-blue-300: #66abf8;
+    --color-blue-400: #338ff4;
+    --color-blue-500: #006fee;
+    --color-blue-600: #005bc4;
+    --color-blue-700: #004799;
+    --color-blue-800: #003770;
+    --color-blue-900: #00264d;
+    --color-blue-950: #001733;
+}
+
+/* ========================================
+ * Educacy Replica — Global Styles
+ * ======================================== */
 
 /* Global Reset & Base */
 body {
@@ -9,10 +31,9 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
-    /* App container handles scroll */
 }
 
-/* Custom Scrollbar - Slim & Sleek */
+/* Custom Scrollbar — Soft Light */
 ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -23,12 +44,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color-border);
+    background: rgba(138, 161, 197, 0.45);
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-muted);
+    background: rgba(117, 143, 184, 0.65);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -40,20 +61,59 @@ body {
     scrollbar-width: none;
 }
 
-/* Utility: Glassmorphism */
+/* Utility: Glassmorphism — Dark variant */
 .glass {
     background: var(--color-bg-float);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 111, 238, 0.1);
+}
+
+.glass-card {
+    background: var(--color-bg-card);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    /* White border for light */
+    border: 1px solid rgba(0, 111, 238, 0.1);
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.08), 0 0 18px rgba(120, 40, 200, 0.08);
 }
 
-.dark .glass {
-    border: 1px solid rgba(255, 255, 255, 0.05);
+.mesh-bg-colorful {
+    background-color: #ffffff;
+    background-image:
+        radial-gradient(at 0% 0%, hsla(210, 100%, 96%, 1) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(271, 100%, 95%, 1) 0, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(195, 100%, 95%, 1) 0, transparent 50%),
+        radial-gradient(at 0% 100%, hsla(300, 100%, 96%, 1) 0, transparent 50%);
 }
 
-/* Animations */
+/* Utility: Neon border glow */
+.neon-border {
+    border: 1px solid rgba(0, 111, 238, 0.2);
+    box-shadow: 0 0 10px rgba(0, 111, 238, 0.1), inset 0 0 10px rgba(120, 40, 200, 0.04);
+}
+
+.neon-border:hover {
+    border-color: rgba(0, 111, 238, 0.34);
+    box-shadow: 0 0 16px rgba(0, 111, 238, 0.18), inset 0 0 12px rgba(120, 40, 200, 0.08);
+}
+
+/* Utility: Gradient Text */
+.gradient-text {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.gradient-text-energetic {
+    background: var(--gradient-energetic);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ========== Animations ========== */
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -100,6 +160,71 @@ body {
     }
 }
 
+/* ⚡ Bold Energetic Animations */
+
+@keyframes neonPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 8px rgba(0, 111, 238, 0.24), 0 0 24px rgba(120, 40, 200, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 16px rgba(0, 111, 238, 0.4), 0 0 40px rgba(120, 40, 200, 0.18);
+    }
+}
+
+@keyframes glowBreathe {
+
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes energeticSlideUp {
+    0% {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes navIndicatorGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(0, 111, 238, 0.45), 0 0 12px rgba(120, 40, 200, 0.24);
+    }
+
+    50% {
+        box-shadow: 0 0 10px rgba(0, 111, 238, 0.62), 0 0 20px rgba(120, 40, 200, 0.34);
+    }
+}
+
+/* Animation Classes */
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
 }
@@ -112,6 +237,27 @@ body {
     animation: slideInRight 0.3s ease-out forwards;
 }
 
+.animate-energetic-slide-up {
+    animation: energeticSlideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-neon-pulse {
+    animation: neonPulse 2s ease-in-out infinite;
+}
+
+.animate-glow-breathe {
+    animation: glowBreathe 3s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+.animate-nav-glow {
+    animation: navIndicatorGlow 2s ease-in-out infinite;
+}
+
 .delay-100 {
     animation-delay: 100ms;
 }
@@ -120,13 +266,13 @@ body {
     animation-delay: 200ms;
 }
 
-/* Components Override (if needed) */
+/* Components Override */
 input:focus,
 textarea:focus,
 select:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-subtle);
+    box-shadow: 0 0 0 3px var(--color-primary-subtle), 0 0 12px rgba(0, 111, 238, 0.16);
 }
 
 /* Accessibility: Respect user preference for reduced motion */
@@ -144,6 +290,11 @@ select:focus {
     .animate-fade-in,
     .animate-slide-up,
     .animate-slide-in-right,
+    .animate-energetic-slide-up,
+    .animate-neon-pulse,
+    .animate-glow-breathe,
+    .animate-gradient-shift,
+    .animate-nav-glow,
     .animate-spin,
     .animate-pulse {
         animation: none !important;

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏交互稿 - 阅卷模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Grading Studio</h1><p>阅卷模块交互审查</p></div></div>
+        <div class="top-actions"><button class="cta" data-target-scene="scanning">开始</button><span class="icon-btn">A</span></div>
+      </header>
+
+      <div class="state-rail">
+        <button class="state-chip active" data-switch="idle">待开始</button>
+        <button class="state-chip" data-switch="scanning">扫描中</button>
+        <button class="state-chip" data-switch="thinking">AI思考</button>
+        <button class="state-chip" data-switch="result">结果确认</button>
+        <button class="state-chip" data-switch="review">人工复核</button>
+      </div>
+
+      <main class="content">
+        <section class="scene" data-scene="idle">
+          <div class="grid-2">
+            <article class="metric"><p>今日完成</p><strong>187</strong><small>+21%</small></article>
+            <article class="metric"><p>平均耗时</p><strong>11s</strong><small>每份</small></article>
+            <article class="metric"><p>需复核</p><strong>23</strong><small>12.3%</small></article>
+            <article class="metric"><p>当前额度</p><strong>1246</strong><small>可用</small></article>
+          </div>
+          <section class="surface"><header class="surface-head"><h3>准备开始</h3><span class="meta">需先配置细则</span></header><div class="surface-body"><div class="meta">当前题号 Q15 已配置评分细则，支持 Auto/Assist 两种模式。</div><div class="btn-row"><button class="btn ghost" data-toast-message="模拟打开细则配置">检查细则</button><button class="btn solid" data-target-scene="scanning">开始批改</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="scanning">
+          <section class="surface"><header class="surface-head"><h3>扫描答卷</h3><span class="status warn">OCR 处理中</span></header><div class="surface-body"><div class="meta">正在检测学生答案区域，提取文本与结构信息...</div><div class="progress"><span style="width:45%"></span></div><div class="btn-row"><button class="btn ghost" data-target-scene="idle">取消</button><button class="btn solid" data-target-scene="thinking">下一步</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="thinking">
+          <section class="surface"><header class="surface-head"><h3>AI 评分中</h3><span class="status warn">推理阶段</span></header><div class="surface-body"><div class="meta">匹配得分点 → 估算分值 → 生成评分理由与复核建议</div><div class="progress"><span style="width:76%"></span></div><div class="card"><div class="meta">中间输出：命中得分点 4/6，建议初始分 16.5/18</div></div><div class="btn-row"><button class="btn ghost" data-target-scene="idle">终止</button><button class="btn solid" data-target-scene="result">查看结果</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="result">
+          <section class="surface"><header class="surface-head"><h3>结果确认</h3><span class="status warn">自动提交 06s</span></header><div class="surface-body"><h4 style="margin:0;font-size:36px;letter-spacing:-.04em;color:#1f3fa9;">16.5 <span style="font-size:14px;color:#7f8da4;">/ 18</span></h4><div class="meta">观点完整，证据链较充分；第二条史料出处缺失，扣 1.5 分。</div><div class="btn-row"><button class="btn ghost" data-target-scene="review">人工调整</button><button class="btn solid" data-toast-message="已提交并进入下一份">确认提交</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="review">
+          <section class="surface"><header class="surface-head"><h3>人工复核</h3><span class="status partial">assist 模式</span></header><div class="surface-body card-list"><article class="card"><div class="card-top"><span class="badge ok">命中</span><span class="meta">+4</span></div><h4>观点明确，结论回扣主题</h4></article><article class="card"><div class="card-top"><span class="badge warn">未命中</span><span class="meta">0</span></div><h4>社会结构变化对比不足</h4></article><div class="btn-row"><button class="btn ghost" data-target-scene="result">返回结果</button><button class="btn solid" data-toast-message="复核后提交成功">确认修改并提交</button></div></div></section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a href="./rubric-interaction.html">细则</a>
+        <a class="active" href="./grading-interaction.html">阅卷</a>
+        <a href="./records-interaction.html">记录</a>
+        <a href="./settings-interaction.html">设置</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast" data-toast></div>
+  <script src="./shared.js"></script>
+</body>
+</html>

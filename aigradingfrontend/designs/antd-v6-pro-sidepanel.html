@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ant Design Pro · 侧边栏设计稿</title>
+  <style>
+    :root {
+      --pro-primary: #2F6FFF;
+      --pro-primary-2: #5F92FF;
+      --pro-success: #16A34A;
+      --pro-warning: #F59E0B;
+      --pro-error: #EF4444;
+      --pro-text: #1F2937;
+      --pro-text-2: #6B7280;
+      --pro-border: #E5E7EB;
+      --pro-border-2: #EEF2F6;
+      --pro-bg: #F4F7FB;
+      --pro-card: #FFFFFF;
+      --pro-elevated: #F9FAFB;
+      --pro-radius: 10px;
+      --pro-radius-lg: 14px;
+      --pro-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+      --pro-shadow-lg: 0 18px 38px rgba(15, 23, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: var(--pro-bg);
+      color: var(--pro-text);
+    }
+
+    .frame {
+      width: 420px;
+      height: 100vh;
+      margin: 0 auto;
+      background: var(--pro-bg);
+      border-left: 1px solid var(--pro-border-2);
+      border-right: 1px solid var(--pro-border-2);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--pro-card);
+      border-bottom: 1px solid var(--pro-border-2);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--pro-primary), var(--pro-primary-2));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
+    }
+    .brand-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--pro-text-2);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      background: #EEF3FF;
+      color: var(--pro-primary);
+    }
+
+    .content {
+      padding: 14px 14px 80px;
+      overflow: auto;
+      flex: 1;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      text-align: center;
+      padding: 8px 0;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 12px;
+      color: var(--pro-text-2);
+      background: #F3F4F6;
+    }
+    .tab.active {
+      background: #EAF0FF;
+      color: var(--pro-primary);
+      box-shadow: inset 0 0 0 1px #CFE0FF;
+    }
+
+    .section {
+      background: var(--pro-card);
+      border-radius: var(--pro-radius-lg);
+      box-shadow: var(--pro-shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .card {
+      background: var(--pro-card);
+      border: 1px solid var(--pro-border-2);
+      border-radius: var(--pro-radius);
+      padding: 10px;
+    }
+    .card-title {
+      font-weight: 800;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .muted { color: var(--pro-text-2); font-size: 11px; }
+
+    .btn {
+      border: 1px solid var(--pro-border);
+      background: #fff;
+      color: var(--pro-text);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-primary {
+      background: var(--pro-primary);
+      border-color: var(--pro-primary);
+      color: #fff;
+    }
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--pro-primary);
+      color: var(--pro-primary);
+    }
+
+    .input, .select, .textarea {
+      width: 100%;
+      border: 1px solid var(--pro-border);
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-weight: 700;
+      background: #fff;
+      font-size: 12px;
+    }
+    .form-item { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 10px; font-weight: 800; color: var(--pro-text-2); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-weight: 700;
+      font-size: 11px;
+      background: #EEF3FF;
+      color: var(--pro-primary);
+    }
+    .tag-success { background: #ECFDF3; color: var(--pro-success); }
+    .tag-warning { background: #FFFBEB; color: #B45309; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .step {
+      border: 1px solid var(--pro-border-2);
+      border-radius: 10px;
+      padding: 8px;
+      background: #FAFBFF;
+      font-size: 11px;
+    }
+    .step .index { font-weight: 800; color: var(--pro-primary); }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .list-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--pro-border-2);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 12px;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      width: 420px;
+      background: var(--pro-card);
+      border-top: 1px solid var(--pro-border-2);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: var(--pro-shadow-lg);
+    }
+
+    @media (max-width: 420px) {
+      .frame, .footer { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge"></div>
+        <div>
+          <div class="brand-title">AI 智能批改助手</div>
+          <div class="brand-sub">Ant Design Pro · 侧边栏</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="chip">企业版</span>
+        <button class="btn">历史</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active">批改</div>
+        <div class="tab">细则</div>
+        <div class="tab">历史</div>
+        <div class="tab">设置</div>
+      </div>
+
+      <section class="section">
+        <div class="section-title">GradingView · 批改工作台</div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">今日批改</div>
+            <div style="font-size:18px; font-weight:800;">128</div>
+            <div class="muted">+12%</div>
+          </div>
+          <div class="card">
+            <div class="card-title">平均分</div>
+            <div style="font-size:18px; font-weight:800;">72.4</div>
+            <div class="muted">满分 100</div>
+          </div>
+        </div>
+        <div class="list" style="margin-top:10px;">
+          <div class="list-row">
+            <span>张同学</span>
+            <span class="tag">待批改</span>
+          </div>
+          <div class="list-row">
+            <span>李同学</span>
+            <span class="tag tag-success">已完成</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">RubricPanel · 评分细则</div>
+        <div class="steps">
+          <div class="step"><div class="index">1</div>上传图片</div>
+          <div class="step"><div class="index">2</div>基本信息</div>
+          <div class="step"><div class="index">3</div>规则</div>
+        </div>
+        <div class="grid grid-2" style="margin-top:10px;">
+          <div class="form-item">
+            <div class="form-label">考试名称</div>
+            <input class="input" placeholder="输入考试名称" />
+          </div>
+          <div class="form-item">
+            <div class="form-label">题号</div>
+            <input class="input" placeholder="3" />
+          </div>
+        </div>
+        <div class="form-item" style="margin-top:8px;">
+          <div class="form-label">特殊规则</div>
+          <textarea class="textarea" rows="3" placeholder="每行一条规则"></textarea>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">HistoryView · 历史记录</div>
+        <div class="form-item">
+          <div class="form-label">筛选</div>
+          <input class="input" placeholder="考试名称 / 题号" />
+        </div>
+        <div class="list" style="margin-top:10px;">
+          <div class="list-row">
+            <span>期中测试 · 第3题</span>
+            <span class="tag tag-success">已同步</span>
+          </div>
+          <div class="list-row">
+            <span>单元测验 · 第2题</span>
+            <span class="tag tag-warning">待同步</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">SettingsView · 设置中心</div>
+        <div class="grid grid-2">
+          <div class="form-item">
+            <div class="form-label">模型</div>
+            <select class="select">
+              <option>Gemini</option>
+              <option>OpenAI</option>
+              <option>智谱 AI</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <div class="form-label">主题</div>
+            <select class="select">
+              <option>浅色</option>
+              <option>深色</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item" style="margin-top:8px;">
+          <div class="form-label">API Key</div>
+          <input class="input" placeholder="sk-..." />
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">
+      <button class="btn">返回</button>
+      <button class="btn-primary">保存</button>
+    </div>
+  </div>
+</body>
+</html>

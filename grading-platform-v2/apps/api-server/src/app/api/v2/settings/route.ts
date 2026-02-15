@@ -1,22 +1,28 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
 import {
-  apiErrorSchema,
   settingUpsertRequestSchema
 } from "@ai-grading/api-contracts";
+import { normalizeNonEmpty } from "@ai-grading/domain-core";
 import { prisma } from "@/lib/prisma";
 import {
   isScopeResolutionError,
   resolveRequestScope
-} from "@/lib/request-scope";
+} from "@/shared/scope-resolver/request-scope";
+import {
+  executeIdempotent,
+  isIdempotencyConflictError
+} from "@/shared/idempotency/service";
 import {
   deleteSetting,
   getSettings,
   upsertSetting
 } from "@/modules/settings/settings-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
@@ -38,169 +44,133 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
-    const errorPayload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to get settings.",
-      requestId
-    });
-
-    return NextResponse.json(
-      {
-        ok: false,
-        error: errorPayload
-      },
-      {
-        status: 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to get settings.",
+      500
     );
   }
 }
 
 export async function PUT(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
     const body = settingUpsertRequestSchema.parse(await request.json());
+    const idempotencyKey = normalizeNonEmpty(request.headers.get("idempotency-key"));
 
-    const data = await upsertSetting(prisma, {
+    const result = await executeIdempotent(prisma, {
       scopeKey: scope.scopeKey,
-      key: body.key,
-      value: body.value
+      endpoint: "v2.settings.put",
+      idempotencyKey,
+      requestPayload: body
+    }, async () => {
+      const data = await upsertSetting(prisma, {
+        scopeKey: scope.scopeKey,
+        key: body.key,
+        value: body.value
+      });
+
+      return {
+        statusCode: 200,
+        payload: data
+      };
     });
 
     return NextResponse.json(
       {
         ok: true,
-        data
+        data: result.payload
       },
       {
-        status: 200,
-        headers: { "x-request-id": requestId }
+        status: result.statusCode,
+        headers: {
+          "x-request-id": requestId,
+          ...(result.replayed ? { "x-idempotency-replayed": "true" } : {})
+        }
       }
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
+    }
 
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+    if (isIdempotencyConflictError(error)) {
+      return jsonApiError(requestId, "IDEMPOTENCY_CONFLICT", error.message, 409);
     }
 
     const isBadRequest = error instanceof ZodError || error instanceof SyntaxError;
-    const errorPayload = apiErrorSchema.parse(
-      isBadRequest
-        ? {
-            code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Invalid request body.",
-            requestId
-          }
-        : {
-            code: "INTERNAL_SERVER_ERROR",
-            message: error instanceof Error ? error.message : "Failed to save setting.",
-            requestId
-          }
-    );
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: isBadRequest ? 400 : 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      isBadRequest ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+      error instanceof Error
+        ? error.message
+        : isBadRequest
+          ? "Invalid request body."
+          : "Failed to save setting.",
+      isBadRequest ? 400 : 500
     );
   }
 }
 
 export async function DELETE(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
     const key = new URL(request.url).searchParams.get("key")?.trim();
+    const idempotencyKey = normalizeNonEmpty(request.headers.get("idempotency-key"));
 
     if (!key) {
-      const errorPayload = apiErrorSchema.parse({
-        code: "BAD_REQUEST",
-        message: "key is required.",
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: 400,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, "BAD_REQUEST", "key is required.", 400);
     }
 
-    await deleteSetting(prisma, scope.scopeKey, key);
+    const result = await executeIdempotent(prisma, {
+      scopeKey: scope.scopeKey,
+      endpoint: "v2.settings.delete",
+      idempotencyKey,
+      requestPayload: { key }
+    }, async () => {
+      await deleteSetting(prisma, scope.scopeKey, key);
+
+      return {
+        statusCode: 200,
+        payload: null as null
+      };
+    });
 
     return NextResponse.json(
       {
         ok: true,
-        data: null
+        data: result.payload
       },
       {
-        status: 200,
-        headers: { "x-request-id": requestId }
+        status: result.statusCode,
+        headers: {
+          "x-request-id": requestId,
+          ...(result.replayed ? { "x-idempotency-replayed": "true" } : {})
+        }
       }
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
-    const errorPayload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to delete setting.",
-      requestId
-    });
+    if (isIdempotencyConflictError(error)) {
+      return jsonApiError(requestId, "IDEMPOTENCY_CONFLICT", error.message, 409);
+    }
 
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to delete setting.",
+      500
     );
   }
 }

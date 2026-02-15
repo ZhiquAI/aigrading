@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/useAppStore';
 import { toast } from '@/components/Toast';
 import { verifyActivationCode } from '@/services/proxyService';
+import { BYPASS_ACTIVATION_GATE } from '@/config/feature-flags';
 import {
     ShieldCheck,
     Zap,
@@ -43,6 +44,11 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
             setIsTrialExhausted(false);
         }
     }, [activationCode, quota.isPaid, quota.remaining]);
+
+    // 开发期可直接旁路激活机制（默认开启，VITE_BYPASS_ACTIVATION_GATE=0 可恢复）
+    if (BYPASS_ACTIVATION_GATE) {
+        return <>{children}</>;
+    }
 
     // 核心逻辑：是否已激活
     // 我们认为有 activationCode 且余额 > 0 或被标记为 isPaid 则是激活状态
@@ -115,17 +121,17 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-white text-slate-800 font-sans">
+        <div className="fixed inset-0 z-[9999] bg-[#EDF2F3] text-slate-800 font-sans">
             {/* Background Atmosphere */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-indigo-500/5 blur-[120px] pointer-events-none" />
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-[#BFD4FF]/30 blur-[120px] pointer-events-none" />
 
             <div className="flex h-full w-full flex-col">
                 {/* Header */}
-                <header className="relative bg-white/90 backdrop-blur-xl border-b border-slate-100 px-3 h-12 flex items-center justify-between">
-                    <div className="absolute inset-0 pointer-events-none bg-indigo-50/60" />
-                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500" />
+                <header className="relative bg-white/90 backdrop-blur-xl border-b border-[#DFE7F2] px-3 h-12 flex items-center justify-between">
+                    <div className="absolute inset-0 pointer-events-none bg-[#F5F9FF]" />
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#2F6FFF]" />
                     <div className="relative z-10 flex items-center gap-2 rounded-lg px-1.5 py-1 -ml-1">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
+                        <div className="w-7 h-7 rounded-lg bg-[#2F6FFF] flex items-center justify-center shadow-sm">
                             <ShieldCheck size={14} className="text-white" />
                         </div>
                         <div className="flex flex-col leading-tight">
@@ -133,13 +139,13 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                             <span className="text-[9px] uppercase tracking-widest text-slate-400">Activation</span>
                         </div>
                     </div>
-                    <div className="relative z-10 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="relative z-10 text-[9px] font-black uppercase tracking-widest text-[#8E9CB0]">
                         {quota.isPaid ? 'Member' : 'Trial'}
                     </div>
                 </header>
 
                 {/* Content */}
-                <main className="flex-1 overflow-y-auto bg-slate-50/30 p-4">
+                <main className="flex-1 overflow-y-auto bg-transparent p-4">
                     <div className="space-y-4">
                         <div>
                             <h1 className="text-xl font-black text-slate-900 mb-2 tracking-tight">
@@ -154,14 +160,14 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
 
                         {isTrialExhausted ? (
                             <div className="space-y-3">
-                                <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl space-y-3">
+                                <div className="bg-[#FFF7EE] border border-[#F2DBC0] p-4 rounded-2xl space-y-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-white shadow-sm">
+                                        <div className="w-9 h-9 bg-[#DCA476] rounded-xl flex items-center justify-center text-white shadow-sm">
                                             <Zap size={16} strokeWidth={2.5} />
                                         </div>
                                         <div>
-                                            <div className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Upgrade to</div>
-                                            <div className="text-base font-black text-amber-900">专业正式版</div>
+                                            <div className="text-[9px] font-black text-[#C58D59] uppercase tracking-widest">Upgrade to</div>
+                                            <div className="text-base font-black text-[#8A623F]">专业正式版</div>
                                         </div>
                                     </div>
                                     <ul className="space-y-2">
@@ -171,22 +177,22 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                                             '优先响应技术支持',
                                             '专属大模型优化路径'
                                         ].map((f, i) => (
-                                            <li key={i} className="flex items-center gap-2 text-xs font-bold text-amber-800">
-                                                <CheckCircle2 size={14} className="text-amber-500" />
+                                            <li key={i} className="flex items-center gap-2 text-xs font-bold text-[#8A623F]">
+                                                <CheckCircle2 size={14} className="text-[#DCA476]" />
                                                 {f}
                                             </li>
                                         ))}
                                     </ul>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center justify-between">
+                                <div className="bg-white border border-[#DFE7F2] p-4 rounded-2xl flex items-center justify-between shadow-sm">
                                     <div className="flex flex-col">
                                         <span className="text-[9px] font-black text-slate-400 tracking-widest uppercase">限时特惠</span>
                                         <span className="text-xl font-black text-slate-900">¥199<span className="text-xs text-slate-400 font-bold ml-1">/年</span></span>
                                     </div>
                                     <button
                                         onClick={handlePurchaseSuccess}
-                                        className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-indigo-100 active:scale-95 transition-all"
+                                        className="bg-gradient-to-r from-[#2F6FFF] to-[#5F92FF] text-white px-5 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-[#B4C7EA] active:scale-95 transition-all"
                                     >
                                         立即升级
                                     </button>
@@ -201,12 +207,12 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                         ) : (
                             <div className="space-y-3">
                                 {/* Activation Code Input */}
-                                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+                                <div className="bg-white border border-[#DFE7F2] rounded-2xl p-4 space-y-3 shadow-sm">
                                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex justify-between">
                                         <span>输入激活码</span>
                                         <button
                                             onClick={() => setShowTrialInfo(!showTrialInfo)}
-                                            className="text-indigo-600 hover:underline"
+                                            className="text-[#2F6FFF] hover:underline"
                                         >
                                             如何获取？
                                         </button>
@@ -219,7 +225,7 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                                             if (errorMessage) setErrorMessage(null);
                                         }}
                                         placeholder="ZY-XXXX-XXXX"
-                                        className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-base font-black tracking-widest text-indigo-600 placeholder:text-slate-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-all"
+                                        className="w-full bg-white border-2 border-[#DCE6F4] rounded-xl px-4 py-3 text-base font-black tracking-widest text-[#3E59C9] placeholder:text-slate-300 focus:border-[#2F6FFF] focus:outline-none focus:ring-2 focus:ring-[#BED2FF] transition-all"
                                     />
                                     {errorMessage && (
                                         <p className="text-[11px] text-red-500 font-bold mt-2">
@@ -229,14 +235,14 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                                 </div>
 
                                 {/* Trial Message / Path - WeChat Guide */}
-                                <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-3">
+                                <div className="p-4 rounded-2xl bg-[#EEF3FF] border border-[#D7E3F8] space-y-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                                        <div className="w-8 h-8 bg-[#2F6FFF] rounded-lg flex items-center justify-center text-white shadow-sm">
                                             <Zap size={14} strokeWidth={2.5} />
                                         </div>
-                                        <span className="text-xs font-black text-indigo-900">没有激活码？</span>
+                                        <span className="text-xs font-black text-[#2B3E5E]">没有激活码？</span>
                                     </div>
-                                    <p className="text-[11px] text-indigo-600/80 leading-relaxed">
+                                    <p className="text-[11px] text-[#2F6FFF]/90 leading-relaxed">
                                         新教师可申请 <strong>10 次免费试用</strong>。请关注公众号获取专属试用码。
                                     </p>
 
@@ -247,13 +253,13 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-bold text-slate-700">1. 扫码关注公众号</p>
-                                                <p className="text-[10px] font-bold text-slate-700">2. 回复 <span className="text-indigo-600">"试用"</span></p>
+                                                <p className="text-[10px] font-bold text-slate-700">2. 回复 <span className="text-[#2F6FFF]">"试用"</span></p>
                                             </div>
                                         </div>
                                     ) : (
                                         <button
                                             onClick={() => setShowTrialInfo(true)}
-                                            className="w-full py-2.5 bg-white border border-indigo-200 rounded-lg text-indigo-600 text-xs font-bold hover:shadow-md transition-all"
+                                            className="w-full py-2.5 bg-white border border-[#C8D8F5] rounded-lg text-[#3E59C9] text-xs font-bold hover:shadow-md transition-all"
                                         >
                                             立即申领试用码
                                         </button>
@@ -265,11 +271,11 @@ export const MandatoryActivationGate: React.FC<{ children: React.ReactNode }> = 
                 </main>
 
                 {!isTrialExhausted && (
-                    <div className="border-t border-slate-100 bg-white/90 backdrop-blur-xl p-4">
+                    <div className="border-t border-[#DFE7F2] bg-white/92 backdrop-blur-xl p-4">
                         <button
                             disabled={isVerifying}
                             onClick={handleVerify}
-                            className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:scale-100"
+                            className="w-full bg-gradient-to-r from-[#2F6FFF] to-[#5F92FF] text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-[#B4C7EA] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:scale-100"
                         >
                             {isVerifying ? (
                                 <Loader2 className="animate-spin" />

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HeroUI Academic Paper · 420 Sidepanel Draft</title>
+  <style>
+    :root {
+      --paper-bg: #f6f2e9;
+      --paper-grain: #efe8da;
+      --ink: #1f2a37;
+      --ink-soft: #5f6c7a;
+      --line: #d9cfbf;
+      --line-soft: #e8dece;
+      --card: #fffdf7;
+      --card-soft: #faf5eb;
+      --primary: #315f9f;
+      --primary-soft: #e2ecfa;
+      --success: #2d7f57;
+      --success-soft: #d8f0e3;
+      --warning: #a06d2a;
+      --warning-soft: #f7ebd8;
+      --danger: #933a47;
+      --danger-soft: #f7dee4;
+      --shadow-sm: 0 4px 10px rgba(31, 42, 55, 0.08);
+      --shadow-md: 0 10px 22px rgba(31, 42, 55, 0.12);
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 12%, rgba(255, 255, 255, 0.66) 0%, transparent 32%),
+        radial-gradient(circle at 84% 0%, rgba(231, 221, 203, 0.52) 0%, transparent 26%),
+        linear-gradient(180deg, var(--paper-bg) 0%, #f2ecdf 65%, #ece5d7 100%);
+      font-family: "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .frame {
+      width: 420px;
+      height: 100vh;
+      margin: 0 auto;
+      border-left: 1px solid var(--line-soft);
+      border-right: 1px solid var(--line-soft);
+      background:
+        linear-gradient(0deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)),
+        repeating-linear-gradient(
+          0deg,
+          transparent 0,
+          transparent 23px,
+          rgba(177, 157, 124, 0.07) 24px
+        );
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 251, 243, 0.95);
+      backdrop-filter: blur(6px);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .seal {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(49, 95, 159, 0.3);
+      background: linear-gradient(140deg, #4b78bb 0%, #315f9f 100%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 6px 12px rgba(49, 95, 159, 0.28);
+      flex: 0 0 auto;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 10px;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #fffdf7;
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn.primary {
+      border-color: rgba(49, 95, 159, 0.45);
+      background: linear-gradient(140deg, #4470b0 0%, #315f9f 100%);
+      color: #fff;
+      box-shadow: 0 7px 14px rgba(49, 95, 159, 0.24);
+    }
+
+    .quick {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 10px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: rgba(255, 251, 243, 0.72);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #cfd9ea;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      padding: 10px 12px 0;
+    }
+
+    .tab {
+      text-align: center;
+      border: 1px solid var(--line-soft);
+      background: var(--card-soft);
+      border-radius: 10px;
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 0;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      background: #edf3fc;
+      border-color: #c5d5ed;
+    }
+
+    .content {
+      overflow: auto;
+      padding: 10px 12px 84px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    }
+
+    .muted {
+      margin: 0;
+      font-size: 10px;
+      color: var(--ink-soft);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .stat {
+      border: 1px solid var(--line-soft);
+      border-radius: 11px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .stat .k {
+      margin: 0;
+      font-size: 10px;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+
+    .stat .v {
+      margin: 4px 0 0;
+      font-size: 17px;
+      font-weight: 700;
+      font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    }
+
+    .steps,
+    .list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .step,
+    .row {
+      border: 1px solid var(--line-soft);
+      border-radius: 11px;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+      background: #e9f1fe;
+      border: 1px solid #cadaf3;
+      font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    }
+
+    .status {
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 999px;
+      border: 1px solid;
+      padding: 3px 7px;
+      white-space: nowrap;
+    }
+
+    .status.ok {
+      background: var(--success-soft);
+      color: var(--success);
+      border-color: #bde7cc;
+    }
+
+    .status.wait {
+      background: var(--warning-soft);
+      color: var(--warning);
+      border-color: #f2d9ad;
+    }
+
+    .status.warn {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: #efbfca;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 10px;
+      color: var(--ink-soft);
+      font-weight: 700;
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .textarea {
+      min-height: 72px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .row h4 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .row p {
+      margin: 2px 0 0;
+      font-size: 10px;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      width: 420px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 251, 243, 0.95);
+      backdrop-filter: blur(6px);
+      padding: 10px 12px;
+      display: flex;
+      gap: 8px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .footer .btn {
+      flex: 1;
+      text-align: center;
+      box-shadow: none;
+    }
+
+    @media (max-width: 420px) {
+      .frame,
+      .footer {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <header class="topbar">
+      <div class="brand">
+        <div class="seal" aria-hidden="true"></div>
+        <div>
+          <h1>AI 批改助手</h1>
+          <p>Academic Paper Theme</p>
+        </div>
+      </div>
+      <button class="btn">切换题目</button>
+    </header>
+
+    <section class="quick">
+      <span class="chip">企业版</span>
+      <span class="chip">额度 2340</span>
+      <span class="chip">第 3 题</span>
+    </section>
+
+    <main class="content">
+      <nav class="tabs" aria-label="模块切换">
+        <div class="tab active">批改</div>
+        <div class="tab">细则</div>
+        <div class="tab">历史</div>
+        <div class="tab">设置</div>
+      </nav>
+
+      <section class="card" aria-label="GradingView">
+        <div class="head">
+          <h2 class="title">GradingView</h2>
+          <button class="btn primary">开始批改</button>
+        </div>
+        <div class="stats">
+          <article class="stat">
+            <p class="k">今日批改</p>
+            <p class="v">128</p>
+          </article>
+          <article class="stat">
+            <p class="k">平均分</p>
+            <p class="v">72.4</p>
+          </article>
+        </div>
+        <div class="list">
+          <article class="row">
+            <div>
+              <h4>张同学 · 第3题</h4>
+              <p>待批改 · 上传于 10:24</p>
+            </div>
+            <span class="status wait">待处理</span>
+          </article>
+          <article class="row">
+            <div>
+              <h4>李同学 · 第3题</h4>
+              <p>已完成 · AI 建议 86 分</p>
+            </div>
+            <span class="status ok">完成</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="card" aria-label="RubricPanel">
+        <div class="head">
+          <h2 class="title">RubricPanel</h2>
+          <span class="chip">步骤 1/3</span>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <span class="badge">1</span>
+            <div>
+              <h4 style="margin:0;font-size:11px;font-weight:700;">上传评分图片</h4>
+              <p class="muted">试题图 + 参考答案图</p>
+            </div>
+            <span class="status ok">完成</span>
+          </article>
+          <article class="step">
+            <span class="badge">2</span>
+            <div>
+              <h4 style="margin:0;font-size:11px;font-weight:700;">基本信息</h4>
+              <p class="muted">考试、题号、策略</p>
+            </div>
+            <span class="status wait">进行中</span>
+          </article>
+          <article class="step">
+            <span class="badge">3</span>
+            <div>
+              <h4 style="margin:0;font-size:11px;font-weight:700;">特殊规则</h4>
+              <p class="muted">关键词 / 扣分 / 字数</p>
+            </div>
+            <span class="status warn">未开始</span>
+          </article>
+        </div>
+        <div class="fields">
+          <div class="field">
+            <label>考试名称</label>
+            <input class="input" value="2026 春季期中" />
+          </div>
+          <div class="field">
+            <label>题号</label>
+            <input class="input" value="第 3 题" />
+          </div>
+          <div class="field full">
+            <label>规则</label>
+            <textarea class="textarea">无标题扣2分
+每3个错别字扣1分</textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="HistoryView">
+        <div class="head">
+          <h2 class="title">HistoryView</h2>
+          <button class="btn">导出</button>
+        </div>
+        <div class="field full">
+          <label>筛选</label>
+          <input class="input" placeholder="考试名 / 题号 / 时间" />
+        </div>
+        <div class="list">
+          <article class="row">
+            <div>
+              <h4>期中测试 · 第3题</h4>
+              <p>2026-02-05 · 平均分 76.4</p>
+            </div>
+            <span class="status ok">已同步</span>
+          </article>
+          <article class="row">
+            <div>
+              <h4>单元测验 · 第2题</h4>
+              <p>2026-02-03 · 平均分 69.1</p>
+            </div>
+            <span class="status wait">待同步</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="card" aria-label="SettingsView">
+        <div class="head">
+          <h2 class="title">SettingsView</h2>
+          <button class="btn">测试连接</button>
+        </div>
+        <div class="fields">
+          <div class="field">
+            <label>模型平台</label>
+            <select class="select">
+              <option>Google Gemini</option>
+              <option>OpenAI</option>
+              <option>智谱 GLM</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>默认模型</label>
+            <select class="select">
+              <option>Gemini 2.5 Flash</option>
+              <option>GPT-4o</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>API Key</label>
+            <input class="input" value="sk-********************************" />
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <button class="btn">返回</button>
+      <button class="btn primary">保存设置</button>
+    </footer>
+  </div>
+</body>
+</html>

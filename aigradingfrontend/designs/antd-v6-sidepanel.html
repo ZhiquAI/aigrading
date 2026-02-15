@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 智能批改助手 · Ant Design 6.0 侧边栏设计稿</title>
+  <style>
+    :root {
+      --ant-color-primary: #2F6FFF;
+      --ant-color-primary-hover: #235EEA;
+      --ant-color-success: #16A34A;
+      --ant-color-warning: #F59E0B;
+      --ant-color-error: #EF4444;
+      --ant-color-text: #1F2937;
+      --ant-color-text-secondary: #6B7280;
+      --ant-color-border: #E5E7EB;
+      --ant-color-border-secondary: #EEF2F6;
+      --ant-color-bg-base: #F6F8FB;
+      --ant-color-bg-container: #FFFFFF;
+      --ant-color-bg-elevated: #F9FAFB;
+      --ant-radius: 10px;
+      --ant-radius-lg: 14px;
+      --ant-shadow-1: 0 8px 20px rgba(15, 23, 42, 0.08);
+      --ant-shadow-2: 0 16px 36px rgba(15, 23, 42, 0.12);
+      --ant-space-1: 8px;
+      --ant-space-2: 12px;
+      --ant-space-3: 16px;
+      --ant-space-4: 24px;
+      --ant-space-5: 32px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      background: var(--ant-color-bg-base);
+      color: var(--ant-color-text);
+    }
+
+    /* Side panel frame */
+    .panel-frame {
+      width: 420px;
+      height: 100vh;
+      margin: 0 auto;
+      background: var(--ant-color-bg-base);
+      border-left: 1px solid var(--ant-color-border-secondary);
+      border-right: 1px solid var(--ant-color-border-secondary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--ant-color-bg-container);
+      border-bottom: 1px solid var(--ant-color-border-secondary);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .topbar .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+    }
+    .brand-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--ant-color-primary), #5F92FF);
+    }
+    .topbar .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .content {
+      padding: 14px 14px 80px;
+      overflow: auto;
+      flex: 1;
+    }
+
+    .section {
+      background: var(--ant-color-bg-container);
+      border-radius: var(--ant-radius-lg);
+      box-shadow: var(--ant-shadow-1);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .card {
+      background: var(--ant-color-bg-container);
+      border: 1px solid var(--ant-color-border-secondary);
+      border-radius: var(--ant-radius);
+      padding: 10px;
+    }
+    .card-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .muted { color: var(--ant-color-text-secondary); font-size: 12px; }
+
+    .ant-btn {
+      border: 1px solid var(--ant-color-border);
+      background: #fff;
+      color: var(--ant-color-text);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .ant-btn-primary {
+      background: var(--ant-color-primary);
+      border-color: var(--ant-color-primary);
+      color: #fff;
+    }
+    .ant-btn-ghost {
+      background: transparent;
+      border-color: var(--ant-color-primary);
+      color: var(--ant-color-primary);
+    }
+
+    .ant-input, .ant-select, .ant-textarea {
+      width: 100%;
+      border: 1px solid var(--ant-color-border);
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-weight: 600;
+      background: #fff;
+      font-size: 12px;
+    }
+    .form-item { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 11px; font-weight: 700; color: var(--ant-color-text-secondary); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-weight: 600;
+      font-size: 11px;
+      background: #EEF3FF;
+      color: var(--ant-color-primary);
+    }
+    .tag-success { background: #ECFDF3; color: #16A34A; }
+    .tag-warning { background: #FFFBEB; color: #B45309; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .step {
+      border: 1px solid var(--ant-color-border-secondary);
+      border-radius: 10px;
+      padding: 8px;
+      background: #FAFBFF;
+      font-size: 11px;
+    }
+    .step .index { font-weight: 700; color: var(--ant-color-primary); }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .list-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--ant-color-border-secondary);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 12px;
+    }
+
+    .footer-bar {
+      position: fixed;
+      bottom: 0;
+      width: 420px;
+      background: var(--ant-color-bg-container);
+      border-top: 1px solid var(--ant-color-border-secondary);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      text-align: center;
+      padding: 8px 0;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--ant-color-text-secondary);
+      background: #F3F4F6;
+    }
+    .tab.active {
+      background: #EEF3FF;
+      color: var(--ant-color-primary);
+    }
+
+    @media (max-width: 420px) {
+      .panel-frame, .footer-bar { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="panel-frame">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge"></div>
+        <div>
+          <div style="font-size:13px;">AI 智能批改助手</div>
+          <div class="muted">侧边栏 · AntD 6.0</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="ant-btn">历史</button>
+        <button class="ant-btn-primary">设置</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active">批改</div>
+        <div class="tab">细则</div>
+        <div class="tab">历史</div>
+        <div class="tab">设置</div>
+      </div>
+
+      <!-- GradingView -->
+      <section class="section">
+        <div class="section-title">GradingView</div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">今日批改</div>
+            <div style="font-size:18px; font-weight:700;">128</div>
+            <div class="muted">+12%</div>
+          </div>
+          <div class="card">
+            <div class="card-title">平均分</div>
+            <div style="font-size:18px; font-weight:700;">72.4</div>
+            <div class="muted">满分 100</div>
+          </div>
+        </div>
+        <div class="list" style="margin-top:10px;">
+          <div class="list-row">
+            <span>张同学</span>
+            <span class="tag">待批改</span>
+          </div>
+          <div class="list-row">
+            <span>李同学</span>
+            <span class="tag tag-success">已完成</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RubricPanel -->
+      <section class="section">
+        <div class="section-title">RubricPanel</div>
+        <div class="steps">
+          <div class="step"><div class="index">1</div>上传图片</div>
+          <div class="step"><div class="index">2</div>基本信息</div>
+          <div class="step"><div class="index">3</div>规则</div>
+        </div>
+        <div class="grid grid-2" style="margin-top:10px;">
+          <div class="form-item">
+            <div class="form-label">考试名称</div>
+            <input class="ant-input" placeholder="输入考试名称" />
+          </div>
+          <div class="form-item">
+            <div class="form-label">题号</div>
+            <input class="ant-input" placeholder="3" />
+          </div>
+        </div>
+        <div class="form-item" style="margin-top:8px;">
+          <div class="form-label">特殊规则</div>
+          <textarea class="ant-textarea" rows="3" placeholder="每行一条规则"></textarea>
+        </div>
+      </section>
+
+      <!-- HistoryView -->
+      <section class="section">
+        <div class="section-title">HistoryView</div>
+        <div class="form-item">
+          <div class="form-label">筛选</div>
+          <input class="ant-input" placeholder="考试名称 / 题号" />
+        </div>
+        <div class="list" style="margin-top:10px;">
+          <div class="list-row">
+            <span>期中测试 · 第3题</span>
+            <span class="tag tag-success">已同步</span>
+          </div>
+          <div class="list-row">
+            <span>单元测验 · 第2题</span>
+            <span class="tag tag-warning">待同步</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SettingsView -->
+      <section class="section">
+        <div class="section-title">SettingsView</div>
+        <div class="grid grid-2">
+          <div class="form-item">
+            <div class="form-label">模型</div>
+            <select class="ant-select">
+              <option>Gemini</option>
+              <option>OpenAI</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <div class="form-label">主题</div>
+            <select class="ant-select">
+              <option>浅色</option>
+              <option>深色</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item" style="margin-top:8px;">
+          <div class="form-label">API Key</div>
+          <input class="ant-input" placeholder="sk-..." />
+        </div>
+      </section>
+    </div>
+
+    <div class="footer-bar">
+      <button class="ant-btn">返回</button>
+      <button class="ant-btn-primary">保存</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
-import { apiErrorSchema, rubricStandardizeRequestSchema } from "@ai-grading/api-contracts";
+import { rubricStandardizeRequestSchema } from "@ai-grading/api-contracts";
 import { standardizeRubric } from "@/modules/rubric/rubric-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const body = rubricStandardizeRequestSchema.parse(await request.json());
@@ -19,23 +21,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   } catch (error) {
     const isBadRequest = error instanceof ZodError || error instanceof SyntaxError;
-    const errorPayload = apiErrorSchema.parse(
-      isBadRequest
-        ? {
-            code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Invalid rubric payload.",
-            requestId
-          }
-        : {
-            code: "INTERNAL_SERVER_ERROR",
-            message: error instanceof Error ? error.message : "Failed to standardize rubric.",
-            requestId
-          }
+    return jsonApiError(
+      requestId,
+      isBadRequest ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+      error instanceof Error
+        ? error.message
+        : isBadRequest
+          ? "Invalid rubric payload."
+          : "Failed to standardize rubric.",
+      isBadRequest ? 400 : 500
     );
-
-    return NextResponse.json({ ok: false, error: errorPayload }, {
-      status: isBadRequest ? 400 : 500,
-      headers: { "x-request-id": requestId }
-    });
   }
 }

@@ -74,33 +74,54 @@ export default function CreateCodeModal({ isOpen, onClose, onSuccess }: CreateCo
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const normalizedCount = Number(formData.count);
+        const normalizedQuota = Number(formData.quota);
+        const normalizedMaxDevices = Number(formData.maxDevices);
+
+        if (!Number.isInteger(normalizedCount) || normalizedCount < 1 || normalizedCount > 100) {
+            alert('生成数量必须在 1-100 之间');
+            return;
+        }
+
+        if (!Number.isInteger(normalizedQuota) || normalizedQuota <= 0) {
+            alert('配额必须是大于 0 的整数');
+            return;
+        }
+
+        if (!Number.isInteger(normalizedMaxDevices) || normalizedMaxDevices < 1 || normalizedMaxDevices > 100) {
+            alert('设备上限必须在 1-100 之间');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            // 批量生成
-            for (let i = 0; i < formData.count; i++) {
-                const res = await fetch('/api/admin/codes', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                    },
-                    body: JSON.stringify({
-                        type: formData.type,
-                        quota: Number(formData.quota),
-                        reusable: formData.reusable,
-                        maxDevices: Number(formData.maxDevices)
-                    })
-                });
+            const res = await fetch('/api/admin/codes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                },
+                body: JSON.stringify({
+                    type: formData.type,
+                    quota: normalizedQuota,
+                    reusable: formData.reusable,
+                    maxDevices: normalizedMaxDevices,
+                    count: normalizedCount
+                })
+            });
 
-                if (!res.ok) throw new Error('生成失败');
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.success) {
+                throw new Error(data?.message || `生成失败 (${res.status})`);
             }
 
             onSuccess();
             onClose();
         } catch (error) {
             console.error('Create error:', error);
-            alert('生成失败，请重试');
+            const message = error instanceof Error ? error.message : '生成失败，请重试';
+            alert(message);
         } finally {
             setLoading(false);
         }
@@ -222,7 +243,7 @@ export default function CreateCodeModal({ isOpen, onClose, onSuccess }: CreateCo
                                 name="count"
                                 type="number"
                                 min="1"
-                                max="50"
+                                max="100"
                                 value={formData.count}
                                 onChange={(e) => setFormData({ ...formData, count: Number(e.target.value) })}
                                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 font-medium

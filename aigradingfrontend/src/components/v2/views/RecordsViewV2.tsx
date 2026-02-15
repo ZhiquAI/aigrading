@@ -1,55 +1,18 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Download, Search, LayoutGrid, List, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Bot } from 'lucide-react';
-import { useAppStore, HistoryRecord } from '@/stores/useAppStore';
-import { Tab } from '@/types';
+import { Download, Search, ChevronDown, ChevronUp, Bot } from 'lucide-react';
+import { useAppStore } from '@/stores/useAppStore';
+import { toast } from '@/components/Toast';
 
 const RecordsViewV2: React.FC = () => {
-    const { historyRecords, loadHistory, isHistoryLoading, deleteHistoryRecord, setHeaderActions, activeTab } = useAppStore();
+    const { historyRecords, loadHistory, isHistoryLoading, deleteHistoryRecord } = useAppStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
     // Initial load
     useEffect(() => {
         loadHistory();
     }, []);
-
-    // Export handler
-    const handleExport = useCallback(() => {
-        const headers = ['序号', '时间', '题目', '得分', '满分', 'AI评语'];
-        const rows = historyRecords.map((h, idx) => {
-            const ts = Number(h.timestamp);
-            const time = Number.isFinite(ts) && ts > 0 ? new Date(ts).toLocaleString('zh-CN', { hour12: false }) : '';
-            const questionNo = h.questionNo || '-';
-            const safeComment = (h.comment || '').replace(/"/g, '""');
-            return [historyRecords.length - idx, time, questionNo, h.score, h.maxScore, `"${safeComment}"`];
-        });
-
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `grading_records_${new Date().getTime()}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, [historyRecords]);
-
-    // Register Header Action - only when History tab is active
-    useEffect(() => {
-        if (activeTab !== Tab.History) return;
-        setHeaderActions([
-            {
-                id: 'export-history',
-                label: '导出记录',
-                icon: 'Download',
-                onClick: handleExport
-            }
-        ]);
-        return () => setHeaderActions([]);
-    }, [setHeaderActions, handleExport, activeTab]);
 
     // Filter Logic
     const filteredRecords = useMemo(() => {
@@ -82,12 +45,105 @@ const RecordsViewV2: React.FC = () => {
         return 'text-red-500';
     };
 
+    const downloadBlob = useCallback((blob: Blob, filename: string) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, []);
+
+    const handleExport = useCallback(async (type: 'csv' | 'json' | 'pdf') => {
+        if (filteredRecords.length === 0) {
+            toast.warning('暂无可导出的记录');
+            return;
+        }
+
+        const filenameBase = `grading_records_${new Date().getTime()}`;
+
+        if (type === 'pdf') {
+            const element = document.getElementById('records-export-root');
+            if (!element) {
+                toast.error('导出失败：未找到记录区域');
+                return;
+            }
+
+            try {
+                const html2canvas = (await import('html2canvas')).default;
+                const { jsPDF } = await import('jspdf');
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#f8fafc'
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                const imgProps = pdf.getImageProperties(imgData);
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgHeight = (imgProps.height * pageWidth) / imgProps.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`${filenameBase}.pdf`);
+                toast.success('PDF 导出成功');
+            } catch (error) {
+                console.error('[RecordsViewV2] Export PDF error:', error);
+                toast.error('PDF 导出失败');
+            }
+            return;
+        }
+
+        if (type === 'json') {
+            const payload = {
+                meta: {
+                    date: new Date().toISOString(),
+                    count: filteredRecords.length
+                },
+                records: filteredRecords
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            downloadBlob(blob, `${filenameBase}.json`);
+            toast.success('JSON 导出成功');
+            return;
+        }
+
+        const headers = ['序号', '时间', '题目', '得分', '满分', 'AI评语'];
+        const rows = filteredRecords.map((h, idx) => {
+            const ts = Number(h.timestamp);
+            const time = Number.isFinite(ts) && ts > 0 ? new Date(ts).toLocaleString('zh-CN', { hour12: false }) : '';
+            const questionNo = h.questionNo || '-';
+            const safeComment = (h.comment || '').replace(/"/g, '""');
+            return [filteredRecords.length - idx, time, questionNo, h.score, h.maxScore, `"${safeComment}"`];
+        });
+
+        const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
+        downloadBlob(blob, `${filenameBase}.csv`);
+        toast.success('CSV 导出成功');
+    }, [downloadBlob, filteredRecords]);
+
 
 
     return (
-        <div className="flex flex-col h-full bg-slate-50">
+        <div className="flex h-full flex-col bg-[#F3F7FA]">
             {/* Filter Bar (Simplified) */}
-            <div className="px-4 py-3 bg-white border-b border-slate-200/60 shadow-sm z-10 shrink-0 flex items-center gap-3">
+            <div className="z-10 flex shrink-0 items-center gap-3 border-b border-[#E0E8F1] bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -95,19 +151,68 @@ const RecordsViewV2: React.FC = () => {
                         placeholder="搜索评论关键词..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400"
+                        className="w-full rounded-xl border border-[#DFE7F2] bg-[#F8FBFF] py-2 pl-9 pr-4 text-sm text-[#354A6A] outline-none transition-all placeholder:text-[#95A3B8] focus:border-[#A8BCF2] focus:bg-white focus:ring-4 focus:ring-[#2F6FFF]/10"
                     />
                 </div>
 
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-2">
                     <span className="text-xs text-slate-400 bg-slate-50 px-2.5 py-1.5 rounded-lg font-bold border border-slate-100">
                         {filteredRecords.length} 条
                     </span>
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#DEE7F2] bg-white px-2.5 py-1.5 text-xs font-bold text-[#5E708B] transition-colors hover:border-[#C8D8F5] hover:text-[#3E59C9]"
+                            aria-label="导出记录"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                            导出
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {isExportMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setIsExportMenuOpen(false)} />
+                                <div className="absolute right-0 top-full z-20 mt-1.5 w-28 overflow-hidden rounded-lg border border-slate-100 bg-white shadow-lg">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            void handleExport('csv');
+                                            setIsExportMenuOpen(false);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-[11px] font-bold text-[#5E708B] transition-colors hover:bg-[#EDF3FF] hover:text-[#3E59C9]"
+                                    >
+                                        导出 CSV
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            void handleExport('json');
+                                            setIsExportMenuOpen(false);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-[11px] font-bold text-[#5E708B] transition-colors hover:bg-[#EDF3FF] hover:text-[#3E59C9]"
+                                    >
+                                        导出 JSON
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            void handleExport('pdf');
+                                            setIsExportMenuOpen(false);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-[11px] font-bold text-[#5E708B] transition-colors hover:bg-[#EDF3FF] hover:text-[#3E59C9]"
+                                    >
+                                        导出 PDF
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* List Content */}
-            <div className="flex-1 overflow-auto p-4 space-y-3">
+            <div id="records-export-root" className="flex-1 overflow-auto p-4 space-y-3">
                 {isHistoryLoading ? (
                     <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
                 ) : filteredRecords.length === 0 ? (
@@ -119,7 +224,7 @@ const RecordsViewV2: React.FC = () => {
                         </div>
                         <h3 className="text-sm font-bold text-slate-600">暂无阅卷记录</h3>
                         <p className="text-xs mt-2 text-slate-400 max-w-[200px] text-center leading-relaxed">
-                            点击底部 <span className="font-bold text-indigo-500">阅卷</span> 按钮开始批改<br />
+                            点击底部 <span className="font-bold text-[#3E59C9]">阅卷</span> 按钮开始批改<br />
                             您的评估记录将自动保存至此
                         </p>
                     </div>
@@ -130,7 +235,7 @@ const RecordsViewV2: React.FC = () => {
                         const displayIndex = filteredRecords.length - index;
 
                         return (
-                            <div key={record.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-indigo-100">
+                            <div key={record.id} className="overflow-hidden rounded-xl border border-[#DFE7F2] bg-white shadow-sm transition-all hover:border-[#C8D8F5] hover:shadow-md">
                                 {/* Summary Row */}
                                 <div
                                     className="flex items-center p-3 cursor-pointer select-none"
@@ -181,7 +286,7 @@ const RecordsViewV2: React.FC = () => {
                                     {/* Toggle Icon */}
                                     <div className="w-8 flex justify-end">
                                         {isExpanded ?
-                                            <ChevronUp className="w-4 h-4 text-indigo-500" /> :
+                                            <ChevronUp className="w-4 h-4 text-[#3E59C9]" /> :
                                             <ChevronDown className="w-4 h-4 text-slate-300" />
                                         }
                                     </div>
@@ -193,9 +298,9 @@ const RecordsViewV2: React.FC = () => {
                                         <div className="flex flex-col gap-4 mt-2">
                                             {/* AI Comment */}
                                             {record.comment && (
-                                                <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                <div className="rounded-lg border border-[#DCE7F8] bg-white p-3 shadow-sm">
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <Bot className="w-3.5 h-3.5 text-indigo-500" />
+                                                        <Bot className="w-3.5 h-3.5 text-[#3E59C9]" />
                                                         <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">AI 评分理由</h4>
                                                     </div>
                                                     <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">

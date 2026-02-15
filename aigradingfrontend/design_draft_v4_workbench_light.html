@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能阅卷助手 - 工作台 (HeroUI Light)</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        // HeroUI Light Palette
+                        background: '#FFFFFF',
+                        foreground: '#11181C',
+
+                        content1: '#FFFFFF',
+                        content2: '#F4F4F5', // zinc-100
+                        content3: '#E4E4E7', // zinc-200
+
+                        primary: {
+                            DEFAULT: '#006FEE',
+                            foreground: '#FFFFFF',
+                            50: '#E6F1FE',
+                            100: '#CCE3FD',
+                            200: '#99C7FB',
+                            500: '#006FEE',
+                        },
+                        secondary: {
+                            DEFAULT: '#7828C8',
+                            foreground: '#FFFFFF',
+                            50: '#F2EAFA',
+                            100: '#E4D4F4',
+                        },
+                    },
+                    borderRadius: {
+                        'medium': '12px',
+                        'large': '14px',
+                        'xl': '16px',
+                        '2xl': '24px',
+                    },
+                    boxShadow: {
+                        'small': '0px 0px 5px 0px rgba(0, 0, 0, 0.02), 0px 2px 10px 0px rgba(0, 0, 0, 0.06)',
+                        'medium': '0px 0px 15px 0px rgba(0, 0, 0, 0.03), 0px 2px 30px 0px rgba(0, 0, 0, 0.08), 0px 0px 1px 0px rgba(0, 0, 0, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+
+        .phone-container {
+            width: 375px;
+            /* Mobile / Side Panel width */
+            height: 667px;
+            background-color: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-col: column;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #e5e5e5;
+        }
+
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-pressable {
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+        }
+
+        .card-pressable:active {
+            transform: scale(0.98);
+        }
+
+        .card-pressable:hover {
+            box-shadow: 0px 10px 30px -5px rgba(0, 111, 238, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Phone Mockup -->
+    <div
+        class="phone-container flex flex-col font-sans text-foreground antialiased selection:bg-primary-100 selection:text-primary-500">
+
+        <!-- Header -->
+        <header class="pt-6 pb-2 px-6 bg-white z-10 sticky top-0">
+            <div class="flex justify-between items-center mb-1">
+                <div class="flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 rounded-medium bg-primary-50 text-primary flex items-center justify-center font-bold shadow-sm">
+                        AI
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="text-xs font-semibold px-2 py-1 rounded-full bg-warning-50 text-warning-600 border border-warning-100">
+                        试用版
+                    </span>
+                    <button
+                        class="w-8 h-8 rounded-medium hover:bg-content2 flex items-center justify-center text-zinc-400 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-zinc-900">评分细则</h1>
+            <p class="text-xs text-zinc-500 font-medium mt-0.5">创建、导入与管理评分标准</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto px-5 py-4 space-y-5 bg-white pb-24">
+
+            <!-- Hero Create Card -->
+            <div
+                class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100/50 p-6 border border-primary-100 card-pressable cursor-pointer group">
+                <div class="absolute top-0 right-0 p-4 opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"
+                        class="text-primary-300 -mr-4 -mt-4">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+
+                <div class="relative z-10">
+                    <div
+                        class="w-10 h-10 rounded-medium bg-white text-primary flex items-center justify-center font-bold shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                            <polyline points="3.29 7 12 12 20.71 7" />
+                            <line x1="12" y1="22" x2="12" y2="12" />
+                        </svg>
+                    </div>
+
+                    <h2 class="text-lg font-bold text-primary-900 mb-1">AI 智能创建</h2>
+                    <p class="text-xs text-primary-700 font-medium leading-relaxed max-w-[80%]">
+                        上传试题图片与标准答案，<br>一键生成结构化评分细则。
+                    </p>
+
+                    <div
+                        class="mt-4 flex items-center text-xs font-bold text-primary group-hover:translate-x-1 transition-transform">
+                        开始创建 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" class="ml-1">
+                            <path d="M5 12h14" />
+                            <path d="m12 5 7 7-7 7" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secondary Actions Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Import -->
+                <div
+                    class="rounded-xl bg-content2/50 border border-transparent p-4 card-pressable cursor-pointer hover:bg-content2 hover:border-content3 transition-colors">
+                    <div
+                        class="w-8 h-8 rounded-medium bg-white text-zinc-600 flex items-center justify-center shadow-sm mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-zinc-900">导入细则</h3>
+                    <p class="text-[10px] text-zinc-500 mt-0.5">加载本地 JSON</p>
+                </div>
+
+                <!-- Template -->
+                <div
+                    class="rounded-xl bg-content2/50 border border-transparent p-4 card-pressable cursor-pointer hover:bg-content2 hover:border-content3 transition-colors">
+                    <div
+                        class="w-8 h-8 rounded-medium bg-white text-zinc-600 flex items-center justify-center shadow-sm mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-zinc-900">模板库</h3>
+                    <p class="text-[10px] text-zinc-500 mt-0.5">常用评分标准</p>
+                </div>
+            </div>
+
+            <!-- Recent List -->
+            <div>
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">最近使用</h3>
+                </div>
+
+                <div
+                    class="rounded-2xl border border-dashed border-zinc-200 p-8 flex flex-col items-center justify-center text-center bg-zinc-50/50">
+                    <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-300 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 6v6l4 2" />
+                        </svg>
+                    </div>
+                    <p class="text-xs text-zinc-400 font-medium">暂无最近的评分记录</p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav
+            class="nav-glass h-16 absolute bottom-0 w-full flex justify-between items-center px-6 pb-2 safe-area-pb z-20">
+            <!-- Item: Active -->
+            <button class="flex flex-col items-center justify-center w-14 gap-1 text-primary">
+                <div class="w-12 h-8 rounded-full bg-primary-50 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                </div>
+                <span class="text-[10px] font-bold">细则</span>
+            </button>
+
+            <!-- Item: Inactive -->
+            <button
+                class="flex flex-col items-center justify-center w-14 gap-1 text-zinc-400 hover:text-zinc-600 transition-colors">
+                <div class="w-12 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </div>
+                <span class="text-[10px] font-medium">批改</span>
+            </button>
+
+            <!-- Item: Inactive -->
+            <button
+                class="flex flex-col items-center justify-center w-14 gap-1 text-zinc-400 hover:text-zinc-600 transition-colors">
+                <div class="w-12 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                </div>
+                <span class="text-[10px] font-medium">历史</span>
+            </button>
+        </nav>
+
+    </div>
+
+</body>
+
+</html>

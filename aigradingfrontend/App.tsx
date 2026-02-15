@@ -6,8 +6,12 @@ import { AppProvider } from './contexts/AppContext';
 import { useAppStore } from './stores/useAppStore';
 import ModernLayout from './src/components/v2/layout/ModernLayout';
 import { MandatoryActivationGate } from './src/components/v2/onboarding/MandatoryActivationGate';
+import HeroUISidepanel420 from './src/components/heroui/HeroUISidepanel420';
+import HeroUIDefaultThemeDraft from './src/components/heroui/HeroUIDefaultThemeDraft';
+import HeroUIDefaultLayout from './src/components/heroui/HeroUIDefaultLayout';
 import { getUsageInfo as fetchUsageFromBackend } from './services/proxyService';
 import { OnboardingGuide, shouldShowOnboarding } from './components/OnboardingGuide';
+import { BYPASS_ACTIVATION_GATE } from './config/feature-flags';
 // 🔧 调试工具 - 在控制台输入 aiDebug.help() 查看使用方法
 import './services/debug-utils';
 
@@ -27,6 +31,25 @@ const LoadingFallback: React.FC = () => (
 
 const App: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const previewType = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ui') : null;
+
+  if (previewType === 'heroui') {
+    return <HeroUISidepanel420 />;
+  }
+  if (previewType === 'heroui-default') {
+    return <HeroUIDefaultThemeDraft />;
+  }
+  if (previewType === 'legacy') {
+    return (
+      <AppProvider>
+        <ToastProvider>
+          <MandatoryActivationGate>
+            <ModernLayout />
+          </MandatoryActivationGate>
+        </ToastProvider>
+      </AppProvider>
+    );
+  }
 
   // 检查是否需要显示引导
   useEffect(() => {
@@ -45,6 +68,10 @@ const App: React.FC = () => {
 
   // 从后端获取全局使用额度
   useEffect(() => {
+    if (BYPASS_ACTIVATION_GATE) {
+      return;
+    }
+
     refreshUsageInfo();
 
     // 每次批改后刷新（监听 grading_complete 事件）
@@ -65,7 +92,7 @@ const App: React.FC = () => {
     <AppProvider>
       <ToastProvider>
         <MandatoryActivationGate>
-          <ModernLayout />
+          <HeroUIDefaultLayout />
         </MandatoryActivationGate>
       </ToastProvider>
     </AppProvider>

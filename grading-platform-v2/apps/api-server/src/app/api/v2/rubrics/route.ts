@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
-import { apiErrorSchema, rubricUpsertRequestSchema } from "@ai-grading/api-contracts";
+import { rubricUpsertRequestSchema } from "@ai-grading/api-contracts";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 import { prisma } from "@/lib/prisma";
-import { isScopeResolutionError, resolveRequestScope } from "@/lib/request-scope";
+import { isScopeResolutionError, resolveRequestScope } from "@/shared/scope-resolver/request-scope";
+import { executeIdempotent, isIdempotencyConflictError } from "@/shared/idempotency/service";
+import { jsonApiError } from "@/shared/errors/api-error";
 import {
   deleteRubric,
   getRubricByQuestionKey,
@@ -18,15 +21,11 @@ const withError = (
   message: string,
   status: number
 ): NextResponse => {
-  const errorPayload = apiErrorSchema.parse({ code, message, requestId });
-  return NextResponse.json({ ok: false, error: errorPayload }, {
-    status,
-    headers: { "x-request-id": requestId }
-  });
+  return jsonApiError(requestId, code, message, status);
 };
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
@@ -73,28 +72,53 @@ export async function GET(request: Request): Promise<NextResponse> {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
     const body = rubricUpsertRequestSchema.parse(await request.json());
+    const idempotencyKey = normalizeNonEmpty(request.headers.get("idempotency-key"));
 
-    const result = await upsertRubric(prisma, {
+    const result = await executeIdempotent(prisma, {
       scopeKey: scope.scopeKey,
-      questionKey: body.questionKey,
-      rubric: body.rubric,
-      examId: body.examId,
-      lifecycleStatus: body.lifecycleStatus,
-      deviceId: scope.deviceId
+      endpoint: "v2.rubrics.upsert",
+      idempotencyKey,
+      requestPayload: body
+    }, async () => {
+      const data = await upsertRubric(prisma, {
+        scopeKey: scope.scopeKey,
+        questionKey: body.questionKey,
+        rubric: body.rubric,
+        examId: body.examId,
+        lifecycleStatus: body.lifecycleStatus,
+        deviceId: scope.deviceId
+      });
+
+      return {
+        statusCode: 200,
+        payload: data
+      };
     });
 
-    return NextResponse.json({ ok: true, data: result }, {
-      status: 200,
-      headers: { "x-request-id": requestId }
+    return NextResponse.json({ ok: true, data: result.payload }, {
+      status: result.statusCode,
+      headers: {
+        "x-request-id": requestId,
+        ...(result.replayed ? { "x-idempotency-replayed": "true" } : {})
+      }
     });
   } catch (error) {
     if (isScopeResolutionError(error)) {
       return withError(requestId, error.code, error.message, error.statusCode);
+    }
+
+    if (isIdempotencyConflictError(error)) {
+      return withError(
+        requestId,
+        "IDEMPOTENCY_CONFLICT",
+        error.message,
+        409
+      );
     }
 
     if (isRubricDomainError(error)) {
@@ -120,25 +144,49 @@ export async function POST(request: Request): Promise<NextResponse> {
 }
 
 export async function DELETE(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
     const questionKey = normalizeNonEmpty(new URL(request.url).searchParams.get("questionKey"));
+    const idempotencyKey = normalizeNonEmpty(request.headers.get("idempotency-key"));
 
     if (!questionKey) {
       return withError(requestId, "BAD_REQUEST", "questionKey is required.", 400);
     }
 
-    await deleteRubric(prisma, { scopeKey: scope.scopeKey, questionKey });
+    const result = await executeIdempotent(prisma, {
+      scopeKey: scope.scopeKey,
+      endpoint: "v2.rubrics.delete",
+      idempotencyKey,
+      requestPayload: { questionKey }
+    }, async () => {
+      await deleteRubric(prisma, { scopeKey: scope.scopeKey, questionKey });
+      return {
+        statusCode: 200,
+        payload: null as null
+      };
+    });
 
-    return NextResponse.json({ ok: true, data: null }, {
-      status: 200,
-      headers: { "x-request-id": requestId }
+    return NextResponse.json({ ok: true, data: result.payload }, {
+      status: result.statusCode,
+      headers: {
+        "x-request-id": requestId,
+        ...(result.replayed ? { "x-idempotency-replayed": "true" } : {})
+      }
     });
   } catch (error) {
     if (isScopeResolutionError(error)) {
       return withError(requestId, error.code, error.message, error.statusCode);
+    }
+
+    if (isIdempotencyConflictError(error)) {
+      return withError(
+        requestId,
+        "IDEMPOTENCY_CONFLICT",
+        error.message,
+        409
+      );
     }
 
     return withError(

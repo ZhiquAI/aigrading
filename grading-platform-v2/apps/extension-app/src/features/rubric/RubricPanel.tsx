@@ -666,11 +666,11 @@ export const RubricPanel = ({
 
   const renderStatusMessage = () => {
     if (successMessage) {
-      return <p className="legacy-rubric-banner legacy-rubric-banner-success">{successMessage}</p>;
+      return <p className="classic-rubric-banner classic-rubric-banner-success">{successMessage}</p>;
     }
 
     if (errorMessage) {
-      return <p className="legacy-rubric-banner legacy-rubric-banner-error">{errorMessage}</p>;
+      return <p className="classic-rubric-banner classic-rubric-banner-error">{errorMessage}</p>;
     }
 
     return null;

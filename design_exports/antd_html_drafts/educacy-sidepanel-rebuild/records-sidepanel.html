@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏版 - 记录模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Records Center</h1><p>检索与导出</p></div></div>
+        <div class="top-actions"><button class="cta">导出</button><span class="icon-btn">⇩</span></div>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <article class="metric"><p>记录总数</p><strong>2846</strong><small>历史累积</small></article>
+          <article class="metric"><p>本周批改</p><strong>412</strong><small>+12%</small></article>
+          <article class="metric"><p>平均得分率</p><strong>76%</strong><small>历史科目</small></article>
+          <article class="metric"><p>满分占比</p><strong>8.4%</strong><small>本周</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head"><h3>筛选与搜索</h3><span class="meta">168 条</span></header>
+          <div class="surface-body">
+            <div class="chips"><span class="chip active">7天</span><span class="chip">30天</span><span class="chip">全部</span><span class="chip">仅异常</span></div>
+            <div class="search-row">⌕ 搜索学生 / 题号 / 关键词...</div>
+          </div>
+        </section>
+
+        <section class="surface">
+          <header class="surface-head"><h3>记录列表</h3><span class="meta">可展开详情</span></header>
+          <div class="surface-body card-list">
+            <article class="card">
+              <div class="card-top"><span class="badge">Q15</span><span class="meta">20:31</span></div>
+              <h4>王一鸣 · 工业革命影响评析</h4>
+              <div class="card-foot"><span class="status ok">16.5 / 18</span><span class="meta">展开</span></div>
+              <div class="meta">观点完整，证据充分；第二处史料出处缺失。</div>
+            </article>
+            <article class="card">
+              <div class="card-top"><span class="badge gray">Q08</span><span class="meta">19:42</span></div>
+              <h4>李若涵 · 三则史料比较分析</h4>
+              <div class="card-foot"><span class="status partial">9 / 12</span><span class="meta">展开</span></div>
+              <div class="meta">结论存在但层次不完整，建议复核。</div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a href="./rubric-sidepanel.html">细则</a>
+        <a href="./grading-sidepanel.html">阅卷</a>
+        <a class="active" href="./records-sidepanel.html">记录</a>
+        <a href="./settings-sidepanel.html">设置</a>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>

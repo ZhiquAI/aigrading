@@ -59,6 +59,79 @@ function normalizeScore(raw: unknown, fallback = 0): number {
     return value;
 }
 
+function asUnknownRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function asUnknownRecordArray(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item));
+}
+
+function extractSegmentItems(rubric: RubricJSONV3): EditableItem[] {
+    const rootContent = asUnknownRecord(rubric.content) || {};
+    const segments = asUnknownRecordArray(rootContent.segments);
+    if (segments.length === 0) return [];
+
+    const flatItems: EditableItem[] = [];
+
+    segments.forEach((segment, segmentIndex) => {
+        const segmentId = String(segment.id || `segment-${segmentIndex + 1}`);
+        const segmentTitle = typeof segment.title === 'string' && segment.title.trim().length > 0
+            ? segment.title.trim()
+            : `分段 ${segmentIndex + 1}`;
+        const segmentStrategy = String(segment.strategyType || '');
+        const segmentContent = asUnknownRecord(segment.content) || {};
+
+        if (segmentStrategy === 'rubric_matrix') {
+            const dimensions = asUnknownRecordArray(segmentContent.dimensions);
+            dimensions.forEach((dimension, dimensionIndex) => {
+                const levels = asUnknownRecordArray(dimension.levels);
+                flatItems.push({
+                    id: `${segmentId}:${String(dimension.id || `dimension-${dimensionIndex + 1}`)}`,
+                    content: `${segmentTitle} · ${String(dimension.name || '')}`.trim(),
+                    score: normalizeScore(
+                        dimension.weight,
+                        Math.max(...levels.map((level) => normalizeScore(level.score, 0)), 0)
+                    ),
+                    keywords: [],
+                    requiredKeywords: [],
+                    questionSegment: segmentTitle,
+                    deductionRules: '',
+                    openEnded: false,
+                    levels: levels.map((level, levelIndex) => ({
+                        label: String(level.label || String.fromCharCode(65 + levelIndex)),
+                        score: normalizeScore(level.score, 0),
+                        description: String(level.description || '')
+                    }))
+                });
+            });
+            return;
+        }
+
+        const points = segmentStrategy === 'sequential_logic'
+            ? asUnknownRecordArray(segmentContent.steps)
+            : asUnknownRecordArray(segmentContent.points);
+
+        points.forEach((point, pointIndex) => {
+            const pointId = String(point.id || `${segmentId}-${pointIndex + 1}`);
+            flatItems.push({
+                id: `${segmentId}:${pointId}`,
+                content: String(point.content || ''),
+                score: normalizeScore(point.score, 0),
+                keywords: ensureKeywordList(Array.isArray(point.keywords) ? point.keywords as string[] : []),
+                requiredKeywords: ensureKeywordList(Array.isArray(point.requiredKeywords) ? point.requiredKeywords as string[] : []),
+                questionSegment: String(point.questionSegment || segmentTitle),
+                deductionRules: String(point.deductionRules || ''),
+                openEnded: Boolean(point.openEnded)
+            });
+        });
+    });
+
+    return flatItems;
+}
+
 function asMatrixContent(rubric: RubricJSONV3): RubricMatrixContent {
     return rubric.content as RubricMatrixContent;
 }
@@ -72,34 +145,104 @@ function asPointContent(rubric: RubricJSONV3): PointAccumulationContent {
 }
 
 export function getRubricTotalScore(rubric: RubricJSONV3): number {
+    const contentRecord = asUnknownRecord(rubric.content) || {};
+    const segments = asUnknownRecordArray(contentRecord.segments);
+
+    if (segments.length > 0) {
+        if (typeof contentRecord.totalScore === 'number') return contentRecord.totalScore;
+
+        const aggregation = contentRecord.aggregation === 'weighted_sum' || contentRecord.aggregation === 'max'
+            ? contentRecord.aggregation
+            : 'sum';
+
+        const segmentMaxList = segments.map((segment) => {
+            const segmentContent = asUnknownRecord(segment.content) || {};
+            if (typeof segment.maxScore === 'number') return Math.max(0, segment.maxScore);
+            if (typeof segmentContent.totalScore === 'number') return Math.max(0, segmentContent.totalScore);
+
+            if (segment.strategyType === 'rubric_matrix') {
+                return sumScores(asUnknownRecordArray(segmentContent.dimensions).map((dimension) => normalizeScore(dimension.weight, 0)));
+            }
+            if (segment.strategyType === 'sequential_logic') {
+                return sumScores(asUnknownRecordArray(segmentContent.steps).map((step) => normalizeScore(step.score, 0)));
+            }
+            return sumScores(asUnknownRecordArray(segmentContent.points).map((point) => normalizeScore(point.score, 0)));
+        });
+
+        if (aggregation === 'max') {
+            return segmentMaxList.reduce((best, value) => Math.max(best, value), 0);
+        }
+        if (aggregation === 'weighted_sum') {
+            return segments.reduce((sum, segment, index) => {
+                const weight = normalizeScore(segment.weight, segmentMaxList[index]);
+                return sum + Math.max(0, weight);
+            }, 0);
+        }
+        return sumScores(segmentMaxList);
+    }
+
     if (rubric.strategyType === 'rubric_matrix') {
         const content = asMatrixContent(rubric);
         return content.totalScore
-            ?? sumScores(content.dimensions.map((dimension) => normalizeScore(dimension.weight, 0)));
+            ?? sumScores((content.dimensions || []).map((dimension) => normalizeScore(dimension.weight, 0)));
     }
 
     if (rubric.strategyType === 'sequential_logic') {
         const content = asSequentialContent(rubric);
         return content.totalScore
-            ?? sumScores(content.steps.map((step) => normalizeScore(step.score, 0)));
+            ?? sumScores((content.steps || []).map((step) => normalizeScore(step.score, 0)));
     }
 
     const content = asPointContent(rubric);
     return content.totalScore
-        ?? sumScores(content.points.map((point) => normalizeScore(point.score, 0)));
+        ?? sumScores((content.points || []).map((point) => normalizeScore(point.score, 0)));
 }
 
 export function getScoringStrategy(rubric: RubricJSONV3): ScoringStrategy | null {
     if (rubric.strategyType === 'rubric_matrix') return null;
-    return rubric.strategyType === 'sequential_logic'
+    const directStrategy = rubric.strategyType === 'sequential_logic'
         ? asSequentialContent(rubric).scoringStrategy
         : asPointContent(rubric).scoringStrategy;
+    if (directStrategy) return directStrategy;
+
+    const rootContent = asUnknownRecord(rubric.content) || {};
+    const segments = asUnknownRecordArray(rootContent.segments);
+    const segmentWithStrategy = segments.find((segment) => {
+        const segmentContent = asUnknownRecord(segment.content);
+        return !!(segmentContent && asUnknownRecord(segmentContent.scoringStrategy));
+    });
+    if (segmentWithStrategy) {
+        const segmentContent = asUnknownRecord(segmentWithStrategy.content) || {};
+        const strategy = asUnknownRecord(segmentContent.scoringStrategy);
+        if (strategy && typeof strategy.type === 'string') {
+            return {
+                type: strategy.type as ScoringStrategy['type'],
+                maxPoints: typeof strategy.maxPoints === 'number' ? strategy.maxPoints : undefined,
+                pointValue: typeof strategy.pointValue === 'number' ? strategy.pointValue : undefined,
+                allowAlternative: Boolean(strategy.allowAlternative),
+                strictMode: Boolean(strategy.strictMode),
+                openEnded: Boolean(strategy.openEnded)
+            };
+        }
+    }
+
+    return {
+        type: 'weighted',
+        allowAlternative: false,
+        strictMode: false,
+        openEnded: false
+    };
 }
 
 export function toEditableItems(rubric: RubricJSONV3): EditableItem[] {
+    const segmentedItems = extractSegmentItems(rubric);
+    if (segmentedItems.length > 0) {
+        return segmentedItems;
+    }
+
     if (rubric.strategyType === 'rubric_matrix') {
         const content = asMatrixContent(rubric);
-        return content.dimensions.map((dimension, index) => ({
+        return (content.dimensions || []).map((dimension, index) => ({
             id: dimension.id || `dimension-${index + 1}`,
             content: dimension.name || '',
             score: normalizeScore(
@@ -120,8 +263,8 @@ export function toEditableItems(rubric: RubricJSONV3): EditableItem[] {
     }
 
     const points = rubric.strategyType === 'sequential_logic'
-        ? asSequentialContent(rubric).steps
-        : asPointContent(rubric).points;
+        ? (asSequentialContent(rubric).steps || [])
+        : (asPointContent(rubric).points || []);
     return points.map((point, index) => ({
         id: point.id || `${rubric.metadata.questionId || 'Q'}-${index + 1}`,
         content: point.content || '',
@@ -179,7 +322,7 @@ export function applyEditableItems(rubric: RubricJSONV3, items: EditableItem[], 
     if (rubric.strategyType === 'rubric_matrix') {
         const content = asMatrixContent(rubric);
         const existingLevelsMap = new Map<string, EditableMatrixLevel[]>(
-            content.dimensions.map((dimension) => [
+            (content.dimensions || []).map((dimension) => [
                 dimension.id,
                 dimension.levels.map((level, levelIndex) => ({
                     label: level.label || String.fromCharCode(65 + levelIndex),
@@ -217,10 +360,17 @@ export function applyEditableItems(rubric: RubricJSONV3, items: EditableItem[], 
 
     if (rubric.strategyType === 'sequential_logic') {
         const content = asSequentialContent(rubric);
+        const scoringStrategy = content.scoringStrategy || {
+            type: 'weighted' as const,
+            allowAlternative: false,
+            strictMode: false,
+            openEnded: false
+        };
         return {
             ...rubric,
             content: {
                 ...content,
+                scoringStrategy,
                 steps: mapped.map((point, index) => ({ ...point, order: index + 1 })),
                 totalScore: sumScores(mapped.map((point) => normalizeScore(point.score, 0)))
             },
@@ -229,10 +379,17 @@ export function applyEditableItems(rubric: RubricJSONV3, items: EditableItem[], 
     }
 
     const content = asPointContent(rubric);
+    const scoringStrategy = content.scoringStrategy || {
+        type: 'weighted' as const,
+        allowAlternative: false,
+        strictMode: false,
+        openEnded: false
+    };
     return {
         ...rubric,
         content: {
             ...content,
+            scoringStrategy,
             points: mapped,
             totalScore: sumScores(mapped.map((point) => normalizeScore(point.score, 0)))
         },
@@ -316,7 +473,12 @@ export function updateScoringStrategy(rubric: RubricJSONV3, patch: Partial<Scori
         content: {
             ...content,
             scoringStrategy: {
-                ...content.scoringStrategy,
+                ...(content.scoringStrategy || {
+                    type: 'weighted' as const,
+                    allowAlternative: false,
+                    strictMode: false,
+                    openEnded: false
+                }),
                 ...patch
             }
         },

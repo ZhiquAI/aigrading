@@ -1,37 +1,26 @@
 import { NextResponse } from "next/server";
-import { apiErrorSchema } from "@ai-grading/api-contracts";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 import { prisma } from "@/lib/prisma";
 import {
   isScopeResolutionError,
   resolveRequestScope
-} from "@/lib/request-scope";
+} from "@/shared/scope-resolver/request-scope";
 import { deleteRecords, isRecordDomainError } from "@/modules/records/record-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function DELETE(
   request: Request,
   context: { params: { id: string } }
 ): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
     const id = normalizeNonEmpty(context.params.id);
 
     if (!id) {
-      const errorPayload = apiErrorSchema.parse({
-        code: "BAD_REQUEST",
-        message: "record id is required.",
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: 400,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, "BAD_REQUEST", "record id is required.", 400);
     }
 
     const result = await deleteRecords(prisma, {
@@ -51,49 +40,18 @@ export async function DELETE(
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     if (isRecordDomainError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
-    const errorPayload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to delete record.",
-      requestId
-    });
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to delete record.",
+      500
     );
   }
 }

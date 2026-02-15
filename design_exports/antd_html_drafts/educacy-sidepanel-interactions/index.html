@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Educacy 侧边栏交互稿总览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+  <style>
+    .panel { grid-template-rows: 62px 1fr; height: auto; min-height: 700px; }
+    .entry { border: 1px solid #edf0f4; border-radius: 10px; padding: 10px; display: grid; gap: 6px; text-decoration: none; color: inherit; }
+    .entry:hover { border-color: #d4def8; background: #fbfcff; }
+    .entry h4 { margin: 0; font-size: 13px; }
+    .entry p { margin: 0; font-size: 11px; color: #7f8ba0; line-height: 1.55; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Educacy Interaction Kit</h1><p>侧边栏交互设计稿（独立版本）</p></div></div>
+        <div class="top-actions"><span class="icon-btn">?</span></div>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <article class="metric"><p>交互页面</p><strong>4</strong><small>模块全覆盖</small></article>
+          <article class="metric"><p>状态节点</p><strong>18</strong><small>关键流程</small></article>
+          <article class="metric"><p>目标宽度</p><strong>360-390</strong><small>side panel</small></article>
+          <article class="metric"><p>当前阶段</p><strong>评审</strong><small>确认后实施</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head"><h3>模块交互稿</h3><span class="meta">可点击切换状态</span></header>
+          <div class="surface-body" style="display:grid;gap:8px;">
+            <a class="entry" href="./rubric-interaction.html"><h4>细则模块交互稿</h4><p>状态：欢迎页 / 模板列表 / 创建表单 / 生成中 / 结果页</p></a>
+            <a class="entry" href="./grading-interaction.html"><h4>阅卷模块交互稿</h4><p>状态：待开始 / 扫描中 / AI思考 / 结果确认 / 人工复核</p></a>
+            <a class="entry" href="./records-interaction.html"><h4>记录模块交互稿</h4><p>状态：加载中 / 列表 / 详情展开 / 导出反馈</p></a>
+            <a class="entry" href="./settings-interaction.html"><h4>设置模块交互稿</h4><p>状态：账户页 / 平台切换 / 测试中 / 测试成功 / 保存成功</p></a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "AI Grading V2 Side Panel",
+  "version": "0.1.0",
+  "description": "AI grading assistant side panel for Zhixue and Haofenshu.",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.zhixue.com/*",
+    "*://*.haofenshu.com/*",
+    "*://*.7net.cc/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*",
+    "http://localhost:3001/*",
+    "http://127.0.0.1:3001/*",
+    "https://localhost:3000/*",
+    "https://127.0.0.1:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.zhixue.com/*",
+        "*://*.haofenshu.com/*",
+        "*://*.7net.cc/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "Open AI Grading Side Panel"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

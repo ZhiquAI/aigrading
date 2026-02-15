@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
 import {
-  apiErrorSchema,
   recordsBatchRequestSchema
 } from "@ai-grading/api-contracts";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
@@ -9,14 +9,15 @@ import { prisma } from "@/lib/prisma";
 import {
   isScopeResolutionError,
   resolveRequestScope
-} from "@/lib/request-scope";
+} from "@/shared/scope-resolver/request-scope";
 import {
   batchCreateRecords,
   isRecordDomainError
 } from "@/modules/records/record-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
@@ -41,58 +42,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     if (isRecordDomainError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     const isBadRequest = error instanceof ZodError || error instanceof SyntaxError;
-    const errorPayload = apiErrorSchema.parse(
-      isBadRequest
-        ? {
-            code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Invalid records payload.",
-            requestId
-          }
-        : {
-            code: "INTERNAL_SERVER_ERROR",
-            message: error instanceof Error ? error.message : "Failed to create records.",
-            requestId
-          }
-    );
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: isBadRequest ? 400 : 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      isBadRequest ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+      error instanceof Error
+        ? error.message
+        : isBadRequest
+          ? "Invalid records payload."
+          : "Failed to create records.",
+      isBadRequest ? 400 : 500
     );
   }
 }

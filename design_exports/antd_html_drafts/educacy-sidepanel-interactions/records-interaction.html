@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏交互稿 - 记录模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Records Center</h1><p>记录模块交互审查</p></div></div>
+        <div class="top-actions"><button class="cta" data-target-scene="exported">导出</button><span class="icon-btn">⇩</span></div>
+      </header>
+
+      <div class="state-rail">
+        <button class="state-chip active" data-switch="loading">加载中</button>
+        <button class="state-chip" data-switch="list">列表</button>
+        <button class="state-chip" data-switch="detail">详情展开</button>
+        <button class="state-chip" data-switch="exported">导出反馈</button>
+      </div>
+
+      <main class="content">
+        <section class="scene" data-scene="loading">
+          <section class="surface"><header class="surface-head"><h3>加载记录</h3><span class="meta">同步中</span></header><div class="surface-body"><div class="meta">正在读取本地与云端历史记录...</div><div class="progress"><span style="width:54%"></span></div><div class="btn-row"><button class="btn ghost" data-target-scene="list">跳过动画</button><button class="btn solid" data-target-scene="list">进入列表</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="list">
+          <div class="grid-2">
+            <article class="metric"><p>记录总数</p><strong>2846</strong><small>历史累积</small></article>
+            <article class="metric"><p>本周批改</p><strong>412</strong><small>+12%</small></article>
+            <article class="metric"><p>平均得分率</p><strong>76%</strong><small>历史科目</small></article>
+            <article class="metric"><p>满分占比</p><strong>8.4%</strong><small>本周</small></article>
+          </div>
+          <section class="surface"><header class="surface-head"><h3>搜索与筛选</h3><span class="meta">168 条</span></header><div class="surface-body"><div class="chips"><span class="chip active">7天</span><span class="chip">30天</span><span class="chip">全部</span><span class="chip">仅异常</span></div><div class="search-row">⌕ 搜索学生 / 题号 / 关键词...</div></div></section>
+          <section class="surface"><header class="surface-head"><h3>记录列表</h3><span class="meta">点击展开</span></header><div class="surface-body card-list"><article class="card" data-target-scene="detail"><div class="card-top"><span class="badge">Q15</span><span class="meta">20:31</span></div><h4>王一鸣 · 工业革命影响评析</h4><div class="card-foot"><span class="status ok">16.5 / 18</span><span class="meta">展开</span></div></article><article class="card"><div class="card-top"><span class="badge gray">Q08</span><span class="meta">19:42</span></div><h4>李若涵 · 三则史料比较分析</h4><div class="card-foot"><span class="status partial">9 / 12</span><span class="meta">展开</span></div></article></div></section>
+        </section>
+
+        <section class="scene" data-scene="detail">
+          <section class="surface"><header class="surface-head"><h3>记录详情</h3><span class="status ok">已确认</span></header><div class="surface-body card-list"><article class="card"><div class="card-top"><span class="badge">Q15</span><span class="meta">2026-02-10 20:31</span></div><h4>王一鸣 · 历史期末 · 工业革命影响评析</h4><div class="meta">评分理由：观点完整，证据链较充分；第二条史料出处缺失，扣1.5分。</div></article><article class="card"><div class="card-top"><span class="badge ok">得分点命中</span><span class="meta">4 / 6</span></div><div class="progress"><span style="width:67%"></span></div></article><div class="btn-row"><button class="btn ghost" data-target-scene="list">返回列表</button><button class="btn solid" data-toast-message="已删除该记录">删除</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="exported">
+          <section class="surface"><header class="surface-head"><h3>导出结果</h3><span class="status ok">成功</span></header><div class="surface-body"><div class="meta">已导出 168 条记录为 CSV 文件：grading_records_20260210.csv</div><div class="btn-row"><button class="btn ghost" data-target-scene="list">返回列表</button><button class="btn solid" data-toast-message="模拟下载已触发">再次导出</button></div></div></section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a href="./rubric-interaction.html">细则</a>
+        <a href="./grading-interaction.html">阅卷</a>
+        <a class="active" href="./records-interaction.html">记录</a>
+        <a href="./settings-interaction.html">设置</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast" data-toast></div>
+  <script src="./shared.js"></script>
+</body>
+</html>

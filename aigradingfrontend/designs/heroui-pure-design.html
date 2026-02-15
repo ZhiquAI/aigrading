@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HeroUI Pure Design Draft</title>
+  <style>
+    :root {
+      --background: #f4f4f5;
+      --content1: #ffffff;
+      --content2: #f9fafb;
+      --content3: #f1f3f5;
+      --foreground: #11181c;
+      --foreground-muted: #687076;
+      --default-100: #f4f4f5;
+      --default-200: #e4e4e7;
+      --default-300: #d4d4d8;
+      --default-500: #71717a;
+      --primary-50: #ecf1ff;
+      --primary-100: #dde8ff;
+      --primary-200: #bfd2ff;
+      --primary-500: #2f6fff;
+      --primary-600: #235eea;
+      --success-100: #dcfce7;
+      --success-500: #17c964;
+      --warning-100: #fef3c7;
+      --warning-500: #f5a524;
+      --danger-100: #fee2e2;
+      --danger-500: #f31260;
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+      --shadow-sm: 0 2px 10px rgba(17, 24, 28, 0.08);
+      --shadow-md: 0 10px 28px rgba(17, 24, 28, 0.12);
+      --shadow-lg: 0 18px 40px rgba(17, 24, 28, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--foreground);
+      background:
+        radial-gradient(circle at 10% 0%, #e8f0ff 0%, transparent 35%),
+        radial-gradient(circle at 90% 10%, #eef8ff 0%, transparent 30%),
+        linear-gradient(160deg, #f8fafc 0%, #f4f4f5 55%, #f3f4f6 100%);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 18px;
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .sidebar {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 22px;
+      box-shadow: var(--shadow-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #ffffff 10%, #f5f8ff 100%);
+      border: 1px solid #ecedf0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary-500), #67a5ff);
+      box-shadow: 0 8px 18px rgba(47, 111, 255, 0.35);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--foreground-muted);
+      font-weight: 600;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: transparent;
+      text-align: left;
+      font-weight: 700;
+      color: var(--foreground-muted);
+      cursor: pointer;
+      transition: all 0.22s ease;
+    }
+
+    .nav button.active {
+      color: var(--primary-600);
+      border-color: #c9dbff;
+      background: linear-gradient(135deg, var(--primary-50), #f8fbff);
+      box-shadow: inset 0 0 0 1px rgba(47, 111, 255, 0.07);
+    }
+
+    .sidebar-card {
+      margin-top: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid #e8ebf0;
+      background: #ffffff;
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary-600);
+      background: linear-gradient(135deg, #e8f0ff, #f3f7ff);
+      border: 1px solid #cadeff;
+    }
+
+    .main {
+      display: grid;
+      gap: 14px;
+      grid-template-rows: auto auto 1fr;
+      min-width: 0;
+    }
+
+    .topbar {
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: var(--shadow-sm);
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .topbar p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--foreground-muted);
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 9px 12px;
+      cursor: pointer;
+      transition: transform 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-default {
+      color: #27272a;
+      border-color: var(--default-200);
+      background: #ffffff;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary-500), #5392ff);
+      box-shadow: 0 10px 16px rgba(47, 111, 255, 0.25);
+    }
+
+    .btn-flat {
+      color: var(--primary-600);
+      background: var(--primary-50);
+      border-color: #d7e5ff;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: var(--content1);
+      border: 1px solid #ebedf2;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-label {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--foreground-muted);
+    }
+
+    .stat-value {
+      margin: 6px 0 2px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .stat-note {
+      margin: 0;
+      font-size: 11px;
+      color: var(--foreground-muted);
+      font-weight: 600;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .panel {
+      border-radius: var(--radius-lg);
+      background: var(--content1);
+      border: 1px solid #ebedf2;
+      box-shadow: var(--shadow-sm);
+      padding: 12px;
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .step {
+      border: 1px solid #e7ebf4;
+      border-radius: 12px;
+      padding: 9px;
+      background: linear-gradient(145deg, #fcfdff, #f6f8ff);
+      min-width: 0;
+    }
+
+    .step .index {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--primary-600);
+    }
+
+    .step .title {
+      margin: 3px 0 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .step .desc {
+      margin: 4px 0 0;
+      font-size: 10px;
+      color: var(--foreground-muted);
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field label {
+      font-size: 10px;
+      color: var(--foreground-muted);
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      border: 1px solid var(--default-200);
+      border-radius: 11px;
+      background: #ffffff;
+      color: #11181c;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 10px;
+      outline: none;
+      min-width: 0;
+    }
+
+    .textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #4b5563;
+    }
+
+    .tag.status-ok {
+      background: var(--success-100);
+      color: #15803d;
+      border-color: #b8f1cf;
+    }
+
+    .tag.status-warn {
+      background: var(--warning-100);
+      color: #a16207;
+      border-color: #fde68a;
+    }
+
+    .tag.status-bad {
+      background: var(--danger-100);
+      color: #be123c;
+      border-color: #fecdd3;
+    }
+
+    .list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .item {
+      border: 1px solid #e9ecf2;
+      border-radius: 12px;
+      padding: 9px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+      background: #ffffff;
+    }
+
+    .item .title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .item .sub {
+      margin: 2px 0 0;
+      font-size: 10px;
+      color: var(--foreground-muted);
+      font-weight: 600;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .module {
+      border: 1px solid #e8ebf1;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .module h4 {
+      margin: 0 0 4px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .module p {
+      margin: 0;
+      font-size: 10px;
+      color: var(--foreground-muted);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1320px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid,
+      .module-grid,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>AI 智能批改助手</h1>
+          <p>Pure HeroUI Visual Draft</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="模块导航">
+        <button class="active">GradingView</button>
+        <button>RubricPanel</button>
+        <button>HistoryView</button>
+        <button>SettingsView</button>
+      </nav>
+
+      <div class="sidebar-card">
+        <span class="chip">企业版 · 额度 2340</span>
+        <p style="margin:8px 0 0; font-size:11px; color:var(--foreground-muted); font-weight:600; line-height:1.45;">
+          此稿件使用 HeroUI 语义化组件视觉，后续可直接映射到 `Card`、`Tabs`、`Input`、`Snippet`、`Chip`、`Table`。
+        </p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>侧边栏工作台 · HeroUI 全覆盖方案</h2>
+          <p>目标：四个模块统一为 HeroUI 组件体系，保持科技蓝品牌并去除 Tailwind 风格依赖。</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-default">切换题目</button>
+          <button class="btn btn-flat">同步云端</button>
+          <button class="btn btn-primary">开始批改</button>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="关键指标">
+        <article class="stat-card">
+          <p class="stat-label">今日批改量</p>
+          <p class="stat-value">128</p>
+          <p class="stat-note">同比昨日 +12%</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">平均分</p>
+          <p class="stat-value">72.4</p>
+          <p class="stat-note">满分 100 分</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">细则状态</p>
+          <p class="stat-value">已配置</p>
+          <p class="stat-note">V3 · 按点给分</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">复核率</p>
+          <p class="stat-value">8.2%</p>
+          <p class="stat-note">近 7 天趋势稳定</p>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <article class="panel" aria-label="RubricPanel 设计">
+          <div class="panel-head">
+            <h3 class="panel-title">RubricPanel · 评分细则创建</h3>
+            <span class="chip">步骤 1/3</span>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="index">STEP 01</div>
+              <p class="title">上传评分图片</p>
+              <p class="desc">试题图 + 参考答案图</p>
+            </div>
+            <div class="step">
+              <div class="index">STEP 02</div>
+              <p class="title">设置基本信息</p>
+              <p class="desc">考试、题号、题型策略</p>
+            </div>
+            <div class="step">
+              <div class="index">STEP 03</div>
+              <p class="title">特殊规则</p>
+              <p class="desc">关键词、扣分、字数</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>考试名称</label>
+              <input class="input" value="2026 春季期中测试" />
+            </div>
+            <div class="field">
+              <label>题号</label>
+              <input class="input" value="第 3 题" />
+            </div>
+            <div class="field">
+              <label>科目</label>
+              <select class="select">
+                <option>历史</option>
+                <option>道法</option>
+                <option>数学</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>评分策略</label>
+              <select class="select">
+                <option>按点给分</option>
+                <option>步骤给分</option>
+                <option>分档评分</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>特殊规则</label>
+            <textarea class="textarea" placeholder="每行一条规则">无标题扣2分
+每3个错别字扣1分</textarea>
+          </div>
+
+          <div class="tags">
+            <span class="tag">无标题扣2分</span>
+            <span class="tag">字数不足600字扣1分</span>
+            <span class="tag">每3个错别字扣1分</span>
+            <span class="tag">出现瓦特需提蒸汽机</span>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-default">保存草稿</button>
+            <button class="btn btn-primary">生成评分细则</button>
+          </div>
+        </article>
+
+        <article class="panel" aria-label="其他模块设计">
+          <div class="panel-head">
+            <h3 class="panel-title">Grading / History / Settings 组合视图</h3>
+            <span class="chip">Pure HeroUI</span>
+          </div>
+
+          <section class="module-grid">
+            <article class="module">
+              <h4>GradingView</h4>
+              <p>队列 + 单份批改面板 + AI 建议分。主操作为采纳/调整/复核。</p>
+            </article>
+            <article class="module">
+              <h4>HistoryView</h4>
+              <p>筛选、统计卡、记录列表。支持同步状态与异常追踪。</p>
+            </article>
+            <article class="module">
+              <h4>SettingsView</h4>
+              <p>模型、密钥、主题、策略默认值。采用分组卡片布局。</p>
+            </article>
+            <article class="module">
+              <h4>主题系统</h4>
+              <p>用 HeroUI tokens 驱动颜色、圆角、阴影，不依赖全局样式重写。</p>
+            </article>
+          </section>
+
+          <section>
+            <div class="panel-head" style="margin-top:2px;">
+              <h4 class="panel-title" style="font-size:13px;">GradingView · 当前队列</h4>
+              <button class="btn btn-flat">查看全部</button>
+            </div>
+            <div class="list">
+              <article class="item">
+                <div>
+                  <p class="title">张同学 · 第3题</p>
+                  <p class="sub">待批改 · 上传于 10:24</p>
+                </div>
+                <span class="tag status-warn">待处理</span>
+              </article>
+              <article class="item">
+                <div>
+                  <p class="title">李同学 · 第3题</p>
+                  <p class="sub">已完成 · AI 建议分 86</p>
+                </div>
+                <span class="tag status-ok">已完成</span>
+              </article>
+              <article class="item">
+                <div>
+                  <p class="title">王同学 · 第3题</p>
+                  <p class="sub">复核中 · 人工调整 +4 分</p>
+                </div>
+                <span class="tag status-bad">需复核</span>
+              </article>
+            </div>
+          </section>
+
+          <section>
+            <div class="panel-head">
+              <h4 class="panel-title" style="font-size:13px;">SettingsView · 模型设置</h4>
+              <button class="btn btn-default">测试连接</button>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>模型提供方</label>
+                <select class="select">
+                  <option>Google Gemini</option>
+                  <option>OpenAI</option>
+                  <option>智谱 GLM</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>默认模型</label>
+                <select class="select">
+                  <option>Gemini 2.5 Flash</option>
+                  <option>GPT-4o</option>
+                </select>
+              </div>
+              <div class="field" style="grid-column:1 / -1;">
+                <label>API Key</label>
+                <input class="input" value="sk-********************************" />
+              </div>
+            </div>
+          </section>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, CheckCircle2, FileText, Library, Pencil, Plus, Rocket, Search, Sparkles } from 'lucide-react';
+import { Calendar, CheckCircle2, ChevronLeft, FileText, Layers3, Pencil, Plus, Rocket, Search, Settings, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { toast } from '@/components/Toast';
+import { Tab } from '@/types';
 import {
     fetchRubricTemplates,
     updateRubricTemplateLifecycle,
@@ -16,14 +17,22 @@ import {
     getStrategyLabel,
     getSubjectBadgeClass,
     inferStrategyTypeByQuestionType,
+    normalizeQuestionTypeValue,
+    normalizeSubjectValue,
     type RubricSubjectOption
 } from './rubric-config';
 import { validateRubricForTemplate } from './rubric-validator';
 
+type TemplateStatusFilter = 'all' | 'published' | 'draft';
+
 interface RubricListViewProps {
+    onBack: () => void;
     onCreateNew: () => void;
     onSelectRubric: (questionKey: string) => void;
     onUseTemplate: (template: RubricTemplateSeed) => void;
+    initialStatusFilter?: TemplateStatusFilter;
+    headerMode?: 'default' | 'simple';
+    headerTitle?: string;
 }
 
 export interface RubricTemplateSeed {
@@ -48,7 +57,6 @@ interface TemplateCard extends RubricTemplateSeed {
 }
 
 const ALL_SUBJECT_TAB = '全部';
-type TemplateStatusFilter = 'all' | 'published' | 'draft';
 
 function computeRubricStats(rubric: RubricJSONV3): Pick<TemplateCard, 'pointCount' | 'totalScore' | 'footerNote'> {
     if (rubric.strategyType === 'rubric_matrix') {
@@ -58,7 +66,7 @@ function computeRubricStats(rubric: RubricJSONV3): Pick<TemplateCard, 'pointCoun
         return {
             pointCount: dims.length,
             totalScore: total,
-            footerNote: '维度矩阵策略'
+            footerNote: '分档评分策略'
         };
     }
 
@@ -69,7 +77,7 @@ function computeRubricStats(rubric: RubricJSONV3): Pick<TemplateCard, 'pointCoun
         return {
             pointCount: steps.length,
             totalScore: total,
-            footerNote: '顺序逻辑策略'
+            footerNote: '步骤给分策略'
         };
     }
 
@@ -79,29 +87,31 @@ function computeRubricStats(rubric: RubricJSONV3): Pick<TemplateCard, 'pointCoun
     return {
         pointCount: points.length,
         totalScore: total,
-        footerNote: '关键词累加'
+        footerNote: '按点给分策略'
     };
 }
 
 function fallbackStatsByStrategy(strategyType: StrategyType): Pick<TemplateCard, 'pointCount' | 'totalScore' | 'footerNote'> {
     if (strategyType === 'rubric_matrix') {
-        return { pointCount: 4, totalScore: 12, footerNote: '维度矩阵策略' };
+        return { pointCount: 4, totalScore: 12, footerNote: '分档评分策略' };
     }
     if (strategyType === 'sequential_logic') {
-        return { pointCount: 5, totalScore: 5, footerNote: '顺序逻辑策略' };
+        return { pointCount: 5, totalScore: 5, footerNote: '步骤给分策略' };
     }
-    return { pointCount: 6, totalScore: 3, footerNote: '关键词累加' };
+    return { pointCount: 6, totalScore: 3, footerNote: '按点给分策略' };
 }
 
 function getSubjectStripeClass(subject: string): string {
-    switch (subject) {
+    switch (normalizeSubjectValue(subject)) {
         case '语文': return 'before:bg-rose-500';
         case '英语': return 'before:bg-sky-500';
         case '数学': return 'before:bg-cyan-500';
         case '物理': return 'before:bg-violet-500';
         case '化学': return 'before:bg-pink-500';
         case '道法': return 'before:bg-orange-500';
-        case '历史': return 'before:bg-blue-500';
+        case '历史': return 'before:bg-amber-500';
+        case '地理': return 'before:bg-emerald-500';
+        case '生物': return 'before:bg-lime-500';
         default: return 'before:bg-slate-300';
     }
 }
@@ -113,11 +123,14 @@ function getPointLabel(strategyType: StrategyType): string {
 function parseRubricTemplate(template: RubricTemplate, subjectOption?: RubricSubjectOption): RubricJSONV3 | null {
     if (!template.metadata || !template.content) return null;
 
-    const fallbackSubject = (template.subject || subjectOption?.value || '历史').trim();
-    const fallbackQuestionType = (template.questionType
+    const fallbackSubject = normalizeSubjectValue(template.subject || subjectOption?.value || '历史');
+    const fallbackQuestionType = normalizeQuestionTypeValue(
+        fallbackSubject,
+        (template.questionType
         || subjectOption?.questionTypes?.[0]?.value
         || getQuestionTypeOptions(fallbackSubject)[0]?.value
-        || '材料题').trim();
+        || '材料题').trim()
+    );
     const strategyType = (template.strategyType || inferStrategyTypeByQuestionType(fallbackSubject, fallbackQuestionType)) as StrategyType;
 
     try {
@@ -125,8 +138,11 @@ function parseRubricTemplate(template: RubricTemplate, subjectOption?: RubricSub
             version: '3.0',
             metadata: {
                 ...(template.metadata || {}),
-                subject: (template.metadata?.subject || fallbackSubject).trim(),
-                questionType: (template.metadata?.questionType || fallbackQuestionType).trim()
+                subject: normalizeSubjectValue(template.metadata?.subject || fallbackSubject),
+                questionType: normalizeQuestionTypeValue(
+                    fallbackSubject,
+                    (template.metadata?.questionType || fallbackQuestionType).trim()
+                )
             },
             strategyType,
             content: template.content,
@@ -144,16 +160,20 @@ function toTemplateCard(
     template: RubricTemplate,
     examNameById: Map<string, string>
 ): TemplateCard {
-    const subjectOption = RUBRIC_SUBJECT_OPTIONS.find((item) => item.value === (template.subject || '').trim());
-    const fallbackSubject = (template.subject || subjectOption?.value || '历史').trim();
-    const fallbackQuestionType = (template.questionType
+    const normalizedTemplateSubject = normalizeSubjectValue(template.subject || '');
+    const subjectOption = RUBRIC_SUBJECT_OPTIONS.find((item) => item.value === normalizedTemplateSubject);
+    const fallbackSubject = normalizeSubjectValue(template.subject || subjectOption?.value || '历史');
+    const fallbackQuestionType = normalizeQuestionTypeValue(
+        fallbackSubject,
+        (template.questionType
         || subjectOption?.questionTypes?.[0]?.value
         || getQuestionTypeOptions(fallbackSubject)[0]?.value
-        || '材料题').trim();
+        || '材料题').trim()
+    );
 
     const rubric = parseRubricTemplate(template, subjectOption);
-    const subject = (rubric?.metadata.subject || fallbackSubject).trim();
-    const questionType = (rubric?.metadata.questionType || fallbackQuestionType).trim();
+    const subject = normalizeSubjectValue(rubric?.metadata.subject || fallbackSubject);
+    const questionType = normalizeQuestionTypeValue(subject, (rubric?.metadata.questionType || fallbackQuestionType).trim());
     const strategyType = (rubric?.strategyType
         || (template.strategyType as StrategyType)
         || inferStrategyTypeByQuestionType(subject, questionType));
@@ -181,15 +201,23 @@ function toTemplateCard(
     };
 }
 
-export default function RubricListView({ onCreateNew, onSelectRubric, onUseTemplate }: RubricListViewProps) {
-    const { exams, activeExamId } = useAppStore();
+export default function RubricListView({
+    onBack,
+    onCreateNew,
+    onSelectRubric,
+    onUseTemplate,
+    initialStatusFilter = 'published',
+    headerMode = 'default',
+    headerTitle
+}: RubricListViewProps) {
+    const { exams, activeExamId, quota, setActiveTab } = useAppStore();
     const [templates, setTemplates] = useState<RubricTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeSubject, setActiveSubject] = useState<string>(ALL_SUBJECT_TAB);
     const [examFilter, setExamFilter] = useState<'all' | 'current' | 'unassigned'>('all');
-    const [statusFilter, setStatusFilter] = useState<TemplateStatusFilter>('published');
+    const [statusFilter, setStatusFilter] = useState<TemplateStatusFilter>(initialStatusFilter);
 
     const currentExamName = useMemo(
         () => exams.find((exam) => exam.id === activeExamId)?.name || '未选择',
@@ -295,37 +323,78 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
     }, [activeExamId, activeSubject, allTemplates, examFilter, searchQuery, statusFilter]);
 
     return (
-        <div className="flex h-full flex-col bg-[#F5F4F1]">
-            <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#F0EFED] bg-white px-4">
-                <div className="flex items-center gap-2">
-                    <Library className="h-[18px] w-[18px] text-blue-500" />
-                    <h1 className="text-base font-black tracking-tight text-[#1A1918]">评分细则模板</h1>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold text-slate-500">
-                        {allTemplates.length}
-                    </span>
-                </div>
-                <button
-                    onClick={onCreateNew}
-                    aria-label="创建细则模板"
-                    className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-blue-500 text-white shadow-[0_4px_10px_rgba(59,130,246,0.3)] transition-colors hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
-                >
-                    <Plus className="h-4 w-4" />
-                </button>
-            </header>
+        <div className="flex h-full flex-col bg-gradient-to-b from-[#EEF3F7] via-[#F5F9FC] to-[#FAFCFF]">
+            {headerMode === 'simple' ? (
+                <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#E2E9F5] bg-white/92 px-4 backdrop-blur">
+                    <button
+                        type="button"
+                        onClick={onBack}
+                        className="grid h-8 w-8 place-items-center rounded-full text-zinc-600 transition-colors hover:bg-zinc-100"
+                        aria-label="返回细则输入"
+                    >
+                        <ChevronLeft className="h-4.5 w-4.5" />
+                    </button>
+                    <h2 className="text-[15px] font-black tracking-tight text-[#17233A]">
+                        {headerTitle || '生成评分细则'}
+                    </h2>
+                    <div className="flex items-center gap-1">
+                        <span className="rounded-full border border-[#F2D9B8] bg-[#FFF7EC] px-2 py-0.5 text-[10px] font-bold text-[#8B5A1F]">
+                            {quota.isPaid ? 'PRO' : '试用版'}
+                        </span>
+                        <button
+                            type="button"
+                            aria-label="打开设置"
+                            onClick={() => setActiveTab(Tab.Settings)}
+                            className="grid h-8 w-8 place-items-center rounded-full border border-[#E2E9F5] bg-white text-zinc-600 transition-colors hover:bg-zinc-100"
+                        >
+                            <Settings className="h-4 w-4" />
+                        </button>
+                    </div>
+                </header>
+            ) : (
+                <header className="sticky top-0 z-20 border-b border-[#E4EAF2] bg-white/95 px-4 py-2.5 backdrop-blur">
+                    <div className="mb-1.5 flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE5F2] bg-[#F7FAFF] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#5D6F8D]">
+                            <Layers3 className="h-3 w-3 text-[#3E59C9]" />
+                            Template Library
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <button
+                                type="button"
+                                onClick={onBack}
+                                className="mr-2 flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#DEE5F1] bg-[#F7FAFF] text-[#4A617D] transition-colors hover:bg-white"
+                                aria-label="返回评分细则工作台"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <h2 className="text-[14px] font-black text-[#101D35]">模板库</h2>
+                        </div>
+                        <button
+                            onClick={onCreateNew}
+                            aria-label="创建细则模板"
+                            className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-r from-[#3E59C9] to-[#2B54E2] text-white shadow-[0_8px_16px_rgba(47,82,193,0.35)] transition-colors hover:from-[#3753BC] hover:to-[#244CD9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8D8FF]"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    </div>
+                </header>
+            )}
 
-            <div className="border-b border-[#F0EFED] bg-white px-4 py-3">
+            <div className="border-b border-[#E4EAF2] bg-white/85 px-4 py-3 backdrop-blur">
                 <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95A3B8]" />
                     <input
                         value={searchQuery}
                         onChange={(event) => setSearchQuery(event.target.value)}
                         placeholder="搜索细则模板..."
-                        className="h-10 w-full rounded-[10px] border border-[#E5E4E1] bg-[#F8F9FA] pl-10 pr-3 text-[12px] font-semibold text-[#4A4947] placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:outline-none"
+                        className="h-10 w-full rounded-[12px] border border-[#DFE7F2] bg-[#F8FBFF] pl-10 pr-3 text-[12px] font-semibold text-[#314967] placeholder:text-[#95A3B8] focus:border-[#A8BCF2] focus:bg-white focus:outline-none"
                     />
                 </div>
             </div>
 
-            <div className="flex overflow-x-auto border-b border-[#F0EFED] bg-white px-4 pt-2 scrollbar-none">
+            <div className="flex overflow-x-auto border-b border-[#E4EAF2] bg-white/80 px-4 pt-2 scrollbar-none">
                 <div className="flex min-w-max gap-4">
                     {subjectTabs.map((tab) => {
                         const isActive = tab === activeSubject;
@@ -334,8 +403,8 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                                 key={tab}
                                 onClick={() => setActiveSubject(tab)}
                                 className={`h-9 whitespace-nowrap border-b-2 text-[12px] font-extrabold transition-all ${isActive
-                                    ? 'border-blue-500 text-blue-500'
-                                    : 'border-transparent text-[#9C9B99] hover:text-[#4A4947]'
+                                    ? 'border-[#3E59C9] text-[#3E59C9]'
+                                    : 'border-transparent text-[#8B98AD] hover:text-[#324A68]'
                                     }`}
                             >
                                 {tab}
@@ -345,12 +414,12 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                 </div>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto border-b border-[#F0EFED] bg-white px-4 py-2 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto border-b border-[#E4EAF2] bg-white/80 px-4 py-2 scrollbar-none">
                 <button
                     onClick={() => setExamFilter('all')}
                     className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${examFilter === 'all'
-                        ? 'border border-blue-200 bg-blue-50 text-blue-700'
-                        : 'bg-slate-100 text-slate-500'
+                        ? 'border border-[#D0DBF4] bg-[#ECF2FF] text-[#3552AD]'
+                        : 'bg-[#EEF2F7] text-[#667891]'
                         }`}
                 >
                     全部考试
@@ -358,8 +427,8 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                 <button
                     onClick={() => setExamFilter('current')}
                     className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${examFilter === 'current'
-                        ? 'border border-blue-200 bg-blue-50 text-blue-700'
-                        : 'bg-slate-100 text-slate-500'
+                        ? 'border border-[#D0DBF4] bg-[#ECF2FF] text-[#3552AD]'
+                        : 'bg-[#EEF2F7] text-[#667891]'
                         }`}
                 >
                     当前考试：{currentExamName}
@@ -367,20 +436,20 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                 <button
                     onClick={() => setExamFilter('unassigned')}
                     className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${examFilter === 'unassigned'
-                        ? 'border border-blue-200 bg-blue-50 text-blue-700'
-                        : 'bg-slate-100 text-slate-500'
+                        ? 'border border-[#D0DBF4] bg-[#ECF2FF] text-[#3552AD]'
+                        : 'bg-[#EEF2F7] text-[#667891]'
                         }`}
                 >
                     未分组
                 </button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto border-b border-[#F0EFED] bg-white px-4 py-2 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto border-b border-[#E4EAF2] bg-white/80 px-4 py-2 scrollbar-none">
                 <button
                     onClick={() => setStatusFilter('published')}
                     className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${statusFilter === 'published'
                         ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'bg-slate-100 text-slate-500'
+                        : 'bg-[#EEF2F7] text-[#667891]'
                         }`}
                 >
                     已发布
@@ -389,7 +458,7 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                     onClick={() => setStatusFilter('draft')}
                     className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${statusFilter === 'draft'
                         ? 'border border-amber-200 bg-amber-50 text-amber-700'
-                        : 'bg-slate-100 text-slate-500'
+                        : 'bg-[#EEF2F7] text-[#667891]'
                         }`}
                 >
                     草稿
@@ -397,18 +466,18 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                 <button
                     onClick={() => setStatusFilter('all')}
                     className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${statusFilter === 'all'
-                        ? 'border border-blue-200 bg-blue-50 text-blue-700'
-                        : 'bg-slate-100 text-slate-500'
+                        ? 'border border-[#D0DBF4] bg-[#ECF2FF] text-[#3552AD]'
+                        : 'bg-[#EEF2F7] text-[#667891]'
                         }`}
                 >
                     全部状态
                 </button>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto bg-[#F8F9FA] p-4">
+            <div className="flex-1 space-y-3 overflow-y-auto bg-transparent p-4">
                 {loading && (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
-                        <h2 className="text-sm font-bold text-slate-700">模板加载中...</h2>
+                    <div className="rounded-2xl border border-dashed border-[#CCD7E7] bg-white p-6 text-center">
+                        <h2 className="text-sm font-bold text-[#334868]">模板加载中...</h2>
                     </div>
                 )}
 
@@ -427,9 +496,9 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                 )}
 
                 {!loading && !loadError && filteredTemplates.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
-                        <h2 className="text-sm font-bold text-slate-700">没有匹配的模板</h2>
-                        <p className="mt-1 text-xs text-slate-400">切换学科或更换关键词试试</p>
+                    <div className="rounded-2xl border border-dashed border-[#CCD7E7] bg-white p-6 text-center">
+                        <h2 className="text-sm font-bold text-[#334868]">没有匹配的模板</h2>
+                        <p className="mt-1 text-xs text-[#7A879B]">切换学科或更换关键词试试</p>
                     </div>
                 )}
 
@@ -448,7 +517,7 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                                     onUseTemplate(template);
                                 }
                             }}
-                            className={`relative overflow-hidden rounded-2xl border border-[#E5E4E1] bg-white p-4 shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${getSubjectStripeClass(template.subject)} before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${isCurrentExamTemplate ? 'ring-1 ring-blue-300/60' : ''
+                            className={`relative overflow-hidden rounded-2xl border border-[#DFE7F2] bg-white p-4 shadow-[0_10px_22px_rgba(33,52,88,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(33,52,88,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A8BCF2] ${getSubjectStripeClass(template.subject)} before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${isCurrentExamTemplate ? 'ring-1 ring-[#9EB4EE]' : ''
                                 }`}
                         >
                             <div className="mb-2 flex items-center justify-between">
@@ -474,21 +543,21 @@ export default function RubricListView({ onCreateNew, onSelectRubric, onUseTempl
                                 </div>
                             </div>
 
-                            <h3 className="mb-3 text-[14px] font-black leading-tight text-[#1A1918]">{template.templateTitle}</h3>
+                            <h3 className="mb-3 text-[14px] font-black leading-tight text-[#101D35]">{template.templateTitle}</h3>
 
                             <div className="mb-3 flex items-baseline gap-4">
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-[16px] font-black text-[#1A1918]">{template.pointCount}</span>
-                                    <span className="text-[10px] font-bold uppercase text-[#9C9B99]">{getPointLabel(template.strategyType)}</span>
+                                    <span className="text-[16px] font-black text-[#101D35]">{template.pointCount}</span>
+                                    <span className="text-[10px] font-bold uppercase text-[#8493A9]">{getPointLabel(template.strategyType)}</span>
                                 </div>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-[16px] font-black text-[#1A1918]">{template.totalScore}</span>
-                                    <span className="text-[10px] font-bold uppercase text-[#9C9B99]">总分</span>
+                                    <span className="text-[16px] font-black text-[#101D35]">{template.totalScore}</span>
+                                    <span className="text-[10px] font-bold uppercase text-[#8493A9]">总分</span>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between border-t border-dashed border-[#F0EFED] pt-3">
-                                <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold text-[#9C9B99]">
+                            <div className="flex items-center justify-between border-t border-dashed border-[#E7EDF7] pt-3">
+                                <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold text-[#8493A9]">
                                     <Calendar className="h-3 w-3 shrink-0" />
                                     <span className="truncate">{template.source === 'preset' ? template.footerNote : examLabel}</span>
                                 </div>

@@ -5,8 +5,12 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, apiServerError, ErrorCode } from '@/lib/api-response';
 import { validateRubricV3, RubricJSONV3 } from '@/lib/rubric-v3';
-import { getRubricSystemPrompt } from '@/lib/config-service';
+import { getRubricSystemPrompt, normalizeSubjectValue } from '@/lib/config-service';
 import { generateRubricWithZhipu } from '@/lib/zhipu';
+import { buildRubricSystemPrompt } from '@/lib/prompt-factory';
+import { getRubricCustomRulesFlag } from '@/lib/feature-flags';
+import { mergeConstraintList, normalizeCustomRulesToConstraints } from '@/lib/custom-rules-normalizer';
+import { normalizeRubricSubQuestionSegments } from '@/lib/rubric-segmentation';
 
 const GPTSAPI_URL = 'https://api.gptsapi.net/v1/chat/completions';
 const GPTSAPI_KEY = process.env.GPTSAPI_KEY || '';
@@ -88,6 +92,13 @@ function parseAndValidate(jsonString: string): RubricJSONV3 {
     return validation.rubric!;
 }
 
+function normalizeCustomRulesInput(input: unknown): string[] {
+    if (!Array.isArray(input)) return [];
+    return input
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean);
+}
+
 /**
  * POST /api/ai/rubric
  * 生成评分细则(支持图片和文本)
@@ -103,20 +114,42 @@ export async function POST(request: NextRequest) {
             subject,
             questionType,
             strategyType,
-            examName
+            examName,
+            totalScore,
+            taskScope,
+            parentQuestionId,
+            subQuestionId
         } = body;
+        const normalizedSubject = typeof subject === 'string' ? normalizeSubjectValue(subject) : subject;
+        const customRules = normalizeCustomRulesInput(body.customRules ?? body.custom_rules);
+        const hasCustomRules = customRules.length > 0;
+        const customRulesFeatureGate = getRubricCustomRulesFlag(request);
+
+        if (hasCustomRules && !customRulesFeatureGate.enabled) {
+            return apiError('当前账号未开通个性化规则灰度能力', 403, ErrorCode.INVALID_REQUEST);
+        }
 
         if (!questionImage && !answerImage && !answerText) {
             return apiError('请提供图片或文本参考答案');
         }
 
-        // 统一使用配置服务生成 system prompt
-        const systemPrompt = getRubricSystemPrompt();
+        // 统一使用配置服务生成 system prompt，并按需注入个性化规则
+        const baseSystemPrompt = getRubricSystemPrompt(normalizedSubject);
+        const systemPrompt = buildRubricSystemPrompt(baseSystemPrompt, {
+            subject: normalizedSubject,
+            questionType,
+            totalScore,
+            customRules: hasCustomRules ? customRules : []
+        });
         const contextLines = [
-            subject ? `学科：${subject}` : '',
+            normalizedSubject ? `学科：${normalizedSubject}` : '',
             questionType ? `题型：${questionType}` : '',
             strategyType ? `建议评分结构：${strategyType}` : '',
             examName ? `考试：${examName}` : '',
+            typeof totalScore === 'number' ? `总分：${totalScore}` : '',
+            taskScope ? `任务粒度：${taskScope === 'subquestion' ? '小问' : '整题'}` : '',
+            parentQuestionId ? `大题号：${parentQuestionId}` : '',
+            subQuestionId ? `小问号：${subQuestionId}` : '',
             questionId ? `题号：${questionId}` : ''
         ].filter(Boolean);
         const contextPrompt = contextLines.length > 0 ? `【上下文】\n${contextLines.join('\n')}\n\n` : '';
@@ -126,6 +159,9 @@ export async function POST(request: NextRequest) {
 
         if (answerText) {
             // 文本模式
+            const customRulesPrompt = hasCustomRules
+                ? `\n【教师个性化规则】\n${customRules.map((rule, index) => `${index + 1}. ${rule}`).join('\n')}\n`
+                : '';
             userPrompt = `${contextPrompt}请根据以下文本格式的参考答案生成结构化评分细则 JSON:
 
 【参考答案】
@@ -133,11 +169,16 @@ ${answerText}
 
 【题目 ID】${questionId || '未知'}
 
+${customRulesPrompt}
+
 请仔细分析参考答案的结构,识别各小题的题型(客观题/材料分析题/开放性题目),并生成对应的评分细则。`;
             console.log('[Rubric AI] Mode: Text input');
         } else {
             // 图片模式
-            userPrompt = `${contextPrompt}请根据图片中的参考答案生成结构化评分细则 JSON。`;
+            const customRulesPrompt = hasCustomRules
+                ? `\n【教师个性化规则】\n${customRules.map((rule, index) => `${index + 1}. ${rule}`).join('\n')}\n`
+                : '';
+            userPrompt = `${contextPrompt}请根据图片中的参考答案生成结构化评分细则 JSON。${customRulesPrompt}`;
             if (questionImage) {
                 images.push({ base64: questionImage, label: '【试题图片】' });
             }
@@ -184,8 +225,8 @@ ${answerText}
         if (questionId) {
             rubric.metadata.questionId = questionId;
         }
-        if (subject) {
-            rubric.metadata.subject = subject;
+        if (normalizedSubject) {
+            rubric.metadata.subject = normalizedSubject;
         }
         if (questionType) {
             rubric.metadata.questionType = questionType;
@@ -194,18 +235,41 @@ ${answerText}
             rubric.metadata.examName = examName;
         }
 
+        if (customRulesFeatureGate.enabled && hasCustomRules) {
+            const normalizedConstraints = normalizeCustomRulesToConstraints(customRules);
+            rubric.constraints = mergeConstraintList(rubric.constraints, normalizedConstraints);
+        }
+
+        let normalizedRubric = rubric;
+        const segmented = normalizeRubricSubQuestionSegments(normalizedRubric, {
+            taskScope: taskScope === 'subquestion' ? 'subquestion' : 'question',
+            mainQuestionNo: parentQuestionId || questionId,
+            expectedTotalScore: typeof totalScore === 'number' ? totalScore : undefined
+        });
+        const segmentedValidation = validateRubricV3(segmented);
+        if (segmentedValidation.valid && segmentedValidation.rubric) {
+            normalizedRubric = segmentedValidation.rubric;
+        } else {
+            console.warn('[Rubric AI] Segmentation normalize skipped:', segmentedValidation.errors.join(', '));
+        }
+
+        const mergedValidation = validateRubricV3(normalizedRubric);
+        if (!mergedValidation.valid || !mergedValidation.rubric) {
+            throw new Error(`个性化规则合并后格式错误: ${mergedValidation.errors.join(', ')}`);
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const content = rubric.content as any;
-        const pointCount = rubric.strategyType === 'rubric_matrix'
+        const content = mergedValidation.rubric.content as any;
+        const pointCount = mergedValidation.rubric.strategyType === 'rubric_matrix'
             ? content.dimensions?.length ?? 0
-            : rubric.strategyType === 'sequential_logic'
+            : mergedValidation.rubric.strategyType === 'sequential_logic'
                 ? content.steps?.length ?? 0
                 : content.points?.length ?? 0;
 
-        console.log(`[Rubric AI] Generated: ${rubric.metadata.questionId}, ${pointCount} points`);
+        console.log(`[Rubric AI] Generated: ${mergedValidation.rubric.metadata.questionId}, ${pointCount} points`);
 
         return apiSuccess({
-            rubric,
+            rubric: mergedValidation.rubric,
             provider
         }, '评分细则生成成功');
 

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 智能批改助手 · Ant Design 6.0 设计稿</title>
+  <style>
+    :root {
+      --ant-color-primary: #2F6FFF;
+      --ant-color-primary-hover: #235EEA;
+      --ant-color-success: #16A34A;
+      --ant-color-warning: #F59E0B;
+      --ant-color-error: #EF4444;
+      --ant-color-text: #1F2937;
+      --ant-color-text-secondary: #6B7280;
+      --ant-color-border: #E5E7EB;
+      --ant-color-border-secondary: #EEF2F6;
+      --ant-color-bg-base: #F6F8FB;
+      --ant-color-bg-container: #FFFFFF;
+      --ant-color-bg-elevated: #F9FAFB;
+      --ant-radius: 10px;
+      --ant-radius-lg: 14px;
+      --ant-shadow-1: 0 8px 20px rgba(15, 23, 42, 0.08);
+      --ant-shadow-2: 0 16px 36px rgba(15, 23, 42, 0.12);
+      --ant-space-1: 8px;
+      --ant-space-2: 12px;
+      --ant-space-3: 16px;
+      --ant-space-4: 24px;
+      --ant-space-5: 32px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      background: var(--ant-color-bg-base);
+      color: var(--ant-color-text);
+    }
+    a { color: inherit; text-decoration: none; }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: var(--ant-color-bg-container);
+      border-right: 1px solid var(--ant-color-border-secondary);
+      padding: var(--ant-space-4);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--ant-space-2);
+      margin-bottom: var(--ant-space-4);
+      font-weight: 700;
+    }
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--ant-color-primary), #5F92FF);
+    }
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav a {
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--ant-color-text-secondary);
+      font-weight: 600;
+    }
+    .nav a.active {
+      background: #EEF3FF;
+      color: var(--ant-color-primary);
+    }
+
+    .content {
+      padding: var(--ant-space-5);
+    }
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: var(--ant-space-3);
+    }
+    .page-desc {
+      color: var(--ant-color-text-secondary);
+      margin-bottom: var(--ant-space-4);
+    }
+
+    .section {
+      background: var(--ant-color-bg-container);
+      border-radius: var(--ant-radius-lg);
+      box-shadow: var(--ant-shadow-1);
+      padding: var(--ant-space-4);
+      margin-bottom: var(--ant-space-5);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--ant-space-3);
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      gap: var(--ant-space-3);
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      background: var(--ant-color-bg-container);
+      border: 1px solid var(--ant-color-border-secondary);
+      border-radius: var(--ant-radius);
+      padding: var(--ant-space-3);
+    }
+    .card-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .muted { color: var(--ant-color-text-secondary); }
+
+    .ant-btn {
+      border: 1px solid var(--ant-color-border);
+      background: #fff;
+      color: var(--ant-color-text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ant-btn-primary {
+      background: var(--ant-color-primary);
+      border-color: var(--ant-color-primary);
+      color: #fff;
+    }
+    .ant-btn-ghost {
+      background: transparent;
+      border-color: var(--ant-color-primary);
+      color: var(--ant-color-primary);
+    }
+    .ant-input, .ant-select {
+      width: 100%;
+      border: 1px solid var(--ant-color-border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-weight: 600;
+      background: #fff;
+    }
+    .form-item { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 700; color: var(--ant-color-text-secondary); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-weight: 600;
+      font-size: 12px;
+      background: #EEF3FF;
+      color: var(--ant-color-primary);
+    }
+    .tag-success { background: #ECFDF3; color: #16A34A; }
+    .tag-warning { background: #FFFBEB; color: #B45309; }
+    .tag-error { background: #FEF2F2; color: #B91C1C; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--ant-space-2);
+    }
+    .step {
+      border: 1px solid var(--ant-color-border-secondary);
+      border-radius: 10px;
+      padding: 12px;
+      background: #FAFBFF;
+    }
+    .step .index { font-weight: 700; color: var(--ant-color-primary); }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--ant-color-border-secondary);
+    }
+    .table th, .table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--ant-color-border-secondary);
+      text-align: left;
+      font-size: 13px;
+    }
+    .table th { background: #F9FAFB; font-weight: 700; color: var(--ant-color-text-secondary); }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-value { font-size: 20px; font-weight: 700; }
+
+    .divider {
+      height: 1px;
+      background: var(--ant-color-border-secondary);
+      margin: var(--ant-space-3) 0;
+    }
+
+    @media (max-width: 1200px) {
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { position: sticky; top: 0; z-index: 2; }
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .content { padding: var(--ant-space-3); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge"></div>
+        <div>
+          <div>AI 智能批改助手</div>
+          <div class="muted" style="font-size:12px;">Ant Design 6.0 设计稿</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a class="active" href="#grading">GradingView</a>
+        <a href="#rubric">RubricPanel</a>
+        <a href="#history">HistoryView</a>
+        <a href="#settings">SettingsView</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <section id="grading" class="section">
+        <div class="section-header">
+          <div class="section-title">GradingView · 批改工作台</div>
+          <div class="toolbar">
+            <span class="tag">当前题目：第 3 题</span>
+            <button class="ant-btn">切换题目</button>
+            <button class="ant-btn-primary">开始批改</button>
+          </div>
+        </div>
+
+        <div class="grid grid-4">
+          <div class="card stat">
+            <div class="muted">今日批改</div>
+            <div class="stat-value">128 份</div>
+            <div class="muted">+12% vs 昨日</div>
+          </div>
+          <div class="card stat">
+            <div class="muted">平均分</div>
+            <div class="stat-value">72.4</div>
+            <div class="muted">满分 100</div>
+          </div>
+          <div class="card stat">
+            <div class="muted">已配置细则</div>
+            <div class="stat-value">是</div>
+            <div class="muted">更新于 10:24</div>
+          </div>
+          <div class="card stat">
+            <div class="muted">剩余额度</div>
+            <div class="stat-value">2,340</div>
+            <div class="muted">月度配额</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">批改模式</div>
+            <div class="toolbar">
+              <button class="ant-btn-primary">智能模式</button>
+              <button class="ant-btn">辅助模式</button>
+              <button class="ant-btn">人工复核</button>
+            </div>
+            <div class="muted" style="margin-top:8px;">智能模式将自动生成评分建议与要点。</div>
+          </div>
+          <div class="card">
+            <div class="card-title">评分细则状态</div>
+            <div class="toolbar">
+              <span class="tag tag-success">已配置</span>
+              <button class="ant-btn-ghost">查看/修改细则</button>
+            </div>
+            <div class="muted" style="margin-top:8px;">当前细则策略：按点给分 · V3</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">批改队列</div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>学生</th>
+                  <th>状态</th>
+                  <th>得分</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>张同学</td>
+                  <td><span class="tag">待批改</span></td>
+                  <td>--</td>
+                  <td><button class="ant-btn">开始</button></td>
+                </tr>
+                <tr>
+                  <td>李同学</td>
+                  <td><span class="tag tag-success">已完成</span></td>
+                  <td>86</td>
+                  <td><button class="ant-btn">查看</button></td>
+                </tr>
+                <tr>
+                  <td>王同学</td>
+                  <td><span class="tag tag-warning">复核中</span></td>
+                  <td>72</td>
+                  <td><button class="ant-btn">复核</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-title">单份批改面板</div>
+            <div class="muted">展示学生答题卡缩略图与 AI 评分建议。</div>
+            <div class="divider"></div>
+            <div class="grid grid-2">
+              <div class="card" style="background:#F9FAFB;">
+                <div class="card-title">AI 得分建议</div>
+                <div class="stat-value">78 / 100</div>
+                <div class="muted">关键得分点：4/6 命中</div>
+              </div>
+              <div class="card" style="background:#F9FAFB;">
+                <div class="card-title">操作</div>
+                <div class="toolbar">
+                  <button class="ant-btn-primary">采纳</button>
+                  <button class="ant-btn">调整</button>
+                  <button class="ant-btn">驳回</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="rubric" class="section">
+        <div class="section-header">
+          <div class="section-title">RubricPanel · 评分细则创建</div>
+          <div class="toolbar">
+            <span class="tag">步骤 1/3</span>
+            <button class="ant-btn">保存草稿</button>
+            <button class="ant-btn-primary">生成评分细则</button>
+          </div>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="index">步骤 1</div>
+            <div class="card-title">上传评分图片</div>
+            <div class="muted">试题图片 + 参考答案</div>
+          </div>
+          <div class="step">
+            <div class="index">步骤 2</div>
+            <div class="card-title">填写基本信息</div>
+            <div class="muted">考试、题号、总分、题型</div>
+          </div>
+          <div class="step">
+            <div class="index">步骤 3</div>
+            <div class="card-title">特殊规则</div>
+            <div class="muted">扣分/关键字/字数要求</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">上传区</div>
+            <div class="grid grid-2">
+              <div class="card" style="background:#F9FAFB;">试题图片上传</div>
+              <div class="card" style="background:#F9FAFB;">参考答案上传</div>
+            </div>
+            <div class="toolbar" style="margin-top:10px;">
+              <button class="ant-btn">从剪贴板粘贴</button>
+              <button class="ant-btn-ghost">批量上传</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">基本信息</div>
+            <div class="grid grid-2">
+              <div class="form-item">
+                <div class="form-label">考试名称</div>
+                <input class="ant-input" placeholder="输入考试名称" />
+              </div>
+              <div class="form-item">
+                <div class="form-label">科目</div>
+                <select class="ant-select">
+                  <option>历史</option>
+                  <option>道法</option>
+                  <option>数学</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <div class="form-label">题号</div>
+                <input class="ant-input" placeholder="例如：3" />
+              </div>
+              <div class="form-item">
+                <div class="form-label">总分</div>
+                <input class="ant-input" placeholder="例如：100" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">题型与策略</div>
+            <div class="toolbar">
+              <button class="ant-btn-primary">按点给分</button>
+              <button class="ant-btn">步骤给分</button>
+              <button class="ant-btn">分档评分</button>
+            </div>
+            <div class="muted" style="margin-top:8px;">推荐策略会基于题型自动更新。</div>
+          </div>
+          <div class="card">
+            <div class="card-title">特殊规则</div>
+            <textarea class="ant-input" style="height:90px;" placeholder="每行一条规则"></textarea>
+            <div class="toolbar" style="margin-top:8px;">
+              <button class="ant-btn">无标题扣2分</button>
+              <button class="ant-btn">字数不足600字扣1分</button>
+              <button class="ant-btn">错别字扣分</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="history" class="section">
+        <div class="section-header">
+          <div class="section-title">HistoryView · 历史记录</div>
+          <div class="toolbar">
+            <button class="ant-btn">导出</button>
+            <button class="ant-btn-primary">同步云端</button>
+          </div>
+        </div>
+
+        <div class="grid grid-3">
+          <div class="form-item">
+            <div class="form-label">考试名称</div>
+            <input class="ant-input" placeholder="模糊搜索" />
+          </div>
+          <div class="form-item">
+            <div class="form-label">题号</div>
+            <input class="ant-input" placeholder="例如：3" />
+          </div>
+          <div class="form-item">
+            <div class="form-label">时间范围</div>
+            <input class="ant-input" placeholder="2025-01-01 ~ 2025-02-01" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid grid-4">
+          <div class="card stat">
+            <div class="muted">总批改量</div>
+            <div class="stat-value">1,832</div>
+          </div>
+          <div class="card stat">
+            <div class="muted">平均得分</div>
+            <div class="stat-value">75.6</div>
+          </div>
+          <div class="card stat">
+            <div class="muted">复核率</div>
+            <div class="stat-value">8.2%</div>
+          </div>
+          <div class="card stat">
+            <div class="muted">异常提醒</div>
+            <div class="stat-value">3</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>考试</th>
+              <th>题号</th>
+              <th>批改时间</th>
+              <th>平均分</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>期中测试</td>
+              <td>第 3 题</td>
+              <td>2026-02-05</td>
+              <td>76.4</td>
+              <td><span class="tag tag-success">已同步</span></td>
+              <td><button class="ant-btn">查看</button></td>
+            </tr>
+            <tr>
+              <td>单元测验</td>
+              <td>第 2 题</td>
+              <td>2026-02-03</td>
+              <td>69.1</td>
+              <td><span class="tag tag-warning">待同步</span></td>
+              <td><button class="ant-btn">同步</button></td>
+            </tr>
+            <tr>
+              <td>随堂练习</td>
+              <td>第 1 题</td>
+              <td>2026-02-01</td>
+              <td>81.5</td>
+              <td><span class="tag tag-error">异常</span></td>
+              <td><button class="ant-btn">复核</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="settings" class="section">
+        <div class="section-header">
+          <div class="section-title">SettingsView · 设置中心</div>
+          <div class="toolbar">
+            <button class="ant-btn">恢复默认</button>
+            <button class="ant-btn-primary">保存设置</button>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">账号与授权</div>
+            <div class="grid grid-2">
+              <div class="form-item">
+                <div class="form-label">激活码</div>
+                <input class="ant-input" placeholder="XXXX-XXXX-XXXX-XXXX" />
+              </div>
+              <div class="form-item">
+                <div class="form-label">会员类型</div>
+                <input class="ant-input" value="专业版" />
+              </div>
+            </div>
+            <div class="toolbar" style="margin-top:10px;">
+              <button class="ant-btn-ghost">验证激活码</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">外观与偏好</div>
+            <div class="grid grid-2">
+              <div class="form-item">
+                <div class="form-label">主题</div>
+                <select class="ant-select">
+                  <option>浅色</option>
+                  <option>深色</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <div class="form-label">语言</div>
+                <select class="ant-select">
+                  <option>中文</option>
+                  <option>English</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">AI 服务配置</div>
+            <div class="form-item">
+              <div class="form-label">模型提供方</div>
+              <select class="ant-select">
+                <option>Google Gemini</option>
+                <option>OpenAI</option>
+                <option>智谱 AI</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <div class="form-label">API Key</div>
+              <input class="ant-input" placeholder="sk-..." />
+            </div>
+            <div class="form-item">
+              <div class="form-label">Endpoint</div>
+              <input class="ant-input" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">评分策略默认值</div>
+            <div class="grid grid-2">
+              <div class="form-item">
+                <div class="form-label">默认题型</div>
+                <select class="ant-select">
+                  <option>材料解析题</option>
+                  <option>简答题</option>
+                  <option>选择题</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <div class="form-label">默认策略</div>
+                <select class="ant-select">
+                  <option>按点给分</option>
+                  <option>步骤给分</option>
+                  <option>分档评分</option>
+                </select>
+              </div>
+            </div>
+            <div class="toolbar" style="margin-top:10px;">
+              <button class="ant-btn">重置策略</button>
+              <button class="ant-btn-primary">应用策略</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

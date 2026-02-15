@@ -271,65 +271,65 @@ export const RubricResultView = ({
   };
 
   return (
-    <section className="legacy-rubric-workspace">
-      <header className="legacy-rubric-subheader">
+    <section className="classic-rubric-workspace">
+      <header className="classic-rubric-subheader">
         <button type="button" onClick={onBackInput}>←</button>
         <h3>生成结果</h3>
-        <div className="legacy-rubric-subheader-actions">
-          <button type="button" className="legacy-rubric-subheader-link" onClick={onOpenList}>模板</button>
+        <div className="classic-rubric-subheader-actions">
+          <button type="button" className="classic-rubric-subheader-link" onClick={onOpenList}>模板</button>
           <button
             type="button"
-            className="legacy-rubric-settings-btn"
+            className="classic-rubric-settings-btn"
             aria-label="打开设置"
             onClick={onOpenSettings}
           >
-            <GearIcon className="legacy-gear-icon" />
+            <GearIcon className="classic-gear-icon" />
           </button>
         </div>
       </header>
 
       {statusMessage}
 
-      <article className="legacy-rubric-result-summary">
-        <div className="legacy-rubric-result-main">
+      <article className="classic-rubric-result-summary">
+        <div className="classic-rubric-result-main">
           <div>
-            <p className="legacy-rubric-result-label">AI 已自动拆分并填充</p>
+            <p className="classic-rubric-result-label">AI 已自动拆分并填充</p>
             <h4>{resultPreview.title}</h4>
-            <p className="legacy-rubric-result-meta">
+            <p className="classic-rubric-result-meta">
               题号 {resultPreview.questionId} · {resultPreview.subject} · {resultPreview.questionType}
             </p>
           </div>
-          <div className="legacy-rubric-result-score">
+          <div className="classic-rubric-result-score">
             <strong>{computedTotalScore}</strong>
             <span>总分</span>
           </div>
         </div>
-        <div className="legacy-rubric-result-tags">
+        <div className="classic-rubric-result-tags">
           <span>评分策略：{resultPreview.strategyLabel}</span>
           <span>得分点：{rows.length} 条</span>
           <span>发布状态：{lifecycleStatus === "published" ? "已发布" : "草稿"}</span>
         </div>
         {readOnlyReason ? (
-          <p className="legacy-rubric-result-readonly">{readOnlyReason}</p>
+          <p className="classic-rubric-result-readonly">{readOnlyReason}</p>
         ) : (
-          <p className="legacy-rubric-result-readonly">可编辑：问题词、得分点、分值、关键词。</p>
+          <p className="classic-rubric-result-readonly">可编辑：问题词、得分点、分值、关键词。</p>
         )}
       </article>
 
       {rows.length === 0 ? (
-        <div className="legacy-rubric-empty">AI 暂未识别到得分点，请返回重生成。</div>
+        <div className="classic-rubric-empty">AI 暂未识别到得分点，请返回重生成。</div>
       ) : readOnlyReason ? (
-        <div className="legacy-rubric-result-list">
+        <div className="classic-rubric-result-list">
           {rows.map((point, index) => (
-            <article key={point.id} className="legacy-rubric-result-item">
-              <div className="legacy-rubric-result-item-head">
-                <span className="legacy-rubric-result-index">{index + 1}</span>
-                <span className="legacy-rubric-result-segment">{point.questionSegment || "得分点"}</span>
-                <span className="legacy-rubric-result-point">{point.score}分</span>
+            <article key={point.id} className="classic-rubric-result-item">
+              <div className="classic-rubric-result-item-head">
+                <span className="classic-rubric-result-index">{index + 1}</span>
+                <span className="classic-rubric-result-segment">{point.questionSegment || "得分点"}</span>
+                <span className="classic-rubric-result-point">{point.score}分</span>
               </div>
               <p>{point.content}</p>
               {point.keywords.length > 0 ? (
-                <div className="legacy-rubric-result-keywords">
+                <div className="classic-rubric-result-keywords">
                   {point.keywords.map((keyword) => (
                     <span key={`${point.id}-${keyword}`}>{keyword}</span>
                   ))}
@@ -339,18 +339,18 @@ export const RubricResultView = ({
           ))}
         </div>
       ) : (
-        <section className="legacy-rubric-result-table">
-          <header className="legacy-rubric-result-table-head">
+        <section className="classic-rubric-result-table">
+          <header className="classic-rubric-result-table-head">
             <span>#</span>
             <span>问题词</span>
             <span>得分点</span>
             <span>分值</span>
             <span>关键词</span>
           </header>
-          <div className="legacy-rubric-result-table-body">
+          <div className="classic-rubric-result-table-body">
             {rows.map((row, index) => (
-              <article key={row.id} className="legacy-rubric-result-table-row">
-                <span className="legacy-rubric-result-table-index">{index + 1}</span>
+              <article key={row.id} className="classic-rubric-result-table-row">
+                <span className="classic-rubric-result-table-index">{index + 1}</span>
                 <input
                   value={row.questionSegment}
                   onChange={(event) => handleRowChange(row.id, { questionSegment: event.target.value })}
@@ -380,9 +380,9 @@ export const RubricResultView = ({
         </section>
       )}
 
-      <div className="legacy-rubric-result-note">请核对识别内容与分值分配，确认后保存到细则库。</div>
+      <div className="classic-rubric-result-note">请核对识别内容与分值分配，确认后保存到细则库。</div>
 
-      <div className="legacy-rubric-bottom-bar">
+      <div className="classic-rubric-bottom-bar">
         <button type="button" className="secondary" onClick={onRegenerate} disabled={busy}>
           返回重生成
         </button>

@@ -4,70 +4,74 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI 智能批改助手 - An AI-powered grading assistant for teachers, primarily for subjective questions in history exams. The system consists of:
+AI 智能批改助手 - An AI-powered grading assistant for teachers, primarily for subjective questions in history exams.
 
-- **Frontend**: Chrome Extension (React + Vite + TypeScript)
-- **Backend**: Next.js API server (PostgreSQL + Prisma)
+**⚠️ 重要**: 项目正在进行大规模重构。详情请参阅 `AGENTS.md`。
 
-The system integrates with Chinese educational platforms (智学网, 好分数) to provide AI-assisted grading with support for multiple AI providers (Gemini, OpenAI, 智谱AI).
+### 当前系统
+
+- **旧系统 (Legacy)**: `aigradingfrontend/` + `aigradingbackend/`
+- **新系统 (V2)**: `grading-platform-v2/` (Monorepo)
+
+新系统是重构主战场，旧系统仅作为迁移参考和紧急修复使用。
 
 ## Development Commands
 
-### Frontend (Chrome Extension)
+### V2 Monorepo (推荐 / 当前重构主战场)
 ```bash
+cd grading-platform-v2
+pnpm install         # 安装依赖
+pnpm dev             # 启动所有应用开发服务器
+pnpm build           # 构建所有包和应用
+pnpm lint            # 代码检查
+pnpm typecheck       # 类型检查
+pnpm test            # 运行测试
+```
+
+### Legacy 系统 (仅迁移参考)
+```bash
+# Frontend (Chrome Extension)
 cd aigradingfrontend
 npm run dev          # Development build with hot reload
 npm run build        # Production build (outputs to dist/)
-npm run build:check  # Type-check + build
+
+# Backend (Next.js API)
+cd aigradingbackend
+npm run dev          # Start development server (port 3000)
+npm run db:push      # Push schema changes to database
+npm run db:studio    # Open Prisma Studio
 ```
 
 To load the extension in Chrome:
-1. Run `npm run build`
+1. Run `npm run build` (legacy) 或 build v2 extension-app
 2. Open `chrome://extensions/`
 3. Enable "Developer mode"
-4. Load unpacked extension from `aigradingfrontend/dist`
-
-### Backend (Next.js API)
-```bash
-cd aigradingbackend
-npm run dev          # Start development server (port 3000)
-npm run build        # Production build (includes Prisma client generation)
-npm run db:push      # Push schema changes to database
-npm run db:migrate   # Run database migrations
-npm run db:studio    # Open Prisma Studio (database UI)
-```
-
-### Database Seeding (Test Data)
-```bash
-cd aigradingbackend
-npx tsx prisma/seed.ts  # Insert test activation codes
-```
+4. Load unpacked extension from `dist/`
 
 ## Tech Stack
 
-### Frontend
-- **Framework**: React 18 + Vite 5
-- **Language**: TypeScript 5.2+
-- **Styling**: Tailwind CSS 4.1
-- **State Management**: Zustand
-- **Key Libraries**:
-  - `@google/generative-ai` - Gemini AI integration
-  - `lucide-react` - Icons
-  - `@tanstack/react-virtual` - Virtual scrolling
-  - `chart.js` - Data visualization
+### V2 Monorepo
+- **Package Manager**: pnpm + Turbo
+- **Apps**:
+  - `extension-app` - Chrome Extension (React + Vite + TypeScript)
+  - `api-server` - Next.js 14 API Server
+  - `admin-console` - Admin Dashboard
+- **Packages**:
+  - `domain-core` - Domain models
+  - `api-contracts` - API type definitions
+  - `ai-gateway` - AI service integration
+  - `config-kernel` - Configuration
+  - `extension-bridge` - Extension communication
+  - `ui-kit` - Shared UI components
 
-### Backend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript 5
-- **Database**: PostgreSQL (Production) / SQLite (Development)
-- **ORM**: Prisma 5
-- **Auth**: JWT (Stateless)
-- **AI Services**:
-  - Gemini (via GPTsAPI proxy) - Primary
-  - Zhipu GLM-4 - Backup
-  - CherryIN, LaoZhang AI - Cost optimization options
+### Legacy System
+- **Frontend**: React 18 + Vite 5 + Tailwind CSS 4.1 + Zustand
+- **Backend**: Next.js 14 + Prisma 5 + PostgreSQL
+- **AI Services**: Gemini, Zhipu GLM-4
 
 ## Development Conventions & Best Practices
+
+> **重要**: 遵守 `AGENTS.md` 中的重构规则。当前唯一核心任务是按重启架构方案推进项目重构。
 
 ### Code Quality
 - **Language**: Use TypeScript for all new code - no `any` types without justification
@@ -77,30 +81,28 @@ npx tsx prisma/seed.ts  # Insert test activation codes
 ### Styling
 - **Use Tailwind CSS**: Utility classes only - avoid custom CSS files
 - **Component Styling**: Prefer `clsx` or `cn()` utility for conditional classes
-- **Responsive Design**: Mobile-first approach with Tailwind breakpoints
 
-### Database Operations
-- **Always use Prisma**: Never write raw SQL queries
-- **After Schema Changes**: Run `npm run db:push` to sync database
-- **Migrations**: Use `npx prisma migrate dev` for production-safe schema changes
-
-### API Integration
-- **Use Service Layers**: Call functions from `services/` or `lib/` instead of direct API calls
-- **Backend Services**: Use services in `aigradingbackend/src/lib/` (e.g., `gpt.ts`, `zhipu.ts`)
-- **Frontend Services**: Use functions from `services/proxyService.ts` for backend communication
+### API Integration (V2)
+- API routes go to `grading-platform-v2/apps/api-server/src/app/api/v2/`
+- Use service layers in shared packages
 
 ### Security
 - **Environment Variables**: Store sensitive keys (API Keys, DB URL) in `.env` files
 - **Never Commit**: `.env`, `.env.local`, or any files with secrets
-- **Device-ID Fallback**: Always support both activation codes AND device IDs in new APIs
-
-### Code Organization
-- **Frontend Components**: Organize by feature in `src/components/`
-- **API Routes**: Place in `aigradingbackend/src/app/api/` following REST conventions
-- **Shared Types**: Define in dedicated `types.ts` files or `lib/` directory
+- **Device-ID Fallback**: Always support both activation codes AND device IDs
 
 
 ## Architecture Overview
+
+### 重构架构 (V2)
+
+详见 `docs/architecture/ai-grading-platform-v2-restart-architecture.md`
+
+**核心原则**:
+- Monorepo: pnpm + Turbo
+- API v2: 仅维护 `/api/v2/*`
+- AI 策略: 统一走后端网关 (`ai-gateway`)
+- 身份体系: 激活码优先，设备回退
 
 ### Device-ID Fallback Mechanism
 
@@ -111,12 +113,7 @@ npx tsx prisma/seed.ts  # Insert test activation codes
 
 Backend APIs accept either identifier. When no activation code is provided, the system uses `device:${deviceId}` as the identifier in the database.
 
-**Implications**:
-- Anonymous users can create exams, rubrics, and grading records without activation
-- Activated users can sync data across devices using their activation code
-- Both types of users are stored in the same database tables, differentiated by identifier format
-
-### Data Model Hierarchy
+### Legacy Architecture
 
 ```
 Exam (考试)
@@ -124,29 +121,9 @@ Exam (考试)
       └── GradingRecord (批改记录) - linked via questionKey
 ```
 
-**Key Design**:
 - Exams are containers/folders for organizing rubrics by exam
-- Users select exam first, then configure rubrics for that exam
-- This is reflected in the UI navigation flow: exams → questions → detail → editor
-
-### State Management (Frontend)
-
-- **Zustand Store** (`stores/useAppStore.ts`): Centralized state with persistence
-- **View Stack Pattern**: Used in `RubricDrawer.tsx` for navigation
-  - Stack: `['exams', 'questions', 'detail', 'point_editor', 'question_settings']`
-  - Push/pop views to navigate; render based on `currentView`
-
-### Key Files Reference
-
-| File | Purpose |
-|------|---------|
-| `aigradingfrontend/src/components/v2/views/RubricDrawer.tsx` | Main rubric management UI with exam-question hierarchy |
-| `aigradingfrontend/services/proxyService.ts` | Backend API client (exams, rubrics, activation) |
-| `aigradingfrontend/stores/useAppStore.ts` | Global state (Zustand) |
-| `aigradingbackend/src/app/api/exams/route.ts` | Exam CRUD endpoints |
-| `aigradingbackend/src/app/api/rubric/route.ts` | Rubric CRUD endpoints |
-| `aigradingbackend/src/lib/rubric-types.ts` | RubricJSON v2 schema and validation |
-| `aigradingbackend/prisma/schema.prisma` | Database schema |
+- Zustand Store (`stores/useAppStore.ts`) for state management
+- View Stack Pattern in `RubricDrawer.tsx`
 
 ## RubricJSON v2 Format
 

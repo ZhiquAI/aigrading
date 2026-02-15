@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>细则模块重构设计稿 - Educacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo"></span><span>Educacy</span></div>
+      <nav class="nav">
+        <a class="nav-item" href="./index.html">总览</a>
+        <a class="nav-item active" href="./rubric.html">细则模块</a>
+        <a class="nav-item" href="./grading.html">阅卷模块</a>
+        <a class="nav-item" href="./records.html">记录模块</a>
+        <a class="nav-item" href="./settings.html">设置模块</a>
+      </nav>
+      <div class="side-label">当前页面</div>
+      <div class="module-list">
+        <div class="module-pill">模板库</div>
+        <div class="module-pill">草稿/发布状态</div>
+        <div class="module-pill">快速创建入口</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Rubric Workspace</h1>
+          <p class="page-sub">评分细则 · 模板管理与快速创建</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary">+ 新建评分细则</button>
+          <span class="icon-btn">⇅</span>
+          <span class="avatar"></span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="grid-4">
+          <article class="metric"><p>模板总数</p><strong>136</strong><small>系统 + 自定义</small></article>
+          <article class="metric"><p>已发布</p><strong>89</strong><small>可直接复用</small></article>
+          <article class="metric"><p>草稿</p><strong>31</strong><small>待教师确认</small></article>
+          <article class="metric"><p>今日新增</p><strong>16</strong><small>+18% 环比</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head">
+            <h3>模板筛选与搜索</h3>
+            <div class="chips">
+              <span class="chip">全部考试</span>
+              <span class="chip active">当前考试</span>
+              <span class="chip">未分组</span>
+            </div>
+          </header>
+          <div class="surface-body">
+            <div class="chips">
+              <span class="chip active">历史</span><span class="chip">语文</span><span class="chip">数学</span><span class="chip">英语</span>
+              <span class="chip">已发布</span><span class="chip">草稿</span>
+            </div>
+            <div class="search-row">⌕ 搜索模板名称 / 题号 / 策略类型...</div>
+          </div>
+        </section>
+
+        <section class="split-2">
+          <div class="surface">
+            <header class="surface-head"><h3>模板列表</h3><span class="meta">共 24 条匹配</span></header>
+            <div class="surface-body card-list">
+              <article class="card">
+                <div class="card-top"><span class="badge">weighted</span><span class="badge ok">published</span></div>
+                <h4>期末卷第 15 题：工业革命影响评析（论述）</h4>
+                <div class="meta">得分点 6 · 总分 18 · 历史 · 今日 17:40</div>
+                <div class="card-foot"><span class="status ok">当前考试匹配</span><span class="meta">编辑 · 复用</span></div>
+              </article>
+
+              <article class="card">
+                <div class="card-top"><span class="badge gray">all</span><span class="badge warn">draft</span></div>
+                <h4>月考第 8 题：三则史料比较分析（材料题）</h4>
+                <div class="meta">得分点 4 · 总分 12 · 历史 · 今天 16:03</div>
+                <div class="card-foot"><span class="status partial">待发布</span><span class="meta">发布 · 预览</span></div>
+              </article>
+
+              <article class="card">
+                <div class="card-top"><span class="badge">pick_n</span><span class="badge gray">template</span></div>
+                <h4>专题训练：维新变法失败原因（简答）</h4>
+                <div class="meta">得分点 5 · 总分 15 · 系统模板 · 昨天</div>
+                <div class="card-foot"><span class="status partial">可克隆</span><span class="meta">一键套用</span></div>
+              </article>
+            </div>
+          </div>
+
+          <div class="surface">
+            <header class="surface-head"><h3>创建向导</h3><span class="meta">AI 预计 5-10 秒</span></header>
+            <div class="surface-body">
+              <div class="form-grid">
+                <div class="field"><label>考试名称</label><input value="2026 春季期中考试" /></div>
+                <div class="field"><label>科目</label><select><option>历史</option></select></div>
+                <div class="field"><label>题号</label><input value="15" /></div>
+                <div class="field"><label>总分</label><input value="18" /></div>
+              </div>
+              <div class="field" style="margin-top:10px;"><label>个性化评分规则</label><textarea>观点必须明确；至少引用2条史料证据；逻辑完整可得满分。</textarea></div>
+              <div style="margin-top:10px;" class="meta">上传试题图片与答案图片后，将自动生成可编辑细则。</div>
+              <div class="progress" style="margin-top:8px;"><span style="width:72%"></span></div>
+              <div class="foot-actions">
+                <button class="btn-ghost">清空</button>
+                <button class="btn-solid">生成细则</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

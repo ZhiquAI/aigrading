@@ -189,7 +189,7 @@ const AnalysisView: React.FC = () => {
         const distribution = [
             { name: '需努力', value: buckets[0], color: '#f87171', minRate: 0, maxRate: 0.6 },
             { name: '及格', value: buckets[1], color: '#fb923c', minRate: 0.6, maxRate: 0.75 },
-            { name: '良好', value: buckets[2], color: '#60a5fa', minRate: 0.75, maxRate: 0.9 },
+            { name: '良好', value: buckets[2], color: '#2563eb', minRate: 0.75, maxRate: 0.9 },
             { name: '优秀', value: buckets[3], color: '#4ade80', minRate: 0.9, maxRate: 1.01 }, // 1.01 to include 100%
         ];
 
@@ -368,7 +368,7 @@ const AnalysisView: React.FC = () => {
                 const val = ctx.raw as number;
                 if (val < 60) return '#f87171'; // red
                 if (val < 80) return '#fb923c'; // orange
-                return '#60a5fa'; // blue
+                return '#2563eb'; // blue
             },
             borderRadius: 8,
             barThickness: 16,

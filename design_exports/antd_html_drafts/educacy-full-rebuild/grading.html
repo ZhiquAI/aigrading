@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>阅卷模块重构设计稿 - Educacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+  <style>
+    .hero {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: linear-gradient(150deg, #f2f8ff 0%, #f7fbff 40%, #ffffff 100%);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 14px;
+    }
+    .result-score {
+      font-size: 66px;
+      line-height: 1;
+      letter-spacing: -.04em;
+      font-weight: 800;
+      margin: 8px 0 0;
+      color: #1f3fa9;
+    }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid #dbe3f4;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .mode-switch span {
+      height: 30px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #72819a;
+      border-right: 1px solid #e8ecf3;
+    }
+    .mode-switch span:last-child { border-right: none; }
+    .mode-switch .on { background: #eef3ff; color: #3456c6; }
+
+    .answer-block {
+      border: 1px solid #e7ecf3;
+      border-radius: 12px;
+      background: #fff;
+      padding: 11px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .note {
+      border: 1px dashed #d9dfeb;
+      background: #fafbfe;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12px;
+      color: #6f7d92;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 960px) {
+      .hero { grid-template-columns: 1fr; }
+      .result-score { font-size: 52px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo"></span><span>Educacy</span></div>
+      <nav class="nav">
+        <a class="nav-item" href="./index.html">总览</a>
+        <a class="nav-item" href="./rubric.html">细则模块</a>
+        <a class="nav-item active" href="./grading.html">阅卷模块</a>
+        <a class="nav-item" href="./records.html">记录模块</a>
+        <a class="nav-item" href="./settings.html">设置模块</a>
+      </nav>
+      <div class="side-label">当前页面</div>
+      <div class="module-list">
+        <div class="module-pill">扫描态 / 思考态</div>
+        <div class="module-pill">结果确认</div>
+        <div class="module-pill">自动提交倒计时</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Grading Studio</h1>
+          <p class="page-sub">AI 阅卷 · 人工复核协同</p>
+        </div>
+        <div class="actions">
+          <div class="mode-switch"><span class="on">ASSIST</span><span>AUTO</span></div>
+          <button class="btn-primary">开始阅卷</button>
+          <span class="avatar"></span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="grid-4">
+          <article class="metric"><p>今日完成</p><strong>187</strong><small>+21% 对比昨日</small></article>
+          <article class="metric"><p>平均耗时</p><strong>11s</strong><small>每份答卷</small></article>
+          <article class="metric"><p>需复核</p><strong>23</strong><small>占比 12.3%</small></article>
+          <article class="metric"><p>当前额度</p><strong>1246</strong><small>可继续批改</small></article>
+        </div>
+
+        <section class="hero">
+          <article class="surface" style="border:none;">
+            <header class="surface-head"><h3>当前结果</h3><span class="status partial">自动提交 06s</span></header>
+            <div class="surface-body">
+              <div class="meta">第 15 题 · 历史论述题 · weighted</div>
+              <div class="result-score">16.5<span style="font-size:20px;color:#7f8da4;"> / 18</span></div>
+              <div class="note">AI 判定：观点完整、证据较充分；但第二条史料引用缺少来源指向，扣 1.5 分。</div>
+              <div class="foot-actions">
+                <button class="btn-ghost">放弃本次</button>
+                <button class="btn-solid">确认并下一份</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="surface" style="border:none;">
+            <header class="surface-head"><h3>答卷与评分细则</h3><span class="meta">实时比对</span></header>
+            <div class="surface-body" style="display:grid;gap:10px;">
+              <div class="answer-block">
+                <div class="card-top"><span class="badge">答卷文本</span><span class="meta">OCR 质量 96%</span></div>
+                <div class="meta">“工业革命推动生产效率显著提升，同时加剧了阶级分化...”</div>
+              </div>
+              <div class="answer-block">
+                <div class="card-top"><span class="badge gray">得分点命中</span><span class="meta">4 / 6</span></div>
+                <div class="progress"><span style="width:66%"></span></div>
+                <div class="meta">已命中：观点明确 / 史料引用 / 因果链条 / 结论回扣</div>
+              </div>
+              <div class="answer-block">
+                <div class="card-top"><span class="badge warn">人工建议</span><span class="meta">可加 0.5 分</span></div>
+                <div class="meta">若老师认可“社会流动性变化”论述充分，可补充加分。</div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="table-wrap">
+          <header class="surface-head"><h3>批改队列（下一批）</h3><span class="meta">自动模式将按顺序处理</span></header>
+          <table>
+            <thead><tr><th>序号</th><th>学生</th><th>题号</th><th>状态</th><th>置信度</th><th>动作</th></tr></thead>
+            <tbody>
+              <tr><td>#001</td><td>王一鸣</td><td>Q15</td><td><span class="status ok">可自动提交</span></td><td>94%</td><td>预览</td></tr>
+              <tr><td>#002</td><td>李若涵</td><td>Q15</td><td><span class="status partial">建议复核</span></td><td>81%</td><td>进入复核</td></tr>
+              <tr><td>#003</td><td>张景轩</td><td>Q15</td><td><span class="status ok">可自动提交</span></td><td>96%</td><td>预览</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

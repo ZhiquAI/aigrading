@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏交互稿 - 设置模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Settings Console</h1><p>设置模块交互审查</p></div></div>
+        <div class="top-actions"><button class="cta" data-toast-message="配置已保存">保存</button><span class="icon-btn">✓</span></div>
+      </header>
+
+      <div class="state-rail">
+        <button class="state-chip active" data-switch="account">账户页</button>
+        <button class="state-chip" data-switch="provider">平台切换</button>
+        <button class="state-chip" data-switch="testing">测试中</button>
+        <button class="state-chip" data-switch="success">测试成功</button>
+        <button class="state-chip" data-switch="saved">保存成功</button>
+      </div>
+
+      <main class="content">
+        <section class="scene" data-scene="account">
+          <div class="grid-2">
+            <article class="metric"><p>身份</p><strong>PRO</strong><small>专业版</small></article>
+            <article class="metric"><p>额度</p><strong>1246</strong><small>剩余</small></article>
+            <article class="metric"><p>平台</p><strong>OpenRouter</strong><small>当前</small></article>
+            <article class="metric"><p>状态</p><strong>Online</strong><small>连接正常</small></article>
+          </div>
+          <section class="surface"><header class="surface-head"><h3>账号与激活</h3><span class="status ok">ACTIVE</span></header><div class="surface-body"><div class="meta">激活码：PRO-XXXX-YYYY-ZZZZ</div><div class="progress"><span style="width:76%"></span></div><div class="meta">本周期已使用 74%</div><div class="btn-row"><button class="btn ghost" data-toast-message="已复制账户信息">复制信息</button><button class="btn solid" data-target-scene="provider">前往平台配置</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="provider">
+          <section class="surface"><header class="surface-head"><h3>AI 平台</h3><span class="meta">Provider</span></header><div class="surface-body"><div class="chips"><span class="chip active">OpenRouter</span><span class="chip">Gemini</span><span class="chip">GLM</span></div><div class="form-grid"><div class="field"><label>Endpoint</label><input value="https://openrouter.ai/api/v1" /></div><div class="field"><label>API Key</label><input value="sk-or-xxxxxxxxxxxx" /></div><div class="field"><label>Model</label><select><option>gpt-4o-mini</option></select></div></div><div class="btn-row"><button class="btn ghost" data-target-scene="testing">测试连接</button><button class="btn solid" data-target-scene="saved">保存配置</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="testing">
+          <section class="surface"><header class="surface-head"><h3>连接测试</h3><span class="status warn">testing</span></header><div class="surface-body"><div class="meta">正在验证 endpoint、api key 与模型可用性...</div><div class="progress"><span style="width:58%"></span></div><div class="btn-row"><button class="btn ghost" data-target-scene="provider">取消</button><button class="btn solid" data-target-scene="success">模拟成功</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="success">
+          <section class="surface"><header class="surface-head"><h3>连接测试</h3><span class="status ok">success</span></header><div class="surface-body"><div class="meta">连接通过：OpenRouter / gpt-4o-mini 可正常调用。</div><div class="btn-row"><button class="btn ghost" data-target-scene="provider">返回</button><button class="btn solid" data-target-scene="saved">保存配置</button></div></div></section>
+        </section>
+
+        <section class="scene" data-scene="saved">
+          <section class="surface"><header class="surface-head"><h3>保存结果</h3><span class="status ok">done</span></header><div class="surface-body"><div class="meta">API 配置与模型设置已保存，后续阅卷任务将使用新配置。</div><div class="btn-row"><button class="btn ghost" data-target-scene="provider">继续编辑</button><button class="btn solid" data-toast-message="设置已应用到当前会话">完成</button></div></div></section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a href="./rubric-interaction.html">细则</a>
+        <a href="./grading-interaction.html">阅卷</a>
+        <a href="./records-interaction.html">记录</a>
+        <a class="active" href="./settings-interaction.html">设置</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast" data-toast></div>
+  <script src="./shared.js"></script>
+</body>
+</html>

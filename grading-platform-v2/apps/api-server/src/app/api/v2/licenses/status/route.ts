@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import {
-  apiErrorSchema,
   licenseStatusResponseSchema
 } from "@ai-grading/api-contracts";
 import { prisma } from "@/lib/prisma";
 import { getLicenseStatus } from "@/modules/identity-license/license-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const statusData = await getLicenseStatus(prisma, {
@@ -27,23 +28,11 @@ export async function GET(request: Request): Promise<NextResponse> {
       }
     });
   } catch (error) {
-    const errorPayload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to get license status.",
-      requestId
-    });
-
-    return NextResponse.json(
-      {
-        ok: false,
-        error: errorPayload
-      },
-      {
-        status: 500,
-        headers: {
-          "x-request-id": requestId
-        }
-      }
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to get license status.",
+      500
     );
   }
 }

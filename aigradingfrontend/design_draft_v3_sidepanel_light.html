@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能阅卷助手 - 评分细则 (Light SidePanel)</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        // HeroUI Light Palette
+                        background: '#FFFFFF',
+                        foreground: '#11181C', // zinc-900
+
+                        content1: '#FFFFFF',
+                        content2: '#F4F4F5', // zinc-100
+                        content3: '#E4E4E7', // zinc-200
+                        content4: '#D4D4D8', // zinc-300
+
+                        primary: {
+                            DEFAULT: '#006FEE',
+                            foreground: '#FFFFFF',
+                            50: '#E6F1FE',
+                            100: '#CCE3FD',
+                            200: '#99C7FB', // focus ring
+                            500: '#006FEE',
+                        },
+                        secondary: {
+                            DEFAULT: '#7828C8',
+                            foreground: '#FFFFFF',
+                            50: '#F2EAFA',
+                            100: '#E4D4F4',
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            foreground: '#FFFFFF',
+                            50: '#E8FAF0',
+                        },
+                        danger: {
+                            DEFAULT: '#F31260',
+                            foreground: '#FFFFFF',
+                            50: '#FEE7EF',
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            foreground: '#FFFFFF',
+                            50: '#FEFCE8',
+                        },
+                    },
+                    borderRadius: {
+                        'small': '8px',
+                        'medium': '12px',
+                        'large': '14px',
+                    },
+                    boxShadow: {
+                        'small': '0px 0px 5px 0px rgba(0, 0, 0, 0.02), 0px 2px 10px 0px rgba(0, 0, 0, 0.06)',
+                        'medium': '0px 0px 15px 0px rgba(0, 0, 0, 0.03), 0px 2px 30px 0px rgba(0, 0, 0, 0.08), 0px 0px 1px 0px rgba(0, 0, 0, 0.3)',
+                        'large': '0px 0px 30px 0px rgba(0, 0, 0, 0.04), 0px 30px 60px 0px rgba(0, 0, 0, 0.12), 0px 0px 1px 0px rgba(0, 0, 0, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Side Panel Wrapper Mockup */
+        body {
+            background-color: #f5f5f5;
+            /* Outer background to show panel boundary */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+
+        .side-panel-container {
+            width: 360px;
+            /* Chrome Side Panel approximate width */
+            height: 600px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-col: column;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #e5e5e5;
+        }
+
+        /* HeroUI Glass Effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Custom Scrollbar */
+        .scroller::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scroller::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scroller::-webkit-scrollbar-thumb {
+            background: #e4e4e7;
+            border-radius: 2px;
+        }
+
+        .scroller::-webkit-scrollbar-thumb:hover {
+            background: #d4d4d8;
+        }
+
+        .card-pressable {
+            transition: transform 0.1s ease;
+        }
+
+        .card-pressable:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Mockup Container -->
+    <div
+        class="side-panel-container flex flex-col font-sans text-foreground antialiased selection:bg-primary-100 selection:text-primary-500">
+
+        <!-- Header -->
+        <header class="h-14 px-4 flex items-center justify-between glass sticky top-0 z-20">
+            <button
+                class="w-8 h-8 rounded-medium hover:bg-content2 flex items-center justify-center text-zinc-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+            </button>
+
+            <div class="flex flex-col items-center">
+                <span class="text-sm font-bold">初三历史期末</span>
+                <span class="text-[10px] text-zinc-400 font-medium">共 12 道大题</span>
+            </div>
+
+            <button
+                class="px-3 py-1.5 rounded-medium bg-primary text-white text-xs font-semibold shadow-md shadow-primary/30 hover:bg-primary-500/90 transition-colors">
+                保存
+            </button>
+        </header>
+
+        <!-- Content -->
+        <main class="flex-1 overflow-y-auto scroller bg-content2/50 relative">
+            <div class="p-4 space-y-4 pb-24">
+
+                <!-- Notice Banner -->
+                <div class="p-3 bg-primary-50 border border-primary-100 rounded-medium flex gap-3 items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="text-primary mt-0.5 shrink-0">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <div class="text-xs text-zinc-600 leading-relaxed">
+                        <span class="font-semibold text-primary">提示：</span> 点击下方卡片可快速编辑得分点与关键词。
+                    </div>
+                </div>
+
+                <!-- Section Title -->
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-wider">第 24 题 - 材料分析</h3>
+                    <span
+                        class="text-xs font-medium px-2 py-0.5 rounded-small bg-content2 text-zinc-500 border border-zinc-200">12分</span>
+                </div>
+
+                <!-- Rubric Card 1 (Expand/Focus state) -->
+                <div
+                    class="bg-white rounded-large shadow-medium border border-transparent hover:border-primary-100 transition-all group overflow-hidden">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-primary-50 text-primary font-bold text-xs px-2 py-1 rounded-small">得分点
+                                    1</span>
+                                <span class="text-xs text-zinc-400 font-medium ml-1">采意给分</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="number" value="2"
+                                    class="w-8 text-right font-bold text-sm bg-transparent border-b border-zinc-200 focus:border-primary focus:outline-none text-zinc-800 p-0">
+                                <span class="text-xs text-zinc-400">分</span>
+                            </div>
+                        </div>
+
+                        <!-- Content Input -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] font-semibold text-zinc-400 mb-1 block">标准答案 / 描述</label>
+                                <textarea
+                                    class="w-full text-sm p-2 bg-content2 rounded-medium border-none focus:ring-2 focus:ring-primary-200 resize-none h-16 text-zinc-700 font-medium leading-relaxed"
+                                    spellcheck="false">洋务运动在客观上促进了中国民族资本主义的产生。</textarea>
+                            </div>
+
+                            <div>
+                                <label class="text-[10px] font-semibold text-zinc-400 mb-1 block">关键词 (Keywords)</label>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span
+                                        class="px-2 py-1 rounded-small bg-success-50 text-success-700 text-xs font-medium border border-success-100 flex items-center gap-1">
+                                        民族资本主义
+                                        <button class="hover:text-success-900">&times;</button>
+                                    </span>
+                                    <span
+                                        class="px-2 py-1 rounded-small bg-success-50 text-success-700 text-xs font-medium border border-success-100 flex items-center gap-1">
+                                        客观促进
+                                        <button class="hover:text-success-900">&times;</button>
+                                    </span>
+                                    <button
+                                        class="px-2 py-1 rounded-small border border-dashed border-zinc-300 text-zinc-400 text-xs hover:border-primary hover:text-primary transition-colors flex items-center gap-1">
+                                        + 添加
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Action Footer -->
+                    <div class="bg-content2/50 px-4 py-2 flex justify-end gap-2 border-t border-zinc-100">
+                        <button
+                            class="p-1.5 rounded-small text-zinc-400 hover:bg-danger-50 hover:text-danger transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
+                        </button>
+                        <button
+                            class="p-1.5 rounded-small text-zinc-400 hover:bg-primary-50 hover:text-primary transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                <path d="M12 8v8" />
+                                <path d="M8 12h8" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Rubric Card 2 (Collapsed state) -->
+                <div
+                    class="bg-white rounded-large shadow-small border border-transparent hover:shadow-medium transition-all group card-pressable cursor-pointer">
+                    <div class="p-4">
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="bg-zinc-100 text-zinc-600 font-bold text-xs px-2 py-1 rounded-small">得分点
+                                        2</span>
+                                    <span class="text-xs text-zinc-800 font-medium">对外国资本入侵起了一定的抵制作用</span>
+                                </div>
+                            </div>
+                            <span
+                                class="font-bold text-sm text-zinc-900 bg-zinc-50 px-2 py-1 rounded-medium border border-zinc-100">2分</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add New Button -->
+                <button
+                    class="w-full py-3 rounded-large border-2 border-dashed border-zinc-300 text-zinc-400 text-sm font-medium hover:border-primary hover:text-primary hover:bg-primary-50 transition-all flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                    添加得分点
+                </button>
+
+            </div>
+        </main>
+
+        <!-- Floating Action Button (Optional for generation) -->
+        <div class="absolute bottom-6 right-6 z-30">
+            <button
+                class="w-12 h-12 rounded-full bg-black text-white shadow-large flex items-center justify-center hover:scale-105 active:scale-95 transition-transform group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="group-hover:rotate-90 transition-transform">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 16h5v5" />
+                </svg>
+            </button>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

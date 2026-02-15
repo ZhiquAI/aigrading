@@ -12,7 +12,10 @@
     "db:studio": "prisma studio",
     "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "seed:templates": "tsx scripts/seed-templates.ts",
-    "check:rubric-contract": "node --import tsx scripts/contract-rubric-v3.ts"
+    "check:rubric-contract": "node --import tsx scripts/contract-rubric-v3.ts",
+    "check:score-engine-segments": "node --import tsx scripts/contract-score-engine-segments.ts",
+    "check:custom-rules-contract": "node --import tsx scripts/contract-custom-rules.ts",
+    "check:subject-rules-contract": "node --import tsx scripts/contract-subject-rules.ts"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",

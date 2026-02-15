@@ -84,10 +84,25 @@ model GradingRecord {
   deviceId   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  items      GradingRecordItem[]
 
   @@index([scopeKey, createdAt])
   @@index([scopeKey, questionNo])
   @@index([scopeKey, questionKey])
+}
+
+model GradingRecordItem {
+  id           String        @id @default(cuid())
+  recordId     String
+  segmentKey   String?
+  segmentLabel String?
+  score        Float
+  keywords     String?
+  comment      String?
+  createdAt    DateTime      @default(now())
+  record       GradingRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId, createdAt])
 }
 
 model RubricDocument {
@@ -102,6 +117,24 @@ model RubricDocument {
   updatedAt       DateTime @updatedAt
 
   @@unique([scopeKey, questionKey])
+  @@index([scopeKey, updatedAt])
+}
+
+model RubricTemplate {
+  id           String   @id @default(cuid())
+  scopeKey     String
+  templateName String
+  subject      String?
+  grade        String?
+  questionType String?
+  strategyType String?
+  totalScore   Float?
+  rubricJson   String
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([scopeKey, templateName])
   @@index([scopeKey, updatedAt])
 }
 

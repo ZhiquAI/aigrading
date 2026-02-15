@@ -3,6 +3,7 @@
  */
 
 export type StrategyType = 'point_accumulation' | 'sequential_logic' | 'rubric_matrix';
+export type SegmentAggregation = 'sum' | 'weighted_sum' | 'max';
 
 export type ScoringStrategyType = 'pick_n' | 'all' | 'weighted';
 
@@ -27,10 +28,22 @@ export interface RubricPoint {
     order?: number;
 }
 
+export interface RubricSegment {
+    id: string;
+    title?: string;
+    strategyType: StrategyType;
+    content: Record<string, unknown>;
+    maxScore?: number;
+    weight?: number;
+    order?: number;
+}
+
 export interface PointAccumulationContent {
     scoringStrategy: ScoringStrategy;
     points: RubricPoint[];
     totalScore?: number;
+    aggregation?: SegmentAggregation;
+    segments?: RubricSegment[];
 }
 
 export interface SequentialLogicContent {
@@ -38,6 +51,8 @@ export interface SequentialLogicContent {
     steps: RubricPoint[];
     requireOrder?: boolean;
     totalScore?: number;
+    aggregation?: SegmentAggregation;
+    segments?: RubricSegment[];
 }
 
 export interface RubricMatrixContent {
@@ -52,6 +67,8 @@ export interface RubricMatrixContent {
         }>;
     }>;
     totalScore?: number;
+    aggregation?: SegmentAggregation;
+    segments?: RubricSegment[];
 }
 
 export interface RubricConstraint {

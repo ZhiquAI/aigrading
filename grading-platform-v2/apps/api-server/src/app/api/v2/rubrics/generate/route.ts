@@ -1,25 +1,18 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
-import { apiErrorSchema, rubricGenerateRequestSchema } from "@ai-grading/api-contracts";
+import { rubricGenerateRequestSchema } from "@ai-grading/api-contracts";
 import { generateRubricDraft } from "@/modules/rubric/rubric-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const body = rubricGenerateRequestSchema.parse(await request.json());
 
     if (!body.answerText && !body.questionImage && !body.answerImage) {
-      const errorPayload = apiErrorSchema.parse({
-        code: "BAD_REQUEST",
-        message: "请提供图片或文本参考答案",
-        requestId
-      });
-
-      return NextResponse.json({ ok: false, error: errorPayload }, {
-        status: 400,
-        headers: { "x-request-id": requestId }
-      });
+      return jsonApiError(requestId, "BAD_REQUEST", "请提供图片或文本参考答案", 400);
     }
 
     const generated = await generateRubricDraft({
@@ -39,26 +32,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   } catch (error) {
     const isBadRequest = error instanceof ZodError || error instanceof SyntaxError;
-    const errorPayload = apiErrorSchema.parse(
-      isBadRequest
-        ? {
-            code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Invalid request body.",
-            requestId
-          }
-        : {
-            code: "INTERNAL_SERVER_ERROR",
-            message: error instanceof Error ? error.message : "Failed to generate rubric.",
-            requestId
-          }
-    );
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: isBadRequest ? 400 : 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      isBadRequest ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+      error instanceof Error
+        ? error.message
+        : isBadRequest
+          ? "Invalid request body."
+          : "Failed to generate rubric.",
+      isBadRequest ? 400 : 500
     );
   }
 }

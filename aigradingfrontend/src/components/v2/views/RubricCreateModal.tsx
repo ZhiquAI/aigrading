@@ -14,6 +14,13 @@ import { createRubricTemplate, recommendRubricTemplates, type RubricTemplate } f
 import type { RubricJSONV3, ScoringStrategy, StrategyType, RubricPoint } from '@/types/rubric-v3';
 import { coerceRubricToV3 } from '@/utils/rubric-convert';
 import { toast } from '@/components/Toast';
+import {
+    getQuestionTypeOptions,
+    getSubjectOptions,
+    inferStrategyTypeByQuestionType,
+    normalizeQuestionTypeValue,
+    normalizeSubjectValue
+} from './rubric-config';
 import PointAccumulationEditor, { EditablePoint } from './rubric-editors/PointAccumulationEditor';
 import SequentialLogicEditor, { EditablePoint as EditableStep } from './rubric-editors/SequentialLogicEditor';
 import RubricMatrixEditor, { EditableDimension, EditableLevel } from './rubric-editors/RubricMatrixEditor';
@@ -24,18 +31,15 @@ interface RubricCreateModalProps {
 }
 
 const DEFAULT_NOTES = ['请根据得分点进行评分'];
-const SUBJECT_OPTIONS = ['历史', '政治', '语文', '物理', '化学', '数学'];
+const SUBJECT_OPTIONS = getSubjectOptions().map((item) => item.value);
 
-// 学科-题型映射
-const SUBJECT_QUESTION_TYPES: Record<string, string[]> = {
-    '历史': ['填空题', '材料题', '论述题'],
-    '政治': ['填空题', '材料题', '论述题'],
-    '语文': ['填空题', '阅读理解', '作文', '文言文'],
-    '物理': ['填空题', '计算题', '实验题'],
-    '化学': ['填空题', '计算题', '实验题'],
-    '数学': ['填空题', '计算题', '证明题'],
-};
-const DEFAULT_QUESTION_TYPES = ['填空题', '材料题', '论述题'];
+function getQuestionTypeValuesBySubject(subject: string): string[] {
+    const options = getQuestionTypeOptions(subject);
+    if (options.length === 0) return ['材料题'];
+    return options.map((item) => item.value);
+}
+
+const DEFAULT_QUESTION_TYPES = getQuestionTypeValuesBySubject('历史');
 
 // 学段选项
 const GRADE_OPTIONS = [
@@ -175,7 +179,7 @@ export default function RubricCreateModal({ isOpen, onClose }: RubricCreateModal
     const [subject, setSubject] = useState('历史');
     const [grade, setGrade] = useState('九年级');
     const [questionNo, setQuestionNo] = useState('');
-    const [questionType, setQuestionType] = useState('填空题');
+    const [questionType, setQuestionType] = useState(() => DEFAULT_QUESTION_TYPES[0] || '材料题');
     const [totalScore, setTotalScore] = useState('');
     const [questionImage, setQuestionImage] = useState<string | null>(null);
     const [answerImage, setAnswerImage] = useState<string | null>(null);
@@ -318,7 +322,7 @@ function createEditableDimension(id: string): EditableDimension {
         setSubject('历史');
         setGrade('九年级');
         setQuestionNo('');
-        setQuestionType('填空题');
+        setQuestionType(DEFAULT_QUESTION_TYPES[0] || '材料题');
         setTotalScore('');
         setQuestionImage(null);
         setAnswerImage(null);
@@ -384,11 +388,12 @@ function createEditableDimension(id: string): EditableDimension {
             }
             const exam = exams.find((item) => item.id === normalized.metadata.examId);
             setExamName(exam?.name || normalized.metadata.examName || '');
-            setSubject(normalized.metadata.subject || '历史');
+            const normalizedSubject = normalizeSubjectValue(normalized.metadata.subject || '历史');
+            setSubject(normalizedSubject);
             setGrade(normalized.metadata.grade || '九年级');
             setQuestionNo(normalized.metadata.questionId || '');
-            const types = SUBJECT_QUESTION_TYPES[normalized.metadata.subject || '历史'] || DEFAULT_QUESTION_TYPES;
-            const loadedType = normalized.metadata.questionType || types[0];
+            const types = getQuestionTypeValuesBySubject(normalizedSubject);
+            const loadedType = normalizeQuestionTypeValue(normalizedSubject, normalized.metadata.questionType) || types[0];
             setQuestionType(loadedType);
             setStrategyType(normalized.strategyType);
 
@@ -464,10 +469,19 @@ function createEditableDimension(id: string): EditableDimension {
     };
 
     const applyRubricToForm = (rubric: RubricJSONV3) => {
-        setQuestionType(rubric.metadata.questionType || rubric.metadata.title || questionType);
-        setSubject(rubric.metadata.subject || subject);
+        const normalizedSubject = normalizeSubjectValue(rubric.metadata.subject || subject);
+        const subjectQuestionTypes = getQuestionTypeValuesBySubject(normalizedSubject);
+        const nextQuestionType = normalizeQuestionTypeValue(
+            normalizedSubject,
+            rubric.metadata.questionType || rubric.metadata.title
+        ) || subjectQuestionTypes[0] || questionType;
+
+        setQuestionType(nextQuestionType);
+        setSubject(normalizedSubject);
         setGrade(rubric.metadata.grade || grade);
-        setStrategyType(rubric.strategyType);
+        setStrategyType(
+            rubric.strategyType || inferStrategyTypeByQuestionType(normalizedSubject, nextQuestionType, strategyType)
+        );
 
         if (rubric.strategyType === 'rubric_matrix') {
             setDimensions(
@@ -500,7 +514,7 @@ function createEditableDimension(id: string): EditableDimension {
         setTotalScore(resolvedTotal ? String(resolvedTotal) : '');
 
         if (rubric.strategyType !== 'rubric_matrix') {
-            setScoringStrategy(rubric.content.scoringStrategy || getStrategyByType(rubric.metadata.questionType || questionType));
+            setScoringStrategy(rubric.content.scoringStrategy || getStrategyByType(nextQuestionType));
         }
 
         const base = rubric.constraints
@@ -829,13 +843,14 @@ function createEditableDimension(id: string): EditableDimension {
                                 <select
                                     value={subject}
                                     onChange={(e) => {
-                                        const newSubject = e.target.value;
+                                        const newSubject = normalizeSubjectValue(e.target.value);
                                         setSubject(newSubject);
                                         // 联动更新题型
-                                        const types = SUBJECT_QUESTION_TYPES[newSubject] || DEFAULT_QUESTION_TYPES;
+                                        const types = getQuestionTypeValuesBySubject(newSubject);
                                         if (!types.includes(questionType)) {
                                             setQuestionType(types[0]);
                                             setScoringStrategy(getStrategyByType(types[0]));
+                                            setStrategyType(inferStrategyTypeByQuestionType(newSubject, types[0], strategyType));
                                         }
                                     }}
                                     className="w-full h-8 px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-medium focus:border-indigo-400 outline-none"
@@ -876,10 +891,11 @@ function createEditableDimension(id: string): EditableDimension {
                                         const value = e.target.value;
                                         setQuestionType(value);
                                         setScoringStrategy(getStrategyByType(value));
+                                        setStrategyType(inferStrategyTypeByQuestionType(subject, value, strategyType));
                                     }}
                                     className="w-full h-8 px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-medium focus:border-indigo-400 outline-none"
                                 >
-                                    {(SUBJECT_QUESTION_TYPES[subject] || DEFAULT_QUESTION_TYPES).map((item) => (
+                                    {getQuestionTypeValuesBySubject(subject).map((item) => (
                                         <option key={item} value={item}>
                                             {item}
                                         </option>
@@ -975,13 +991,13 @@ function createEditableDimension(id: string): EditableDimension {
                                 onClick={() => setStrategyType('point_accumulation')}
                                 className={`h-8 rounded-lg border text-[10px] font-bold transition-colors ${strategyType === 'point_accumulation' ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-indigo-200 hover:text-indigo-600'}`}
                             >
-                                得分点累加
+                                按点给分
                             </button>
                             <button
                                 onClick={() => setStrategyType('sequential_logic')}
                                 className={`h-8 rounded-lg border text-[10px] font-bold transition-colors ${strategyType === 'sequential_logic' ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-emerald-200 hover:text-emerald-600'}`}
                             >
-                                步骤逻辑
+                                步骤给分
                             </button>
                             <button
                                 onClick={() => {
@@ -992,11 +1008,11 @@ function createEditableDimension(id: string): EditableDimension {
                                 }}
                                 className={`h-8 rounded-lg border text-[10px] font-bold transition-colors ${strategyType === 'rubric_matrix' ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-slate-200 text-slate-500 hover:border-orange-200 hover:text-orange-600'}`}
                             >
-                                维度矩阵
+                                分档评分
                             </button>
                         </div>
                         <p className="text-[9px] text-slate-400">
-                            选择评分结构后可用不同的编辑器配置内容，矩阵适用于作文/综合题。
+                            选择评分结构后可用不同的编辑器配置内容，分档评分适用于作文/综合题。
                         </p>
                     </div>
 

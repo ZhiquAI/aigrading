@@ -21,6 +21,275 @@ export interface RubricGenerateContext {
     questionType?: string;
     strategyType?: StrategyType;
     examName?: string;
+    totalScore?: number;
+    customRules?: string[];
+    taskScope?: 'question' | 'subquestion';
+    parentQuestionId?: string;
+    subQuestionId?: string;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+const VALID_STRATEGY_TYPES: StrategyType[] = ['point_accumulation', 'sequential_logic', 'rubric_matrix'];
+const VALID_SCORING_TYPES = ['pick_n', 'all', 'weighted'] as const;
+
+function isRecord(value: unknown): value is UnknownRecord {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function asRecord(value: unknown): UnknownRecord {
+    return isRecord(value) ? value : {};
+}
+
+function asRecordArray(value: unknown): UnknownRecord[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is UnknownRecord => isRecord(item));
+}
+
+function hasNonEmptyString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function normalizeStrategyType(value: unknown): StrategyType | null {
+    const raw = typeof value === 'string' ? value : '';
+    return VALID_STRATEGY_TYPES.includes(raw as StrategyType) ? (raw as StrategyType) : null;
+}
+
+function inferStrategyTypeByContent(content: UnknownRecord, fallback: StrategyType = 'point_accumulation'): StrategyType {
+    if (Array.isArray(content.dimensions) && content.dimensions.length > 0) return 'rubric_matrix';
+    if (Array.isArray(content.steps) && content.steps.length > 0) return 'sequential_logic';
+    if (Array.isArray(content.points) && content.points.length > 0) return 'point_accumulation';
+    return fallback;
+}
+
+function normalizeScoringStrategy(value: unknown): UnknownRecord {
+    const source = asRecord(value);
+    const strategyType = typeof source.type === 'string' && VALID_SCORING_TYPES.includes(source.type as typeof VALID_SCORING_TYPES[number])
+        ? source.type
+        : 'weighted';
+    const next: UnknownRecord = {
+        ...source,
+        type: strategyType,
+        allowAlternative: Boolean(source.allowAlternative),
+        strictMode: Boolean(source.strictMode),
+        openEnded: Boolean(source.openEnded),
+    };
+    if (typeof source.maxPoints === 'number' && Number.isFinite(source.maxPoints) && source.maxPoints > 0) {
+        next.maxPoints = Math.round(source.maxPoints);
+    }
+    if (typeof source.pointValue === 'number' && Number.isFinite(source.pointValue) && source.pointValue > 0) {
+        next.pointValue = source.pointValue;
+    }
+    return next;
+}
+
+function buildFallbackPoint(pointId: string, label: string): UnknownRecord {
+    return {
+        id: pointId,
+        content: label || '待补充得分点',
+        keywords: [],
+        score: 0,
+        openEnded: false,
+    };
+}
+
+function normalizeSegmentContentByStrategy(
+    rawContent: UnknownRecord,
+    strategyType: StrategyType,
+    segmentId: string
+): UnknownRecord {
+    const content = { ...rawContent };
+
+    if (strategyType === 'rubric_matrix') {
+        if (!Array.isArray(content.dimensions) || content.dimensions.length === 0) {
+            const fallbackScore = typeof content.totalScore === 'number' && Number.isFinite(content.totalScore)
+                ? Math.max(0, content.totalScore)
+                : 0;
+            content.dimensions = [{
+                id: `${segmentId}-d1`,
+                name: '默认维度',
+                weight: fallbackScore,
+                levels: [
+                    { label: '达成', score: fallbackScore, description: '满足评分要求' },
+                    { label: '未达成', score: 0, description: '未满足评分要求' },
+                ],
+            }];
+        }
+        return content;
+    }
+
+    if (strategyType === 'sequential_logic') {
+        if (!Array.isArray(content.steps) || content.steps.length === 0) {
+            if (Array.isArray(content.points) && content.points.length > 0) {
+                content.steps = content.points;
+            } else {
+                content.steps = [buildFallbackPoint(`${segmentId}-1`, '步骤待补充')];
+            }
+        }
+        content.scoringStrategy = normalizeScoringStrategy(content.scoringStrategy);
+        return content;
+    }
+
+    if (!Array.isArray(content.points) || content.points.length === 0) {
+        if (Array.isArray(content.steps) && content.steps.length > 0) {
+            content.points = content.steps;
+        } else {
+            content.points = [buildFallbackPoint(`${segmentId}-1`, '得分点待补充')];
+        }
+    }
+    content.scoringStrategy = normalizeScoringStrategy(content.scoringStrategy);
+    return content;
+}
+
+function normalizeSegment(segment: unknown, index: number, rootStrategyType: StrategyType): UnknownRecord {
+    const source = asRecord(segment);
+    const segmentId = hasNonEmptyString(source.id) ? source.id.trim() : `segment-${index + 1}`;
+    const mergedContent: UnknownRecord = {
+        ...asRecord(source.content),
+    };
+
+    const inlinePoints = asRecordArray(source.points);
+    const inlineSteps = asRecordArray(source.steps);
+    const inlineDimensions = asRecordArray(source.dimensions);
+    if (!Array.isArray(mergedContent.points) && inlinePoints.length > 0) {
+        mergedContent.points = inlinePoints;
+    }
+    if (!Array.isArray(mergedContent.steps) && inlineSteps.length > 0) {
+        mergedContent.steps = inlineSteps;
+    }
+    if (!Array.isArray(mergedContent.dimensions) && inlineDimensions.length > 0) {
+        mergedContent.dimensions = inlineDimensions;
+    }
+
+    const strategyType = normalizeStrategyType(source.strategyType)
+        || inferStrategyTypeByContent(mergedContent, rootStrategyType);
+
+    return {
+        ...source,
+        id: segmentId,
+        strategyType,
+        content: normalizeSegmentContentByStrategy(mergedContent, strategyType, segmentId),
+    };
+}
+
+function normalizeTopLevelContent(content: UnknownRecord, strategyType: StrategyType, questionId: string): UnknownRecord {
+    const next = { ...content };
+    if (Array.isArray(next.segments)) {
+        next.segments = next.segments.map((segment, index) => normalizeSegment(segment, index, strategyType));
+    }
+
+    if (strategyType === 'rubric_matrix') {
+        if ((!Array.isArray(next.dimensions) || next.dimensions.length === 0) && (!Array.isArray(next.segments) || next.segments.length === 0)) {
+            next.dimensions = [{
+                id: `${questionId}-d1`,
+                name: '默认维度',
+                weight: typeof next.totalScore === 'number' ? Math.max(0, next.totalScore) : 0,
+                levels: [
+                    { label: '达成', score: typeof next.totalScore === 'number' ? Math.max(0, next.totalScore) : 0 },
+                    { label: '未达成', score: 0 },
+                ],
+            }];
+        }
+        return next;
+    }
+
+    if (strategyType === 'sequential_logic') {
+        if ((!Array.isArray(next.steps) || next.steps.length === 0) && Array.isArray(next.points) && next.points.length > 0) {
+            next.steps = next.points;
+        }
+        if ((!Array.isArray(next.steps) || next.steps.length === 0) && (!Array.isArray(next.segments) || next.segments.length === 0)) {
+            next.steps = [buildFallbackPoint(`${questionId}-1`, '步骤待补充')];
+        }
+        next.scoringStrategy = normalizeScoringStrategy(next.scoringStrategy);
+        return next;
+    }
+
+    if ((!Array.isArray(next.points) || next.points.length === 0) && Array.isArray(next.steps) && next.steps.length > 0) {
+        next.points = next.steps;
+    }
+    if ((!Array.isArray(next.points) || next.points.length === 0) && (!Array.isArray(next.segments) || next.segments.length === 0)) {
+        next.points = [buildFallbackPoint(`${questionId}-1`, '得分点待补充')];
+    }
+    next.scoringStrategy = normalizeScoringStrategy(next.scoringStrategy);
+    return next;
+}
+
+function normalizeGeneratedRubricLikeV3(
+    input: unknown,
+    questionId?: string,
+    context?: RubricGenerateContext
+): unknown {
+    const source = asRecord(input);
+    if (!isRecord(input)) return input;
+
+    const now = new Date().toISOString();
+    const metadata = asRecord(source.metadata);
+    const resolvedQuestionId = hasNonEmptyString(metadata.questionId)
+        ? metadata.questionId.trim()
+        : (questionId || context?.subQuestionId || context?.parentQuestionId || 'unknown');
+    const resolvedTitle = hasNonEmptyString(metadata.title)
+        ? metadata.title.trim()
+        : `${context?.questionType || '题目'}评分细则`;
+
+    const normalizedMetadata: UnknownRecord = {
+        ...metadata,
+        questionId: resolvedQuestionId,
+        title: resolvedTitle,
+    };
+    if (!hasNonEmptyString(normalizedMetadata.subject) && context?.subject) {
+        normalizedMetadata.subject = context.subject;
+    }
+    if (!hasNonEmptyString(normalizedMetadata.questionType) && context?.questionType) {
+        normalizedMetadata.questionType = context.questionType;
+    }
+    if (!hasNonEmptyString(normalizedMetadata.examName) && context?.examName) {
+        normalizedMetadata.examName = context.examName;
+    }
+
+    const rawContent = asRecord(source.content);
+    const rootStrategyType = normalizeStrategyType(source.strategyType)
+        || inferStrategyTypeByContent(rawContent, context?.strategyType || 'point_accumulation');
+
+    return {
+        ...source,
+        version: '3.0',
+        metadata: normalizedMetadata,
+        strategyType: rootStrategyType,
+        content: normalizeTopLevelContent(rawContent, rootStrategyType, resolvedQuestionId),
+        createdAt: hasNonEmptyString(source.createdAt) ? source.createdAt : now,
+        updatedAt: hasNonEmptyString(source.updatedAt) ? source.updatedAt : now,
+    };
+}
+
+function coerceGeneratedRubric(
+    rawRubric: unknown,
+    questionId?: string,
+    context?: RubricGenerateContext
+): RubricJSONV3 {
+    try {
+        return coerceRubricToV3(rawRubric).rubric;
+    } catch (firstError) {
+        const repaired = normalizeGeneratedRubricLikeV3(rawRubric, questionId, context);
+        try {
+            return coerceRubricToV3(repaired).rubric;
+        } catch (secondError) {
+            const firstMessage = firstError instanceof Error ? firstError.message : String(firstError);
+            const secondMessage = secondError instanceof Error ? secondError.message : String(secondError);
+            throw new Error(`${firstMessage}；自动修复失败：${secondMessage}`);
+        }
+    }
+}
+
+function parseAndCoerceGeneratedRubric(
+    rawRubric: unknown,
+    questionId?: string,
+    context?: RubricGenerateContext
+): RubricJSONV3 {
+    if (typeof rawRubric === 'string') {
+        const cleaned = cleanJsonString(rawRubric);
+        return coerceGeneratedRubric(JSON.parse(cleaned), questionId, context);
+    }
+    return coerceGeneratedRubric(rawRubric, questionId, context);
 }
 
 // ==================== JSON 格式提示词 ====================
@@ -128,6 +397,15 @@ export function getRubricSystemPrompt(): string {
 - content.scoringStrategy.maxPoints: 1
 - content.scoringStrategy.pointValue: 2
 - 每个 content.points[].score: 0
+
+## 多小问拆分规则（强制）
+
+若参考答案出现 "(1)(2)(3)"、"第1问/第2问"、"13-1/13-2" 等多小问标记，必须使用 \`content.segments\`：
+
+1. 每个小问一个 segment，不得把所有小问混在同一组 points 中
+2. 每个 segment 必须独立设置 strategyType 与 scoringStrategy
+3. 根节点 content 使用 \`aggregation: "sum"\`，\`totalScore\` 为各小问汇总
+4. 客观题小问优先 \`all + strictMode=true\`；任答类小问使用 \`pick_n\`；材料分析小问优先 \`weighted\`
 
 ## 输出要求
 
@@ -314,6 +592,11 @@ export async function generateRubricFromImages(
                     questionType: context?.questionType,
                     strategyType: context?.strategyType,
                     examName: context?.examName,
+                    totalScore: context?.totalScore,
+                    customRules: context?.customRules,
+                    taskScope: context?.taskScope,
+                    parentQuestionId: context?.parentQuestionId,
+                    subQuestionId: context?.subQuestionId,
                     outputFormat: 'json',
                 }),
             });
@@ -326,12 +609,7 @@ export async function generateRubricFromImages(
             const data = await response.json();
             const rubricData = data.rubric || data.data?.rubric || data;
 
-            if (typeof rubricData === 'string') {
-                const cleaned = cleanJsonString(rubricData);
-                return coerceRubricToV3(JSON.parse(cleaned)).rubric;
-            }
-
-            return coerceRubricToV3(rubricData).rubric;
+            return parseAndCoerceGeneratedRubric(rubricData, questionId, context);
         } catch (error) {
             console.error('[generateRubricFromImages] Backend proxy failed:', error);
             throw new Error(`生成评分细则失败：${error instanceof Error ? error.message : '后端服务不可用'} `);
@@ -355,6 +633,10 @@ export async function generateRubricFromImages(
                 context?.questionType ? `题型：${context.questionType}` : '',
                 context?.strategyType ? `建议策略：${context.strategyType}` : '',
                 context?.examName ? `考试：${context.examName}` : '',
+                typeof context?.totalScore === 'number' ? `总分：${context.totalScore}` : '',
+                context?.taskScope ? `任务粒度：${context.taskScope === 'subquestion' ? '小问' : '整题'}` : '',
+                context?.parentQuestionId ? `大题号：${context.parentQuestionId}` : '',
+                context?.subQuestionId ? `小问号：${context.subQuestionId}` : '',
                 questionId ? `题号：${questionId}` : ''
             ].filter(Boolean).join('\n');
 
@@ -369,9 +651,7 @@ export async function generateRubricFromImages(
 
             const result = await callAI(systemPrompt, userPrompt, imageToUse, { jsonMode: true });
 
-            // 解析 AI 返回的 JSON
-            const cleaned = cleanJsonString(result);
-            return coerceRubricToV3(JSON.parse(cleaned)).rubric;
+            return parseAndCoerceGeneratedRubric(result, questionId, context);
         } catch (error) {
             console.error('[generateRubricFromImages] Frontend direct failed:', error);
             console.error('[generateRubricFromImages] Error name:', (error as Error).name);
@@ -432,6 +712,11 @@ export async function generateRubricFromText(
                     questionType: context?.questionType,
                     strategyType: context?.strategyType,
                     examName: context?.examName,
+                    totalScore: context?.totalScore,
+                    customRules: context?.customRules,
+                    taskScope: context?.taskScope,
+                    parentQuestionId: context?.parentQuestionId,
+                    subQuestionId: context?.subQuestionId,
                     outputFormat: 'json',
                 }),
             });
@@ -444,12 +729,7 @@ export async function generateRubricFromText(
             const data = await response.json();
             const rubricData = data.rubric || data.data?.rubric || data;
 
-            if (typeof rubricData === 'string') {
-                const cleaned = cleanJsonString(rubricData);
-                return coerceRubricToV3(JSON.parse(cleaned)).rubric;
-            }
-
-            return coerceRubricToV3(rubricData).rubric;
+            return parseAndCoerceGeneratedRubric(rubricData, questionId, context);
         } catch (error) {
             console.error('[generateRubricFromText] Backend proxy failed:', error);
             // 回退到前端直连模式
@@ -467,6 +747,10 @@ export async function generateRubricFromText(
             context?.questionType ? `题型：${context.questionType}` : '',
             context?.strategyType ? `建议策略：${context.strategyType}` : '',
             context?.examName ? `考试：${context.examName}` : '',
+            typeof context?.totalScore === 'number' ? `总分：${context.totalScore}` : '',
+            context?.taskScope ? `任务粒度：${context.taskScope === 'subquestion' ? '小问' : '整题'}` : '',
+            context?.parentQuestionId ? `大题号：${context.parentQuestionId}` : '',
+            context?.subQuestionId ? `小问号：${context.subQuestionId}` : '',
             questionId ? `题号：${questionId}` : ''
         ].filter(Boolean).join('\n');
 
@@ -481,8 +765,7 @@ ${contextText ? `\n【上下文】\n${contextText}` : ''}
     请仔细分析参考答案的结构，识别各小题的题型（填空题 / 材料题 / 开放性题目），并生成对应的评分细则。`;
 
         const result = await callAI(systemPrompt, userPrompt, undefined, { jsonMode: true });
-        const cleaned = cleanJsonString(result);
-        return coerceRubricToV3(JSON.parse(cleaned)).rubric;
+        return parseAndCoerceGeneratedRubric(result, questionId, context);
     } catch (error) {
         console.error('[generateRubricFromText] Frontend direct failed:', error);
         throw new Error(`生成评分细则失败：${error instanceof Error ? error.message : 'AI 服务不可用'} `);
@@ -527,12 +810,7 @@ export async function refineRubric(
             const data = await response.json();
             const rubricData = data.rubric || data.data?.rubric || data;
 
-            if (typeof rubricData === 'string') {
-                const cleaned = cleanJsonString(rubricData);
-                return coerceRubricToV3(JSON.parse(cleaned)).rubric;
-            }
-
-            return coerceRubricToV3(rubricData).rubric;
+            return parseAndCoerceGeneratedRubric(rubricData);
         } catch (error) {
             console.error('[refineRubric] Backend proxy failed:', error);
             throw new Error(`优化评分细则失败：${error instanceof Error ? error.message : '后端服务不可用'} `);
@@ -554,8 +832,7 @@ ${suggestion}
     请根据建议优化评分细则，输出完整的新 JSON。`;
 
             const result = await callAI(systemPrompt, userPrompt, undefined, { jsonMode: true });
-            const cleaned = cleanJsonString(result);
-            return coerceRubricToV3(JSON.parse(cleaned)).rubric;
+            return parseAndCoerceGeneratedRubric(result);
         } catch (error) {
             console.error('[refineRubric] Frontend direct failed:', error);
             throw new Error(`优化评分细则失败：${error instanceof Error ? error.message : 'AI 服务不可用'} `);

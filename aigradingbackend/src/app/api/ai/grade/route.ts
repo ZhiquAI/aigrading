@@ -10,6 +10,7 @@ import { judgeWithGPT } from '@/lib/gpt';
 import { judgeWithGemini, isGeminiAvailable } from '@/lib/gemini';
 import { scoreRubric } from '@/lib/score-engine';
 import { validateRubricV3 } from '@/lib/rubric-v3';
+import { getRubricCustomRulesFlag } from '@/lib/feature-flags';
 
 import { apiSuccess, apiError, apiServerError, apiRateLimited, ErrorCode } from '@/lib/api-response';
 import { checkRateLimit } from '@/lib/rate-limiter';
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
 
         // 获取激活码（可选，用于存储批改记录）
         const activationCode = request.headers.get('x-activation-code');
+        const customRulesFeatureGate = getRubricCustomRulesFlag(request);
 
         // 解析请求体
         const body = await request.json();
@@ -183,14 +185,22 @@ export async function POST(request: Request) {
         try {
             console.log(`[Grade API] 判定模式: GPTSAPI, 策略: ${gradeStrategy}`);
             const judge = await judgeWithGPT({ imageBase64, rubric: rubricV3, studentName }, gradeStrategy);
-            result = scoreRubric(rubricV3, judge.judge);
+            result = scoreRubric(rubricV3, judge.judge, {
+                enableConstraintDsl: customRulesFeatureGate.enabled,
+                segmentScorePolicy: 'segments_first',
+                markNeedsReviewOnSegmentConflict: true
+            });
             provider = 'gptsapi-judge';
         } catch (gptError: any) {
             console.warn('[Grade API] GPT Judge 失败:', gptError.message);
             try {
                 console.log('[Grade API] 回退到智谱判定');
                 const judge = await judgeWithZhipu({ imageBase64, rubric: rubricV3, studentName });
-                result = scoreRubric(rubricV3, judge.judge);
+                result = scoreRubric(rubricV3, judge.judge, {
+                    enableConstraintDsl: customRulesFeatureGate.enabled,
+                    segmentScorePolicy: 'segments_first',
+                    markNeedsReviewOnSegmentConflict: true
+                });
                 provider = 'zhipu-judge';
             } catch (zhipuError: any) {
                 console.warn('[Grade API] 智谱 Judge 失败:', zhipuError.message);
@@ -198,7 +208,11 @@ export async function POST(request: Request) {
                     try {
                         console.log('[Grade API] 回退到 Gemini 判定');
                         const judge = await judgeWithGemini({ imageBase64, rubric: rubricV3, studentName }, gradeStrategy);
-                        result = scoreRubric(rubricV3, judge.judge);
+                        result = scoreRubric(rubricV3, judge.judge, {
+                            enableConstraintDsl: customRulesFeatureGate.enabled,
+                            segmentScorePolicy: 'segments_first',
+                            markNeedsReviewOnSegmentConflict: true
+                        });
                         provider = 'gemini-judge';
                     } catch (geminiError: any) {
                         console.error('[Grade API] Gemini Judge 失败:', geminiError.message);

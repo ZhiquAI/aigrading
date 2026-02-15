@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>侧边栏版 - 细则模块</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Rubric Workspace</h1><p>细则模板与创建</p></div></div>
+        <div class="top-actions"><button class="cta">+ 新建</button><span class="icon-btn">⋯</span></div>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <article class="metric"><p>模板总数</p><strong>136</strong><small>系统+自定义</small></article>
+          <article class="metric"><p>已发布</p><strong>89</strong><small>可复用</small></article>
+          <article class="metric"><p>草稿</p><strong>31</strong><small>待确认</small></article>
+          <article class="metric"><p>今日新增</p><strong>16</strong><small>+18%</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head"><h3>筛选</h3><span class="meta">当前考试优先</span></header>
+          <div class="surface-body">
+            <div class="chips"><span class="chip active">历史</span><span class="chip">语文</span><span class="chip">数学</span><span class="chip">英语</span></div>
+            <div class="chips"><span class="chip active">已发布</span><span class="chip">草稿</span><span class="chip">全部</span></div>
+            <div class="search-row">⌕ 搜索模板名称 / 题号 / 策略</div>
+          </div>
+        </section>
+
+        <section class="surface">
+          <header class="surface-head"><h3>模板列表</h3><span class="meta">24 条</span></header>
+          <div class="surface-body card-list">
+            <article class="card">
+              <div class="card-top"><span class="badge">weighted</span><span class="badge ok">published</span></div>
+              <h4>期末卷第15题：工业革命影响评析</h4>
+              <div class="meta">得分点6 · 总分18 · 今天17:40</div>
+              <div class="card-foot"><span class="status ok">当前考试匹配</span><span class="meta">编辑</span></div>
+            </article>
+
+            <article class="card">
+              <div class="card-top"><span class="badge gray">all</span><span class="badge warn">draft</span></div>
+              <h4>月考第8题：三则史料比较分析</h4>
+              <div class="meta">得分点4 · 总分12 · 今天16:03</div>
+              <div class="card-foot"><span class="status partial">待发布</span><span class="meta">发布</span></div>
+            </article>
+
+            <article class="card">
+              <div class="card-top"><span class="badge">pick_n</span><span class="badge gray">template</span></div>
+              <h4>专题训练：维新变法失败原因</h4>
+              <div class="meta">得分点5 · 总分15 · 昨天</div>
+              <div class="card-foot"><span class="status partial">可克隆</span><span class="meta">套用</span></div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <a class="active" href="./rubric-sidepanel.html">细则</a>
+        <a href="./grading-sidepanel.html">阅卷</a>
+        <a href="./records-sidepanel.html">记录</a>
+        <a href="./settings-sidepanel.html">设置</a>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>

@@ -130,9 +130,17 @@ export { DEFAULT_CONFIG, STORAGE_KEY_CONFIG };
 import { SubjectRules, QuestionType, QuestionRule } from '../types';
 
 const STORAGE_KEY_SUBJECT_RULES = 'app_subject_rules';
+const SUBJECT_ALIASES: Record<string, string> = {
+    政治: '道法'
+};
+
+function normalizeSubjectValue(subject?: string): string {
+    const raw = (subject || '').trim();
+    return SUBJECT_ALIASES[raw] || raw;
+}
 
 // 支持的学科列表
-export const SUBJECT_LIST = ['历史', '语文', '政治', '地理', '数学', '物理', '化学', '生物', '英语'];
+export const SUBJECT_LIST = ['历史', '语文', '道法', '地理', '数学', '物理', '化学', '生物', '英语'];
 
 // 题型显示名称
 export const QUESTION_TYPE_NAMES: Record<QuestionType, string> = {
@@ -159,8 +167,8 @@ export const DEFAULT_SUBJECT_RULES: Record<string, SubjectRules> = {
             openEnded: { enabled: true, rule: '言之有理即可' }
         }
     },
-    '政治': {
-        subject: '政治',
+    '道法': {
+        subject: '道法',
         rules: {
             fillBlank: { enabled: true, rule: '错字不得分' },
             shortAnswer: { enabled: true, rule: '按点给分' },
@@ -222,7 +230,7 @@ export const DEFAULT_SUBJECT_RULES: Record<string, SubjectRules> = {
  */
 export function getCurrentSubject(): string {
     const config = getAppConfig();
-    return config.currentSubject || '历史';
+    return normalizeSubjectValue(config.currentSubject || '历史');
 }
 
 /**
@@ -230,7 +238,7 @@ export function getCurrentSubject(): string {
  */
 export function setCurrentSubject(subject: string): void {
     const config = getAppConfig();
-    config.currentSubject = subject;
+    config.currentSubject = normalizeSubjectValue(subject);
     saveAppConfig(config);
 }
 
@@ -238,7 +246,7 @@ export function setCurrentSubject(subject: string): void {
  * 获取学科规则
  */
 export function getSubjectRules(subject?: string): SubjectRules {
-    const targetSubject = subject || getCurrentSubject();
+    const targetSubject = normalizeSubjectValue(subject || getCurrentSubject());
 
     try {
         const saved = localStorage.getItem(STORAGE_KEY_SUBJECT_RULES);
@@ -246,6 +254,13 @@ export function getSubjectRules(subject?: string): SubjectRules {
             const allRules = JSON.parse(saved) as Record<string, SubjectRules>;
             if (allRules[targetSubject]) {
                 return allRules[targetSubject];
+            }
+            // 兼容历史键：政治 -> 道法
+            if (targetSubject === '道法' && allRules['政治']) {
+                return {
+                    ...allRules['政治'],
+                    subject: '道法'
+                };
             }
         }
     } catch (e) {
@@ -263,7 +278,11 @@ export function saveSubjectRules(rules: SubjectRules): void {
     try {
         const saved = localStorage.getItem(STORAGE_KEY_SUBJECT_RULES);
         const allRules = saved ? JSON.parse(saved) : {};
-        allRules[rules.subject] = rules;
+        const normalizedSubject = normalizeSubjectValue(rules.subject);
+        allRules[normalizedSubject] = {
+            ...rules,
+            subject: normalizedSubject
+        };
         localStorage.setItem(STORAGE_KEY_SUBJECT_RULES, JSON.stringify(allRules));
     } catch (e) {
         console.error('[saveSubjectRules] Error:', e);

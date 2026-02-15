@@ -73,40 +73,40 @@ export const RubricInputView = ({
   onImportJson
 }: RubricInputViewProps) => {
   return (
-    <section className="legacy-rubric-workspace">
-      <header className="legacy-rubric-subheader">
+    <section className="classic-rubric-workspace">
+      <header className="classic-rubric-subheader">
         <button type="button" onClick={onBack}>←</button>
         <h3>生成评分细则</h3>
-        <div className="legacy-rubric-subheader-actions">
-          <span className="legacy-trial-chip">试用版</span>
+        <div className="classic-rubric-subheader-actions">
+          <span className="classic-trial-chip">试用版</span>
           <button
             type="button"
-            className="legacy-rubric-settings-btn"
+            className="classic-rubric-settings-btn"
             aria-label="打开设置"
             onClick={onOpenSettings}
           >
-            <GearIcon className="legacy-gear-icon" />
+            <GearIcon className="classic-gear-icon" />
           </button>
         </div>
       </header>
 
       {statusMessage}
 
-      <div className="legacy-rubric-generate-panel">
+      <div className="classic-rubric-generate-panel">
         <section>
           <h4>1.上传评分图片</h4>
-          <div className="legacy-rubric-upload-grid">
+          <div className="classic-rubric-upload-grid">
             <button
               type="button"
-              className="legacy-rubric-upload-btn legacy-rubric-upload-btn-primary"
+              className="classic-rubric-upload-btn classic-rubric-upload-btn-primary"
               onClick={() => questionImageRef.current?.click()}
             >
               {questionImage ? (
                 <>
                   <img src={questionImage} alt="试题图片" />
-                  <span className="legacy-rubric-upload-badge">已上传</span>
+                  <span className="classic-rubric-upload-badge">已上传</span>
                   <span
-                    className="legacy-rubric-upload-remove"
+                    className="classic-rubric-upload-remove"
                     onClick={(event) => {
                       event.stopPropagation();
                       onRemoveQuestionImage();
@@ -116,22 +116,22 @@ export const RubricInputView = ({
                   </span>
                 </>
               ) : (
-                <div className="legacy-rubric-upload-placeholder">
+                <div className="classic-rubric-upload-placeholder">
                   <strong>上传试题（必填）</strong>
                 </div>
               )}
             </button>
             <button
               type="button"
-              className="legacy-rubric-upload-btn"
+              className="classic-rubric-upload-btn"
               onClick={() => answerImageRef.current?.click()}
             >
               {answerImage ? (
                 <>
                   <img src={answerImage} alt="答案图片" />
-                  <span className="legacy-rubric-upload-badge">已上传</span>
+                  <span className="classic-rubric-upload-badge">已上传</span>
                   <span
-                    className="legacy-rubric-upload-remove"
+                    className="classic-rubric-upload-remove"
                     onClick={(event) => {
                       event.stopPropagation();
                       onRemoveAnswerImage();
@@ -141,7 +141,7 @@ export const RubricInputView = ({
                   </span>
                 </>
               ) : (
-                <div className="legacy-rubric-upload-placeholder">
+                <div className="classic-rubric-upload-placeholder">
                   <strong>上传答案（可选）</strong>
                 </div>
               )}
@@ -151,21 +151,21 @@ export const RubricInputView = ({
             ref={questionImageRef}
             type="file"
             accept="image/*"
-            className="legacy-hidden-input"
+            className="classic-hidden-input"
             onChange={onQuestionImageChange}
           />
           <input
             ref={answerImageRef}
             type="file"
             accept="image/*"
-            className="legacy-hidden-input"
+            className="classic-hidden-input"
             onChange={onAnswerImageChange}
           />
         </section>
 
         <section>
           <h4>2.填写基本信息</h4>
-          <div className="legacy-rubric-form-grid">
+          <div className="classic-rubric-form-grid">
             <label>
               考试名称（可选）
               <input
@@ -224,19 +224,19 @@ export const RubricInputView = ({
         <section>
           <h4>3.添加特殊规则</h4>
           <textarea
-            className="legacy-rubric-rules-textarea"
+            className="classic-rubric-rules-textarea"
             rows={3}
             value={specialRulesText}
             onChange={(event) => onSpecialRulesChange(event.target.value)}
             placeholder={"例如：\n错别字每3个扣1分\n未写结论扣1分"}
           />
-          <p className="legacy-rubric-rules-hint">每行一条，AI 生成时会自动纳入规则约束。</p>
+          <p className="classic-rubric-rules-hint">每行一条，AI 生成时会自动纳入规则约束。</p>
         </section>
 
-        <p className="legacy-rubric-ai-note">AI 将自动拆分并填充：问题词、得分点、分值、关键词。</p>
+        <p className="classic-rubric-ai-note">AI 将自动拆分并填充：问题词、得分点、分值、关键词。</p>
       </div>
 
-      <div className="legacy-rubric-bottom-bar">
+      <div className="classic-rubric-bottom-bar">
         <button type="button" className="secondary" onClick={onClear} disabled={busy}>清空</button>
         <button type="button" className="primary" onClick={onGenerate} disabled={busy}>
           {busy ? "生成中..." : "生成细则"}
@@ -247,7 +247,7 @@ export const RubricInputView = ({
         ref={importInputRef}
         type="file"
         accept="application/json"
-        className="legacy-hidden-input"
+        className="classic-hidden-input"
         onChange={onImportJson}
       />
     </section>

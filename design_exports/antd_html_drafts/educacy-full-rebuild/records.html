@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>记录模块重构设计稿 - Educacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+  <style>
+    .records-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+    .record-item { border: 1px solid #edf0f4; border-radius: 12px; padding: 11px; display: grid; gap: 8px; }
+    .score { font-size: 24px; font-weight: 800; color: #3353bf; letter-spacing: -.03em; }
+    .detail { border: 1px dashed #dbe2ee; background: #f9fbfe; border-radius: 10px; padding: 10px; color: #6e7c91; font-size: 12px; line-height: 1.7; }
+    @media (max-width: 980px) { .records-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo"></span><span>Educacy</span></div>
+      <nav class="nav">
+        <a class="nav-item" href="./index.html">总览</a>
+        <a class="nav-item" href="./rubric.html">细则模块</a>
+        <a class="nav-item" href="./grading.html">阅卷模块</a>
+        <a class="nav-item active" href="./records.html">记录模块</a>
+        <a class="nav-item" href="./settings.html">设置模块</a>
+      </nav>
+      <div class="side-label">当前页面</div>
+      <div class="module-list">
+        <div class="module-pill">记录检索</div>
+        <div class="module-pill">详情展开</div>
+        <div class="module-pill">导出 CSV/PDF</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Records Center</h1>
+          <p class="page-sub">阅卷记录 · 检索、分析、导出</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary">导出全部</button>
+          <span class="icon-btn">⇩</span>
+          <span class="avatar"></span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="grid-4">
+          <article class="metric"><p>记录总数</p><strong>2,846</strong><small>历史累积</small></article>
+          <article class="metric"><p>本周批改</p><strong>412</strong><small>+12% 周环比</small></article>
+          <article class="metric"><p>平均得分率</p><strong>76%</strong><small>历史科目</small></article>
+          <article class="metric"><p>满分占比</p><strong>8.4%</strong><small>本周</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head">
+            <h3>检索与筛选</h3>
+            <div class="chips"><span class="chip active">最近7天</span><span class="chip">最近30天</span><span class="chip">全部</span></div>
+          </header>
+          <div class="surface-body">
+            <div class="chips"><span class="chip active">历史</span><span class="chip">语文</span><span class="chip">数学</span><span class="chip">英语</span><span class="chip">仅异常分数</span></div>
+            <div class="search-row">⌕ 搜索学生姓名 / 题号 / 评分理由关键词...</div>
+          </div>
+        </section>
+
+        <section class="records-layout">
+          <article class="surface">
+            <header class="surface-head"><h3>记录列表</h3><span class="meta">共 168 条匹配</span></header>
+            <div class="surface-body" style="display:grid;gap:10px;">
+              <div class="record-item">
+                <div class="card-top"><span class="badge">Q15</span><span class="meta">2026-02-10 20:31</span></div>
+                <h4>王一鸣 · 历史期末 · 工业革命影响评析</h4>
+                <div class="card-foot"><span class="score">16.5 / 18</span><span class="status ok">已确认</span></div>
+                <div class="detail">评分理由：观点完整，证据链较充分；第二处史料引用缺少出处，扣 1.5 分。</div>
+              </div>
+
+              <div class="record-item">
+                <div class="card-top"><span class="badge gray">Q08</span><span class="meta">2026-02-10 19:42</span></div>
+                <h4>李若涵 · 月考 · 三则史料比较分析</h4>
+                <div class="card-foot"><span class="score" style="color:#915a1d;">9 / 12</span><span class="status partial">需复核</span></div>
+                <div class="detail">评分理由：结论存在但层次不完整，第二条史料未形成有效对比，建议教师复核。</div>
+              </div>
+
+              <div class="record-item">
+                <div class="card-top"><span class="badge">Q17</span><span class="meta">2026-02-10 18:57</span></div>
+                <h4>张景轩 · 专题训练 · 维新变法失败原因</h4>
+                <div class="card-foot"><span class="score">14 / 15</span><span class="status ok">已确认</span></div>
+                <div class="detail">评分理由：论据充分，逻辑清楚，结论回扣主题，个别术语不够规范扣 1 分。</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="surface">
+            <header class="surface-head"><h3>统计洞察</h3><span class="meta">自动汇总</span></header>
+            <div class="surface-body" style="display:grid;gap:12px;">
+              <div class="card">
+                <div class="card-top"><h4 style="margin:0;">题号得分分布</h4><span class="meta">Q15</span></div>
+                <div class="progress"><span style="width:82%"></span></div>
+                <div class="meta">高分段 82% · 中分段 14% · 低分段 4%</div>
+              </div>
+              <div class="card">
+                <div class="card-top"><h4 style="margin:0;">高频扣分点</h4></div>
+                <div class="meta">1) 证据链缺失（36%）</div>
+                <div class="meta">2) 结论回扣不足（23%）</div>
+                <div class="meta">3) 关键词遗漏（18%）</div>
+              </div>
+              <div class="card">
+                <div class="card-top"><h4 style="margin:0;">导出操作</h4></div>
+                <div class="foot-actions" style="justify-content:flex-start;margin-top:0;">
+                  <button class="btn-ghost">导出 CSV</button>
+                  <button class="btn-solid">导出 PDF</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

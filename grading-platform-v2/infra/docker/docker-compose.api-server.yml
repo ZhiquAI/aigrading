@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: grading-v2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: grading
+      POSTGRES_PASSWORD: grading
+      POSTGRES_DB: grading_v2
+    ports:
+      - "5432:5432"
+    volumes:
+      - grading-v2-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: grading-v2-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api-server:
+    build:
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.api-server
+    container_name: grading-v2-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://grading:grading@postgres:5432/grading_v2
+      REDIS_URL: redis://redis:6379
+      AI_GATEWAY_DEFAULT_PROVIDER: openrouter
+    ports:
+      - "3000:3000"
+
+volumes:
+  grading-v2-postgres-data:

@@ -69,14 +69,6 @@ const parseRubricV3Safe = (data: unknown): AnyRubric | null => {
 
 // ==================== 状态类型定义 ====================
 
-export interface HeaderAction {
-    id: string;
-    label: string;
-    icon: string; // Lucide icon name like 'Download'
-    onClick?: () => void;
-    dropdown?: { label: string; onClick: () => void }[];
-}
-
 export interface AppTask {
     id: string;
     label: string;
@@ -158,9 +150,6 @@ interface AppState {
         status: string;
     };
 
-    // === 顶部导航栏动作 (不持久化) ===
-    headerActions: HeaderAction[];
-
     // === 全局任务列表 (不持久化) ===
     tasks: AppTask[];
 
@@ -232,9 +221,6 @@ interface AppActions {
     setHasSeenOnboarding: (seen: boolean) => void;
     syncQuota: () => Promise<void>;
 
-    // === 顶部导航栏动作注册 ===
-    setHeaderActions: (actions: HeaderAction[]) => void;
-
     // === 全局任务管理 ===
     addTask: (task: AppTask) => void;
     updateTask: (id: string, updates: Partial<AppTask> | ((prev: AppTask) => AppTask)) => void;
@@ -279,7 +265,6 @@ const initialState: AppState = {
         lastSync: 0,
         status: 'active'
     },
-    headerActions: [],
     tasks: [],
     health: {
         api: null,
@@ -1064,9 +1049,6 @@ export const useAppStore = create<AppStore>()(
                     }
                 });
             },
-
-            // === 顶部导航栏动作注册 ===
-            setHeaderActions: (actions) => set({ headerActions: actions }),
 
             // === 全局任务管理 ===
             addTask: (task) => set((state) => ({

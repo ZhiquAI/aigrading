@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { RubricSchemaError, parseRubricV3 } from '@/lib/rubric-convert';
 import { RubricJSONV3 } from '@/lib/rubric-v3';
 import { getRubricPointCount, getRubricTotalScore, RubricListItem, validateRubricJSON } from '@/lib/rubric-types';
+import { normalizeSubjectValue } from '@/lib/config-service';
 
 type RubricLifecycleStatus = 'draft' | 'published';
 
@@ -207,6 +208,7 @@ export async function POST(request: NextRequest) {
             createdAt: rubric.createdAt || now,
             metadata: {
                 ...rubric.metadata,
+                subject: rubric.metadata.subject ? normalizeSubjectValue(rubric.metadata.subject) : rubric.metadata.subject,
                 examId: examId || rubric.metadata.examId || null
             }
         };

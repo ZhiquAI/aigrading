@@ -2096,7 +2096,7 @@ if (window.hasAIContentScriptLoaded) {
     const colorMap = {
       success: { bg: '#22c55e', border: '#22c55e', shadow: 'rgba(34, 197, 94, 0.15)' },  // 绿色
       error: { bg: '#ef4444', border: '#ef4444', shadow: 'rgba(239, 68, 68, 0.15)' },    // 红色
-      loading: { bg: '#3b82f6', border: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.15)' }  // 蓝色
+      loading: { bg: '#2563eb', border: '#2563eb', shadow: 'rgba(37, 99, 235, 0.15)' }  // 蓝色
     };
     const colors = colorMap[status] || colorMap.success;
 
@@ -2214,7 +2214,7 @@ if (window.hasAIContentScriptLoaded) {
     const colorMap = {
       success: { bg: '#22c55e', border: '#22c55e', shadow: 'rgba(34, 197, 94, 0.15)' },
       error: { bg: '#ef4444', border: '#ef4444', shadow: 'rgba(239, 68, 68, 0.15)' },
-      loading: { bg: '#3b82f6', border: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.15)' }
+      loading: { bg: '#2563eb', border: '#2563eb', shadow: 'rgba(37, 99, 235, 0.15)' }
     };
     const colors = colorMap[status] || colorMap.success;
 

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antd 设计稿提案 - AI 智能阅卷</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #0f172a;
+      --line: #24324a;
+      --text: #e6edf8;
+      --muted: #9db0cf;
+      --accent: #36a7ff;
+      --accent-2: #7c4dff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans SC", "Manrope", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 5% -10%, #253f78 0%, transparent 45%),
+        radial-gradient(900px 500px at 95% -20%, #3f2d73 0%, transparent 42%),
+        linear-gradient(165deg, #070b16 0%, #0b1120 45%, #0c1528 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 36px 22px 44px;
+    }
+    .wrap {
+      width: min(1140px, 100%);
+      margin: 0 auto;
+    }
+    .title {
+      font-size: clamp(30px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      margin: 0 0 10px;
+    }
+    .subtitle {
+      margin: 0 0 26px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 860px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      text-decoration: none;
+      color: inherit;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(170deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.35);
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: #3d6fd0;
+      box-shadow: 0 22px 58px rgba(10, 38, 104, 0.38);
+    }
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      border-radius: 999px;
+      border: 1px solid #355999;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #aed4ff;
+      background: rgba(54, 167, 255, 0.12);
+    }
+    .name {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .tokens {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .token {
+      font-size: 12px;
+      color: #ccd9ef;
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px dashed #3a4e72;
+      background: rgba(18, 28, 49, 0.6);
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 13px;
+      color: #96a8c9;
+    }
+    .footer code { color: #c4e1ff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="title">AI 智能阅卷 · Ant Design 视觉提案</h1>
+    <p class="subtitle">
+      目标：在保留业务流与效率前提下，解决“过于素雅、缺乏记忆点”的问题。以下 4 份设计稿均以侧边栏场景（约 360px）为中心，
+      可用于后续 Antd 实施前的风格定稿。
+    </p>
+
+    <section class="grid">
+      <a class="card" href="./draft-a-luminous-academy.html">
+        <span class="tag">方向 A / 推荐先看</span>
+        <h2 class="name">Luminous Academy</h2>
+        <p class="desc">明亮但不寡淡，蓝金学术感。适合“专业可信 + 品牌辨识”路线，兼容当前暖灰体系迁移。</p>
+        <div class="tokens">
+          <span class="token">Antd: compact + card-heavy</span>
+          <span class="token">强调色：Cobalt + Amber</span>
+          <span class="token">信息密度：中</span>
+        </div>
+      </a>
+
+      <a class="card" href="./draft-b-command-grid.html">
+        <span class="tag">方向 B</span>
+        <h2 class="name">Command Grid</h2>
+        <p class="desc">高对比效率工具风，适合重度用户与高频批改，强调速度、状态感与命令式交互。</p>
+        <div class="tokens">
+          <span class="token">Antd: dense tables + segmented</span>
+          <span class="token">强调色：Lime + Cyan</span>
+          <span class="token">信息密度：高</span>
+        </div>
+      </a>
+
+      <a class="card" href="./draft-c-aurora-flow.html">
+        <span class="tag">方向 C</span>
+        <h2 class="name">Aurora Flow</h2>
+        <p class="desc">AI Native 气质，渐变与层次更强。用于强化“智能助手”感与生成流程的仪式感。</p>
+        <div class="tokens">
+          <span class="token">Antd: soft cards + floating actions</span>
+          <span class="token">强调色：Teal + Violet</span>
+          <span class="token">信息密度：中低</span>
+        </div>
+      </a>
+
+      <a class="card" href="./draft-d-educacy-replica.html">
+        <span class="tag">方向 D / Dribbble 高还原</span>
+        <h2 class="name">Educacy Replica</h2>
+        <p class="desc">基于你提供的 Educacy 页面做高还原稿，突出轻盈教育后台感、柔和色块指标卡与简洁数据视图。</p>
+        <div class="tokens">
+          <span class="token">Antd: dashboard + table</span>
+          <span class="token">强调色：Soft Blue + Mint</span>
+          <span class="token">信息密度：中</span>
+        </div>
+      </a>
+
+      <a class="card" href="./educacy-full-rebuild/index.html">
+        <span class="tag">方向 E / 全盘重构套件</span>
+        <h2 class="name">Educacy Full Rebuild</h2>
+        <p class="desc">基于 D 方向扩展出的 4 模块重构设计稿，覆盖细则、阅卷、记录、设置，作为实施前确认稿。</p>
+        <div class="tokens">
+          <span class="token">Rubric + Grading + Records + Settings</span>
+          <span class="token">统一样式：shared.css</span>
+          <span class="token">状态：待确认后实施</span>
+        </div>
+      </a>
+
+      <a class="card" href="./educacy-sidepanel-rebuild/index.html">
+        <span class="tag">方向 F / 侧边栏专用版</span>
+        <h2 class="name">Educacy Sidepanel Rebuild</h2>
+        <p class="desc">按 360-390px 侧边栏尺寸重做四个模块，采用顶栏+滚动内容+底部导航的 Side Panel 结构。</p>
+        <div class="tokens">
+          <span class="token">专用尺寸：Chrome Side Panel</span>
+          <span class="token">独立目录，不覆盖旧稿</span>
+          <span class="token">状态：待确认后实施</span>
+        </div>
+      </a>
+
+      <a class="card" href="./educacy-sidepanel-interactions/index.html">
+        <span class="tag">方向 G / 侧边栏交互稿</span>
+        <h2 class="name">Educacy Sidepanel Interactions</h2>
+        <p class="desc">四个模块的可点击交互设计稿，包含关键状态切换与动作反馈，用于实施前直观审查业务流程。</p>
+        <div class="tokens">
+          <span class="token">状态流：18 个关键节点</span>
+          <span class="token">交互：场景切换 + Toast 反馈</span>
+          <span class="token">实施前评审专用</span>
+        </div>
+      </a>
+    </section>
+
+    <p class="footer">
+      预览方式：直接在浏览器打开本文件，或在项目目录执行本地静态服务后访问。
+      文件路径：<code>/Users/hero/Desktop/ai-grading/design_exports/antd_html_drafts/</code>
+    </p>
+  </div>
+</body>
+</html>

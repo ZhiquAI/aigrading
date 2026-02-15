@@ -1,0 +1,32 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2348A6"/>
+      <stop offset="1" stop-color="#567DF0"/>
+    </linearGradient>
+    <linearGradient id="plate" x1="33" y1="33" x2="95" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#EAF2FF"/>
+    </linearGradient>
+    <filter id="shadow" x="20" y="20" width="88" height="88" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-opacity="0.25" flood-color="#193D91"/>
+    </filter>
+  </defs>
+
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="white" stroke-opacity="0.45"/>
+
+  <g filter="url(#shadow)">
+    <rect x="32" y="32" width="64" height="64" rx="20" fill="url(#plate)" stroke="#C8DAF8"/>
+
+    <path d="M43 49L56 45V80L43 84V49Z" fill="#D9E8FF"/>
+    <path d="M72 45L85 49V84L72 80V45Z" fill="#D0E1FF"/>
+    <path d="M56 45V80" stroke="#A8C0EA" stroke-width="1.8"/>
+    <path d="M72 45V80" stroke="#A8C0EA" stroke-width="1.8"/>
+
+    <rect x="50" y="54" width="28" height="6" rx="3" fill="#5481E6"/>
+    <path d="M49 73L56 80L70 66" stroke="#EE8152" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="78" cy="53" r="2.3" fill="#EE8152" fill-opacity="0.9"/>
+    <circle cx="83" cy="57" r="1.5" fill="#EE8152" fill-opacity="0.8"/>
+  </g>
+</svg>

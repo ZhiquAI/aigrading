@@ -1,40 +1,26 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
 import {
-  apiErrorSchema,
   recordsBatchRequestSchema
 } from "@ai-grading/api-contracts";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 import { prisma } from "@/lib/prisma";
+import { parseLimit, parsePage } from "@/shared/validators/pagination";
 import {
   isScopeResolutionError,
   resolveRequestScope
-} from "@/lib/request-scope";
+} from "@/shared/scope-resolver/request-scope";
 import {
   batchCreateRecords,
   deleteRecords,
   isRecordDomainError,
   listRecords
 } from "@/modules/records/record-service";
-
-const parsePage = (raw: string | null): number => {
-  const value = Number(raw ?? "1");
-  if (!Number.isFinite(value) || value < 1) {
-    return 1;
-  }
-  return Math.floor(value);
-};
-
-const parseLimit = (raw: string | null): number => {
-  const value = Number(raw ?? "50");
-  if (!Number.isFinite(value) || value < 1) {
-    return 50;
-  }
-  return Math.min(Math.floor(value), 100);
-};
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
@@ -60,39 +46,20 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
-    const errorPayload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to get records.",
-      requestId
-    });
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to get records.",
+      500
     );
   }
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
@@ -117,64 +84,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     if (isRecordDomainError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     const isBadRequest = error instanceof ZodError || error instanceof SyntaxError;
-    const errorPayload = apiErrorSchema.parse(
-      isBadRequest
-        ? {
-            code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Invalid records payload.",
-            requestId
-          }
-        : {
-            code: "INTERNAL_SERVER_ERROR",
-            message: error instanceof Error ? error.message : "Failed to create records.",
-            requestId
-          }
-    );
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: isBadRequest ? 400 : 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      isBadRequest ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+      error instanceof Error
+        ? error.message
+        : isBadRequest
+          ? "Invalid records payload."
+          : "Failed to create records.",
+      isBadRequest ? 400 : 500
     );
   }
 }
 
 export async function DELETE(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const scope = resolveRequestScope(request, { requireIdentity: true });
@@ -199,49 +131,18 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     );
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     if (isRecordDomainError(error)) {
-      const errorPayload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-
-      return NextResponse.json(
-        { ok: false, error: errorPayload },
-        {
-          status: error.statusCode,
-          headers: { "x-request-id": requestId }
-        }
-      );
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
-    const errorPayload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to delete records.",
-      requestId
-    });
-
-    return NextResponse.json(
-      { ok: false, error: errorPayload },
-      {
-        status: 500,
-        headers: { "x-request-id": requestId }
-      }
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to delete records.",
+      500
     );
   }
 }

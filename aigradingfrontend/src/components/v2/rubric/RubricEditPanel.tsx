@@ -9,6 +9,7 @@ import { generateRubricFromImages } from '@/services/rubric-service';
 import { coerceRubricToV3 } from '@/utils/rubric-convert';
 import { toast } from '@/components/Toast';
 import type { RubricJSONV3, RubricPoint } from '@/types/rubric-v3';
+import { getSubjectOptions, normalizeSubjectValue } from '../views/rubric-config';
 import StickyHeader from './StickyHeader';
 import StickyFooter from './StickyFooter';
 import AccordionCard, { ScorePoint } from './AccordionCard';
@@ -29,6 +30,8 @@ interface RubricEditPanelProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+const SUBJECT_OPTIONS = getSubjectOptions().map((item) => item.value);
 
 // 转换 RubricJSONV3 points 到 ScorePoint 格式
 function toScorePoints(rubric: RubricJSONV3): ScorePoint[] {
@@ -111,7 +114,7 @@ export default function RubricEditPanel({ isOpen, onClose }: RubricEditPanelProp
                 const points = toScorePoints(normalized);
 
                 setScorePoints(points);
-                setSubject(normalized.metadata.subject || '历史');
+                setSubject(normalizeSubjectValue(normalized.metadata.subject || '历史'));
                 setGrade(normalized.metadata.grade || '九年级');
                 setQuestionNo(normalized.metadata.questionId || '');
                 setQuestionType(normalized.metadata.questionType || '填空题');
@@ -176,7 +179,7 @@ export default function RubricEditPanel({ isOpen, onClose }: RubricEditPanelProp
             const points = toScorePoints(rubric);
 
             setScorePoints(points);
-            setSubject(rubric.metadata.subject || subject);
+            setSubject(normalizeSubjectValue(rubric.metadata.subject || subject));
             setGrade(rubric.metadata.grade || grade);
             setQuestionNo(rubric.metadata.questionId || questionId);
             setQuestionType(rubric.metadata.questionType || questionType);
@@ -262,7 +265,7 @@ export default function RubricEditPanel({ isOpen, onClose }: RubricEditPanelProp
                 metadata: {
                     questionId: questionNo,
                     title: questionType,
-                    subject,
+                    subject: normalizeSubjectValue(subject),
                     grade,
                     questionType,
                     examId: null,
@@ -320,10 +323,10 @@ export default function RubricEditPanel({ isOpen, onClose }: RubricEditPanelProp
                         <div className="flex items-center gap-2">
                             <select
                                 value={subject}
-                                onChange={e => setSubject(e.target.value)}
+                                onChange={e => setSubject(normalizeSubjectValue(e.target.value))}
                                 className="text-xs font-medium text-blue-600 bg-transparent border-none outline-none cursor-pointer"
                             >
-                                {['历史', '政治', '语文', '物理', '化学', '数学'].map(s => (
+                                {SUBJECT_OPTIONS.map(s => (
                                     <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>

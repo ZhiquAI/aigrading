@@ -312,6 +312,79 @@ describe("v2 settings routes", () => {
     expect(getAfterDeleteJson.ok).toBe(true);
     expect(getAfterDeleteJson.data).toBeNull();
   });
+
+  it("supports idempotency for setting upsert and returns conflict on payload mismatch", async () => {
+    const first = await v2SettingsPut(
+      new Request("http://localhost/api/v2/settings", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "settings-idem-device",
+          "idempotency-key": "settings-idem-1"
+        },
+        body: JSON.stringify({
+          key: "grading.mode",
+          value: "assist"
+        })
+      })
+    );
+    expect(first.status).toBe(200);
+
+    const replay = await v2SettingsPut(
+      new Request("http://localhost/api/v2/settings", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "settings-idem-device",
+          "idempotency-key": "settings-idem-1"
+        },
+        body: JSON.stringify({
+          key: "grading.mode",
+          value: "assist"
+        })
+      })
+    );
+    expect(replay.status).toBe(200);
+
+    const conflict = await v2SettingsPut(
+      new Request("http://localhost/api/v2/settings", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "settings-idem-device",
+          "idempotency-key": "settings-idem-1"
+        },
+        body: JSON.stringify({
+          key: "grading.mode",
+          value: "auto"
+        })
+      })
+    );
+    expect(conflict.status).toBe(409);
+  });
+
+  it("returns unified error envelope with request id for bad delete request", async () => {
+    const response = await v2SettingsDelete(
+      new Request("http://localhost/api/v2/settings", {
+        method: "DELETE",
+        headers: {
+          "x-device-id": "settings-envelope-device"
+        }
+      })
+    );
+
+    expect(response.status).toBe(400);
+    const requestIdHeader = response.headers.get("x-request-id");
+    expect(requestIdHeader).toBeTruthy();
+
+    const json = await parseJson<{
+      ok: boolean;
+      error: { code: string; message: string; requestId: string };
+    }>(response);
+    expect(json.ok).toBe(false);
+    expect(json.error.code).toBe("BAD_REQUEST");
+    expect(json.error.requestId).toBe(requestIdHeader);
+  });
 });
 
 describe("v2 exams routes", () => {
@@ -384,6 +457,64 @@ describe("v2 exams routes", () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  it("supports idempotency for exam create and detects payload conflict", async () => {
+    const first = await v2ExamsPost(
+      new Request("http://localhost/api/v2/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-idem-device",
+          "idempotency-key": "exam-idem-1"
+        },
+        body: JSON.stringify({
+          name: "高三模拟考",
+          date: "2026-02-12",
+          subject: "history"
+        })
+      })
+    );
+    expect(first.status).toBe(201);
+    const firstJson = await parseJson<{ ok: boolean; data: { id: string } }>(first);
+    expect(firstJson.ok).toBe(true);
+
+    const replay = await v2ExamsPost(
+      new Request("http://localhost/api/v2/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-idem-device",
+          "idempotency-key": "exam-idem-1"
+        },
+        body: JSON.stringify({
+          name: "高三模拟考",
+          date: "2026-02-12",
+          subject: "history"
+        })
+      })
+    );
+    expect(replay.status).toBe(201);
+    const replayJson = await parseJson<{ ok: boolean; data: { id: string } }>(replay);
+    expect(replayJson.ok).toBe(true);
+    expect(replayJson.data.id).toBe(firstJson.data.id);
+
+    const conflict = await v2ExamsPost(
+      new Request("http://localhost/api/v2/exams", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "exam-idem-device",
+          "idempotency-key": "exam-idem-1"
+        },
+        body: JSON.stringify({
+          name: "高三模拟考-改",
+          date: "2026-02-12",
+          subject: "history"
+        })
+      })
+    );
+    expect(conflict.status).toBe(409);
   });
 });
 
@@ -482,6 +613,24 @@ describe("v2 records routes", () => {
     expect(deleteByQuestionJson.ok).toBe(true);
     expect(deleteByQuestionJson.data.deleted).toBe(1);
   });
+
+  it("returns unified error envelope with request id when identity is missing", async () => {
+    const response = await v2RecordsGet(
+      new Request("http://localhost/api/v2/records?page=1&limit=10")
+    );
+
+    expect(response.status).toBe(401);
+    const requestIdHeader = response.headers.get("x-request-id");
+    expect(requestIdHeader).toBeTruthy();
+
+    const json = await parseJson<{
+      ok: boolean;
+      error: { code: string; message: string; requestId: string };
+    }>(response);
+    expect(json.ok).toBe(false);
+    expect(json.error.code).toBe("MISSING_SCOPE_IDENTITY");
+    expect(json.error.requestId).toBe(requestIdHeader);
+  });
 });
 
 describe("v2 rubrics routes", () => {
@@ -552,6 +701,68 @@ describe("v2 rubrics routes", () => {
     }>(getAfterDelete);
     expect(getAfterDeleteJson.ok).toBe(true);
     expect(getAfterDeleteJson.data).toBeNull();
+  });
+
+  it("supports idempotency for rubric upsert and detects payload conflict", async () => {
+    const first = await v2RubricsPost(
+      new Request("http://localhost/api/v2/rubrics", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "rubric-idem-device",
+          "idempotency-key": "rubric-idem-1"
+        },
+        body: JSON.stringify({
+          questionKey: "q-idem-1",
+          rubric: {
+            metadata: { questionId: "q-idem-1", title: "题目1" },
+            answerPoints: [{ content: "要点1", score: 10 }]
+          },
+          lifecycleStatus: "draft"
+        })
+      })
+    );
+    expect(first.status).toBe(200);
+
+    const replay = await v2RubricsPost(
+      new Request("http://localhost/api/v2/rubrics", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "rubric-idem-device",
+          "idempotency-key": "rubric-idem-1"
+        },
+        body: JSON.stringify({
+          questionKey: "q-idem-1",
+          rubric: {
+            metadata: { questionId: "q-idem-1", title: "题目1" },
+            answerPoints: [{ content: "要点1", score: 10 }]
+          },
+          lifecycleStatus: "draft"
+        })
+      })
+    );
+    expect(replay.status).toBe(200);
+
+    const conflict = await v2RubricsPost(
+      new Request("http://localhost/api/v2/rubrics", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "rubric-idem-device",
+          "idempotency-key": "rubric-idem-1"
+        },
+        body: JSON.stringify({
+          questionKey: "q-idem-1",
+          rubric: {
+            metadata: { questionId: "q-idem-1", title: "题目2" },
+            answerPoints: [{ content: "要点1", score: 9 }]
+          },
+          lifecycleStatus: "draft"
+        })
+      })
+    );
+    expect(conflict.status).toBe(409);
   });
 });
 
@@ -628,6 +839,74 @@ describe("v2 grading and rubric generate routes", () => {
     expect(quotaJson.ok).toBe(true);
     expect(quotaJson.data.remaining).toBe(999);
     expect(quotaJson.data.totalUsed).toBe(1);
+  });
+
+  it("supports idempotency for grading evaluate and prevents duplicate quota consumption", async () => {
+    const body = {
+      rubric: {
+        metadata: { questionId: "Q3", title: "材料题Q3" },
+        answerPoints: [
+          { content: "史实准确", score: 6 },
+          { content: "逻辑完整", score: 4 }
+        ]
+      },
+      studentName: "Bob",
+      questionNo: "Q3",
+      imageBase64: "base64-placeholder"
+    };
+
+    const first = await v2GradingEvaluatePost(
+      new Request("http://localhost/api/v2/gradings/evaluate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "grade-idem-device",
+          "idempotency-key": "grade-idem-1"
+        },
+        body: JSON.stringify(body)
+      })
+    );
+    expect(first.status).toBe(200);
+    const firstJson = await parseJson<{ ok: boolean; data: { remaining: number; totalUsed: number } }>(first);
+    expect(firstJson.ok).toBe(true);
+    expect(firstJson.data.remaining).toBe(999);
+    expect(firstJson.data.totalUsed).toBe(1);
+
+    const replay = await v2GradingEvaluatePost(
+      new Request("http://localhost/api/v2/gradings/evaluate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "grade-idem-device",
+          "idempotency-key": "grade-idem-1"
+        },
+        body: JSON.stringify(body)
+      })
+    );
+    expect(replay.status).toBe(200);
+    const replayJson = await parseJson<{ ok: boolean; data: { remaining: number; totalUsed: number } }>(replay);
+    expect(replayJson.ok).toBe(true);
+    expect(replayJson.data.remaining).toBe(999);
+    expect(replayJson.data.totalUsed).toBe(1);
+
+    const conflict = await v2GradingEvaluatePost(
+      new Request("http://localhost/api/v2/gradings/evaluate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "grade-idem-device",
+          "idempotency-key": "grade-idem-1"
+        },
+        body: JSON.stringify({
+          ...body,
+          questionNo: "Q3-Changed"
+        })
+      })
+    );
+    expect(conflict.status).toBe(409);
   });
 });
 

@@ -1,76 +1,166 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-    darkMode: 'class', // 启用基于 class 的深色模式
+    darkMode: 'class',
     content: [
         "./index.html",
         "./**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
         extend: {
-            animation: {
-                'bounce-slow': 'bounce-slow 2s infinite ease-in-out',
-            },
-            keyframes: {
-                'bounce-slow': {
-                    '0%, 100%': { transform: 'translateY(0)' },
-                    '50%': { transform: 'translateY(-10px)' },
-                }
-            },
             fontFamily: {
-                sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                sans: ['Plus Jakarta Sans', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
                 mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
             },
             colors: {
-                // Shadcn-inspired semantic colors
+                // Educacy-inspired soft palette
                 primary: {
-                    DEFAULT: '#6366F1',
-                    hover: '#4F46E5',
-                    active: '#4338CA',
-                    subtle: '#EEF2FF',
-                    border: '#C7D2FE',
-                    50: '#EEF2FF',
-                    100: '#E0E7FF',
-                    500: '#6366F1',
-                    600: '#4F46E5',
-                    700: '#4338CA',
+                    DEFAULT: '#006FEE',
+                    hover: '#005BC4',
+                    active: '#004799',
+                    subtle: 'rgba(0, 111, 238, 0.12)',
+                    border: 'rgba(0, 111, 238, 0.3)',
+                    50: '#E6F1FE',
+                    100: '#CCE3FD',
+                    200: '#99C7FB',
+                    300: '#66ABF8',
+                    400: '#338FF4',
+                    500: '#006FEE',
+                    600: '#005BC4',
+                    700: '#004799',
+                    800: '#003770',
+                    900: '#00264D',
+                },
+                secondary: {
+                    DEFAULT: '#7828C8',
+                    hover: '#6622AA',
+                    active: '#531B8C',
+                    subtle: 'rgba(120, 40, 200, 0.12)',
+                    border: 'rgba(120, 40, 200, 0.3)',
+                    50: '#F2EAFA',
+                    100: '#E4D4F4',
+                    200: '#C9A9E9',
+                    300: '#AF7EDF',
+                    400: '#9453D4',
+                    500: '#7828C8',
+                    600: '#6622AA',
+                    700: '#531B8C',
+                    800: '#40156E',
+                    900: '#2D0F4F',
+                },
+                neon: {
+                    DEFAULT: '#7828C8',
+                    hover: '#6622AA',
+                    subtle: 'rgba(120, 40, 200, 0.12)',
+                    border: 'rgba(120, 40, 200, 0.3)',
+                    50: '#F2EAFA',
+                    400: '#9453D4',
+                    500: '#7828C8',
+                    600: '#6622AA',
+                },
+                blue: {
+                    50: '#E6F1FE',
+                    100: '#CCE3FD',
+                    200: '#99C7FB',
+                    300: '#66ABF8',
+                    400: '#338FF4',
+                    500: '#006FEE',
+                    600: '#005BC4',
+                    700: '#004799',
+                    800: '#003770',
+                    900: '#00264D',
+                    950: '#001733',
+                },
+                energetic: {
+                    DEFAULT: '#DCA476',
+                    hover: '#CC9668',
+                    subtle: 'rgba(220, 164, 118, 0.12)',
+                    border: 'rgba(220, 164, 118, 0.3)',
+                    50: '#FCF4ED',
+                    400: '#E4B992',
+                    500: '#DCA476',
+                    600: '#CC9668',
+                },
+                magenta: {
+                    DEFAULT: '#9C90D8',
+                    subtle: 'rgba(156, 144, 216, 0.12)',
+                    500: '#9C90D8',
                 },
                 success: {
                     DEFAULT: '#10B981',
                     hover: '#059669',
-                    subtle: '#ECFDF5',
+                    subtle: 'rgba(16, 185, 129, 0.12)',
                     border: '#A7F3D0',
                 },
                 danger: {
                     DEFAULT: '#EF4444',
                     hover: '#DC2626',
-                    subtle: '#FEF2F2',
+                    subtle: 'rgba(239, 68, 68, 0.12)',
                 },
                 warning: {
                     DEFAULT: '#F59E0B',
                     hover: '#D97706',
-                    subtle: '#FFFBEB',
+                    subtle: 'rgba(245, 158, 11, 0.12)',
                 },
-                accent: {
-                    DEFAULT: '#8B5CF6',
-                    hover: '#7C3AED',
-                    subtle: '#F5F3FF',
+                // Dark surfaces
+                surface: {
+                    DEFAULT: '#EDF2F3',
+                    card: '#FFFFFF',
+                    elevated: '#F7FAFC',
+                    float: 'rgba(255,255,255,0.95)',
                 },
             },
             backgroundImage: {
-                // 品牌渐变 (用于主要按钮)
-                'brand-gradient': 'linear-gradient(to right, #6366F1, #8B5CF6)',
-                'brand-gradient-hover': 'linear-gradient(to right, #4F46E5, #7C3AED)',
-                // 深色面板渐变
-                'panel-dark': 'linear-gradient(to bottom right, #0F172A, #1E293B, #312E81)',
+                // Hero & Brand gradients
+                'hero-gradient': 'linear-gradient(135deg, #006FEE 0%, #7828C8 100%)',
+                'hero-gradient-hover': 'linear-gradient(135deg, #005BC4 0%, #6622AA 100%)',
+                'energetic-gradient': 'linear-gradient(135deg, #006FEE 0%, #7828C8 100%)',
+                'neon-gradient': 'linear-gradient(135deg, #006FEE 0%, #7828C8 100%)',
+                'dark-panel': 'linear-gradient(180deg, #FDFEFF 0%, #F4F7FB 50%, #EEF2F6 100%)',
+                // Nav gradients
+                'nav-dark': 'linear-gradient(to top, rgba(255,255,255,0.98), rgba(248,250,252,0.95))',
             },
             borderRadius: {
-                DEFAULT: '0.75rem', // 12px
+                DEFAULT: '0.75rem',
             },
             boxShadow: {
-                'focus': '0 0 0 3px rgba(99, 102, 241, 0.15)',
-                'brand': '0 10px 15px -3px rgba(99, 102, 241, 0.3)',
-                'brand-lg': '0 20px 25px -5px rgba(99, 102, 241, 0.4)',
-            }
+                'focus': '0 0 0 3px rgba(0, 111, 238, 0.2)',
+                'brand': '0 10px 15px -3px rgba(0, 111, 238, 0.26)',
+                'brand-lg': '0 20px 25px -5px rgba(0, 111, 238, 0.32)',
+                'neon': '0 0 20px rgba(0, 111, 238, 0.32), 0 0 60px rgba(120, 40, 200, 0.2)',
+                'neon-sm': '0 0 10px rgba(0, 111, 238, 0.24), 0 0 24px rgba(120, 40, 200, 0.14)',
+                'energetic': '0 0 18px rgba(0, 111, 238, 0.24), 0 0 36px rgba(120, 40, 200, 0.16)',
+                'glow': '0 0 12px rgba(0, 111, 238, 0.35)',
+                'glow-lg': '0 0 24px rgba(0, 111, 238, 0.46), 0 0 52px rgba(120, 40, 200, 0.22)',
+            },
+            animation: {
+                'bounce-slow': 'bounce-slow 2s infinite ease-in-out',
+                'neon-pulse': 'neonPulse 2s ease-in-out infinite',
+                'glow-breathe': 'glowBreathe 3s ease-in-out infinite',
+                'energetic-slide-up': 'energeticSlideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                'shimmer': 'shimmer 2.5s linear infinite',
+            },
+            keyframes: {
+                'bounce-slow': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-10px)' },
+                },
+                neonPulse: {
+                    '0%, 100%': { boxShadow: '0 0 10px rgba(0, 111, 238, 0.3), 0 0 30px rgba(120, 40, 200, 0.16)' },
+                    '50%': { boxShadow: '0 0 20px rgba(0, 111, 238, 0.6), 0 0 60px rgba(120, 40, 200, 0.34)' },
+                },
+                glowBreathe: {
+                    '0%, 100%': { opacity: '0.4' },
+                    '50%': { opacity: '0.8' },
+                },
+                energeticSlideUp: {
+                    '0%': { transform: 'translateY(20px) scale(0.95)', opacity: '0' },
+                    '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+                },
+                shimmer: {
+                    '0%': { transform: 'translateX(-200%)' },
+                    '100%': { transform: 'translateX(200%)' },
+                },
+            },
         },
     },
     plugins: [],

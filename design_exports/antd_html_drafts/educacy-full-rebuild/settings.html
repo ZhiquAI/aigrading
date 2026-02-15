@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>设置模块重构设计稿 - Educacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+  <style>
+    .provider-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .provider {
+      border: 1px solid #e6ebf2;
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 5px;
+      min-height: 88px;
+    }
+    .provider.active { border-color: #d4def8; background: #f5f8ff; }
+    .provider h4 { margin: 0; font-size: 14px; }
+    .provider p { margin: 0; font-size: 12px; color: #7a879b; }
+    .account {
+      border: 1px solid #e6ecf5;
+      border-radius: 12px;
+      background: linear-gradient(160deg, #f3f8ff 0%, #ffffff 100%);
+      padding: 13px;
+      display: grid;
+      gap: 8px;
+    }
+    @media (max-width: 980px) { .provider-cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo"></span><span>Educacy</span></div>
+      <nav class="nav">
+        <a class="nav-item" href="./index.html">总览</a>
+        <a class="nav-item" href="./rubric.html">细则模块</a>
+        <a class="nav-item" href="./grading.html">阅卷模块</a>
+        <a class="nav-item" href="./records.html">记录模块</a>
+        <a class="nav-item active" href="./settings.html">设置模块</a>
+      </nav>
+      <div class="side-label">当前页面</div>
+      <div class="module-list">
+        <div class="module-pill">账号与激活</div>
+        <div class="module-pill">API 平台配置</div>
+        <div class="module-pill">连接测试与保存</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Settings Console</h1>
+          <p class="page-sub">账户、配额、AI 平台与模型配置</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary">保存配置</button>
+          <span class="icon-btn">↻</span>
+          <span class="avatar"></span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="grid-4">
+          <article class="metric"><p>身份类型</p><strong>PRO</strong><small>专业版账户</small></article>
+          <article class="metric"><p>剩余额度</p><strong>1246</strong><small>今日可用</small></article>
+          <article class="metric"><p>当前平台</p><strong>OpenRouter</strong><small>可切换</small></article>
+          <article class="metric"><p>连接状态</p><strong>Online</strong><small>最近测试通过</small></article>
+        </div>
+
+        <section class="split-2">
+          <article class="surface">
+            <header class="surface-head"><h3>账号与配额</h3><span class="status ok">ACTIVE</span></header>
+            <div class="surface-body" style="display:grid;gap:10px;">
+              <div class="account">
+                <div class="card-top"><h4 style="margin:0;">激活码</h4><span class="meta">已隐藏</span></div>
+                <div class="meta">PRO-XXXX-YYYY-ZZZZ</div>
+                <div class="progress"><span style="width:76%"></span></div>
+                <div class="meta">本周期已使用 74%（3000 上限）</div>
+              </div>
+              <div class="account">
+                <div class="card-top"><h4 style="margin:0;">设备标识</h4></div>
+                <div class="meta">device:7f8b2e...9da</div>
+              </div>
+              <div class="foot-actions" style="justify-content:flex-start; margin-top:0;">
+                <button class="btn-ghost">复制账户信息</button>
+                <button class="btn-solid">重新校验激活</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="surface">
+            <header class="surface-head"><h3>AI 平台</h3><span class="meta">Provider Switch</span></header>
+            <div class="surface-body" style="display:grid;gap:10px;">
+              <div class="provider-cards">
+                <div class="provider active"><h4>OpenRouter</h4><p>推荐默认，模型丰富</p></div>
+                <div class="provider"><h4>Gemini</h4><p>官方直连</p></div>
+                <div class="provider"><h4>智谱 GLM</h4><p>本地化延迟低</p></div>
+              </div>
+              <div class="form-grid" style="grid-template-columns:1fr;">
+                <div class="field"><label>Endpoint</label><input value="https://openrouter.ai/api/v1" /></div>
+                <div class="field"><label>API Key</label><input value="sk-or-xxxxxxxxxxxxxxxx" /></div>
+                <div class="field"><label>Model Name</label><select><option>gpt-4o-mini</option><option>gemini-2.5-flash</option></select></div>
+              </div>
+              <div class="foot-actions" style="justify-content:flex-start; margin-top:0;">
+                <button class="btn-ghost">测试连接</button>
+                <button class="btn-solid">保存平台配置</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="table-wrap">
+          <header class="surface-head"><h3>策略与开关</h3><span class="meta">与现有业务配置对齐</span></header>
+          <table>
+            <thead><tr><th>配置项</th><th>当前值</th><th>说明</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>默认评分模式</td><td>assist</td><td>人工复核后提交</td><td>切换</td></tr>
+              <tr><td>自动提交间隔</td><td>8s</td><td>仅 auto 模式生效</td><td>调整</td></tr>
+              <tr><td>异常分数告警</td><td><span class="status ok">开启</span></td><td>偏离阈值时提醒</td><td>编辑</td></tr>
+              <tr><td>历史记录同步</td><td><span class="status partial">按需</span></td><td>网络良好时自动同步</td><td>编辑</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

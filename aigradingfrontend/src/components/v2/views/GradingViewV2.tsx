@@ -330,14 +330,14 @@ export default function GradingViewV2() {
      * 检测中指示器 - 简洁的加载状态
      */
     const DetectingIndicator = () => (
-        <div className="w-full max-w-[320px] bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-100 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
+        <div className="w-full max-w-[320px] bg-white/92 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-[#DFE7F2] mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                    <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                <div className="w-10 h-10 rounded-xl bg-[#EEF3FF] border border-[#D8E4F7] flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-[#2F6FFF] animate-spin" />
                 </div>
                 <div>
-                    <p className="text-xs font-bold text-slate-700">正在连接阅卷环境</p>
-                    <p className="text-[10px] text-slate-400">检测答题卡与 API 状态...</p>
+                    <p className="text-xs font-bold text-[#2B3E5E]">正在连接阅卷环境</p>
+                    <p className="text-[10px] text-[#8A99AE]">检测答题卡与 API 状态...</p>
                 </div>
             </div>
         </div>
@@ -347,9 +347,9 @@ export default function GradingViewV2() {
      * 系统就绪确认 - 所有检查通过后显示
      */
     const ReadyConfirmation = () => (
-        <div className="w-full max-w-[320px] bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-4 shadow-sm border border-emerald-100 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
+        <div className="w-full max-w-[320px] bg-gradient-to-br from-[#EFF8F3] to-white rounded-2xl p-4 shadow-sm border border-[#D6EFE0] mt-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+                <div className="w-10 h-10 rounded-xl bg-[#47A078] flex items-center justify-center shadow-lg shadow-emerald-200">
                     <Check className="w-5 h-5 text-white" strokeWidth={3} />
                 </div>
                 <div className="flex-1">
@@ -360,7 +360,7 @@ export default function GradingViewV2() {
                 </div>
                 <button
                     onClick={() => setIsRubricDrawerOpen(true)}
-                    className="p-2 hover:bg-emerald-100 rounded-lg text-emerald-600 transition-colors"
+                    className="p-2 hover:bg-emerald-100 rounded-lg text-[#3E8F6A] transition-colors"
                     title="查看/修改评分细则"
                 >
                     <Pencil className="w-3.5 h-3.5" />
@@ -373,29 +373,29 @@ export default function GradingViewV2() {
         <div className="relative h-full flex flex-col overflow-hidden">
             {/* PAGE: THINKING (Zen Mode Upgrade) */}
             {status === 'thinking' && (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in fade-in duration-700 relative overflow-hidden">
+                <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden p-6 animate-in fade-in duration-700">
                     {/* Background Light Beam Effect */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none opacity-20">
-                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-indigo-500/10 via-violet-500/10 to-indigo-500/10 animate-[pulse_4s_infinite]"></div>
+                    <div className="absolute top-1/2 left-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-25">
+                        <div className="absolute left-0 top-0 h-full w-full animate-[pulse_4s_infinite] bg-gradient-to-tr from-[#DCE8FB]/35 via-[#EAE6F8]/30 to-[#DCE8FB]/35"></div>
                     </div>
 
-                    <div className="relative w-48 h-48 mb-12 flex items-center justify-center">
+                    <div className="relative mb-12 flex h-48 w-48 items-center justify-center">
                         {/* Multiple Pulsing Rings for Zen flow */}
-                        <div className="absolute inset-0 border border-indigo-200 rounded-full animate-[ping_3s_infinite] opacity-20"></div>
-                        <div className="absolute inset-4 border-2 border-indigo-400 rounded-full animate-[pulse_2s_infinite] opacity-30"></div>
-                        <div className="absolute inset-8 border border-violet-300 rounded-full animate-[ping_4s_infinite_reverse] opacity-20"></div>
+                        <div className="absolute inset-0 rounded-full border border-[#CFDBF2] animate-[ping_3s_infinite] opacity-20"></div>
+                        <div className="absolute inset-4 rounded-full border-2 border-[#8BA9E7] animate-[pulse_2s_infinite] opacity-35"></div>
+                        <div className="absolute inset-8 rounded-full border border-[#CABBEA] animate-[ping_4s_infinite_reverse] opacity-25"></div>
 
                         {/* Core AI Orb */}
-                        <div className="w-24 h-24 bg-brand-gradient rounded-full shadow-[0_0_40px_rgba(99,102,241,0.4)] flex items-center justify-center z-10 animate-outline-glow">
+                        <div className="z-10 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#2F6FFF] to-[#5F92FF] shadow-[0_14px_28px_rgba(47, 111, 255,0.34)] animate-outline-glow">
                             <Bot className="w-10 h-10 text-white animate-pulse" />
                         </div>
 
                         {/* Orbital Dots */}
                         <div className="absolute inset-0 animate-[spin_8s_linear_infinite]">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-indigo-500 rounded-full shadow-lg shadow-indigo-300"></div>
+                            <div className="absolute top-0 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-[#2F6FFF] shadow-lg shadow-[#BED2FF]"></div>
                         </div>
                         <div className="absolute inset-0 animate-[spin_12s_linear_infinite_reverse]">
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-violet-400 rounded-full shadow-lg shadow-violet-200"></div>
+                            <div className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-[#9C90D8] shadow-lg shadow-[#DDD4F2]"></div>
                         </div>
                     </div>
 
@@ -403,9 +403,9 @@ export default function GradingViewV2() {
                         <h3 className="text-xl font-black text-slate-800 tracking-tight flex items-center justify-center gap-2">
                             <span>正在思考</span>
                             <span className="flex gap-0.5">
-                                <span className="w-1 h-3 bg-indigo-500 rounded-full animate-[bounce_1s_infinite]"></span>
-                                <span className="w-1 h-3 bg-indigo-500 rounded-full animate-[bounce_1s_infinite_100ms]"></span>
-                                <span className="w-1 h-3 bg-indigo-500 rounded-full animate-[bounce_1s_infinite_200ms]"></span>
+                                <span className="w-1 h-3 bg-[#2F6FFF] rounded-full animate-[bounce_1s_infinite]"></span>
+                                <span className="w-1 h-3 bg-[#2F6FFF] rounded-full animate-[bounce_1s_infinite_100ms]"></span>
+                                <span className="w-1 h-3 bg-[#2F6FFF] rounded-full animate-[bounce_1s_infinite_200ms]"></span>
                             </span>
                         </h3>
 
@@ -413,7 +413,7 @@ export default function GradingViewV2() {
                         <div className="h-8 overflow-hidden relative">
                             <p
                                 key={thinkingStep}
-                                className="text-xs font-bold text-indigo-600/70 uppercase tracking-widest animate-in slide-in-from-bottom-2 fade-in duration-500"
+                                className="text-xs font-bold text-[#2F6FFF]/80 uppercase tracking-widest animate-in slide-in-from-bottom-2 fade-in duration-500"
                             >
                                 {thinkingMessages[thinkingStep]}
                             </p>
@@ -424,8 +424,8 @@ export default function GradingViewV2() {
                                 <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shadow-sm">
                                     <CheckCircle2 size={12} className="text-emerald-500" />
                                 </div>
-                                <div className="w-6 h-6 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-sm">
-                                    <Sparkles size={12} className="text-indigo-500" />
+                                <div className="w-6 h-6 rounded-full bg-[#EDF3FF] border border-[#D7E3F8] flex items-center justify-center shadow-sm">
+                                    <Sparkles size={12} className="text-[#2F6FFF]" />
                                 </div>
                             </div>
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">AI 分析进行中</span>
@@ -454,8 +454,8 @@ export default function GradingViewV2() {
                         {isRubricConfigured && !isDetecting && (
                             <>
                                 <div className="absolute inset-0 border border-slate-200 rounded-full scale-125 opacity-100 transition-all duration-700"></div>
-                                <div className="absolute inset-0 border border-indigo-100 rounded-full scale-150 opacity-60 transition-all duration-700 delay-100"></div>
-                                <div className="absolute inset-0 rounded-full bg-indigo-400 opacity-20 animate-[pulse-ring_2s_infinite]"></div>
+                                <div className="absolute inset-0 border border-[#D7E3F8] rounded-full scale-150 opacity-60 transition-all duration-700 delay-100"></div>
+                                <div className="absolute inset-0 rounded-full bg-[#9FBBF8] opacity-20 animate-[pulse-ring_2s_infinite]"></div>
                             </>
                         )}
 
@@ -464,7 +464,7 @@ export default function GradingViewV2() {
                             w-24 h-24 rounded-full shadow-lg flex items-center justify-center relative z-10 transition-all duration-700
                             ${!isRubricConfigured || isDetecting
                                 ? 'bg-slate-300 grayscale opacity-80 scale-90'
-                                : 'bg-brand-gradient shadow-brand group-hover:scale-105 active:scale-95 animate-[float_6s_infinite_ease-in-out]'
+                                : 'bg-gradient-to-br from-[#2F6FFF] to-[#5F92FF] shadow-[0_14px_28px_rgba(47, 111, 255,0.3)] group-hover:scale-105 active:scale-95 animate-[float_6s_infinite_ease-in-out]'
                             }
                         `}>
                             {isDetecting ? (
@@ -480,7 +480,7 @@ export default function GradingViewV2() {
                         <h2 className={`text-xl font-black transition-colors duration-500 ${!isRubricConfigured || isDetecting ? 'text-slate-400' : 'text-slate-800'}`}>
                             {isDetecting ? '系统自检中...' : isRubricConfigured ? '准备就绪' : '请完成配置'}
                         </h2>
-                        <p className={`text-xs font-medium mt-1 transition-colors duration-500 ${!isRubricConfigured || isDetecting ? 'text-slate-400' : 'text-indigo-500'}`}>
+                        <p className={`text-xs font-medium mt-1 transition-colors duration-500 ${!isRubricConfigured || isDetecting ? 'text-slate-400' : 'text-[#2F6FFF]'}`}>
                             {isDetecting ? '正在连接阅卷环境' : isRubricConfigured ? '点击上方光球开始阅卷' : '配置后即可体验 AI 智能阅卷'}
                         </p>
                     </div>
@@ -493,7 +493,7 @@ export default function GradingViewV2() {
                     {!isDetecting && !isRubricConfigured && globalHealth.api && (
                         <button
                             onClick={() => setIsRubricDrawerOpen(true)}
-                            className="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in"
+                            className="mt-4 px-6 py-2.5 bg-[#2F6FFF] text-white text-xs font-bold rounded-xl shadow-lg shadow-[#B3C9F3] hover:bg-[#235EEA] transition-all flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in"
                         >
                             <Sparkles className="w-3.5 h-3.5" />
                             配置评分细则
@@ -514,7 +514,7 @@ export default function GradingViewV2() {
                     </p>
                     <Button
                         variant="gradient"
-                        className="px-8 py-3 rounded-xl font-bold shadow-xl shadow-indigo-200 active:scale-95 transition-all"
+                        className="px-8 py-3 rounded-xl font-bold shadow-xl shadow-[#B4C7EA] active:scale-95 transition-all"
                         onClick={() => setIsActivationOpen(true)}
                     >
                         立即开启专业版
@@ -593,17 +593,19 @@ export default function GradingViewV2() {
 
                         {/* Score Card */}
                         <div className={`
-                            relative overflow-hidden mb-6 group rounded-3xl p-6 text-white transition-all duration-500
-                            ${quota.remaining < 10 && quota.remaining > 0 ? 'bg-amber-900 ring-2 ring-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'bg-slate-900 shadow-2xl'}
+                            relative overflow-hidden mb-6 group rounded-3xl p-6 text-[#17233B] transition-all duration-500 border
+                            ${quota.remaining < 10 && quota.remaining > 0
+                                ? 'bg-[#FFF8F2] border-[#F2D9BF] shadow-[0_12px_30px_rgba(201,157,110,0.18)]'
+                                : 'bg-[#F8FBFF] border-[#DCE6F3] shadow-[0_12px_30px_rgba(32,52,88,0.10)]'}
                         `}>
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[60px] opacity-30"></div>
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500 rounded-full blur-[50px] opacity-20"></div>
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#BFD4FF] rounded-full blur-[60px] opacity-35"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#D4C9F2] rounded-full blur-[50px] opacity-28"></div>
 
                             <div className="flex items-center justify-between relative z-10">
                                 <div>
                                     <div className="flex items-baseline gap-1 group-hover:scale-105 transition-transform origin-left">
                                         <span className="text-5xl font-black tracking-tighter">{currentScore}</span>
-                                        <span className="text-xl text-slate-500 font-medium">/ {maxScore}</span>
+                                        <span className="text-xl text-[#7485A0] font-medium">/ {maxScore}</span>
                                     </div>
                                 </div>
                                 <div className="absolute top-2 right-12 md:top-4 md:right-24 z-20 pointer-events-none select-none">
@@ -611,25 +613,25 @@ export default function GradingViewV2() {
                                 </div>
                                 <div className="relative flex items-center gap-3">
                                     <div className="flex flex-col gap-1.5">
-                                        <button onClick={() => adjustScore(0.5)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/10 transition-all active:scale-90">
+                                        <button onClick={() => adjustScore(0.5)} className="w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center border border-[#D8E4F6] text-[#4A79CC] transition-all active:scale-90">
                                             <Plus className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => adjustScore(-0.5)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/10 transition-all active:scale-90">
+                                        <button onClick={() => adjustScore(-0.5)} className="w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center border border-[#D8E4F6] text-[#4A79CC] transition-all active:scale-90">
                                             <Minus className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="w-16 h-16 relative flex items-center justify-center ring-4 ring-indigo-500/20 rounded-full backdrop-blur-sm">
+                                    <div className="w-16 h-16 relative flex items-center justify-center rounded-full ring-4 ring-[#CFE0FB]/70 bg-white/70 backdrop-blur-sm">
                                         <svg className="w-full h-full transform -rotate-90 absolute">
-                                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" className="text-slate-800" />
-                                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" stroke-dasharray="175" stroke-dashoffset={175 - scoreRatio * 175} className="text-indigo-400" stroke-linecap="round" />
+                                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" className="text-[#D8E4F6]" />
+                                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" stroke-dasharray="175" stroke-dashoffset={175 - scoreRatio * 175} className="text-[#2F6FFF]" stroke-linecap="round" />
                                         </svg>
                                         <span className="text-[10px] font-black relative">{Math.round(scoreRatio * 100)}%</span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="mt-6 pt-4 border-t border-white/10">
-                                <p className="text-xs text-slate-300 leading-relaxed italic">
-                                    <span className="text-indigo-300 font-bold not-italic mr-1">AI 点评:</span>
+                            <div className="mt-6 pt-4 border-t border-[#DFE8F5]">
+                                <p className="text-xs text-[#5C6E88] leading-relaxed italic">
+                                    <span className="text-[#2F6FFF] font-bold not-italic mr-1">AI 点评:</span>
                                     {gradingResult?.comment || '暂无评语'}
                                 </p>
                             </div>
@@ -644,7 +646,7 @@ export default function GradingViewV2() {
                                 </div>
                             )}
                             {(gradingResult?.breakdown || []).map((item, idx) => (
-                                <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 transition-all hover:border-indigo-200 hover:bg-white shadow-sm hover:shadow-md">
+                                <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 transition-all hover:border-[#C8D8F5] hover:bg-white shadow-sm hover:shadow-md">
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex items-center gap-2">
                                             <div className={`w-1.5 h-1.5 rounded-full ${item.score === item.max ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
@@ -662,20 +664,20 @@ export default function GradingViewV2() {
 
                     {/* Milestone Card Overlay */}
                     {quota.status === 'expired' && (
-                        <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end justify-center animate-in fade-in duration-500">
+                        <div className="absolute inset-0 z-50 bg-[#EAF0F8]/70 backdrop-blur-md flex items-end justify-center animate-in fade-in duration-500">
                             <div className="w-full bg-white rounded-t-[40px] p-8 pb-12 shadow-2xl animate-in slide-in-from-bottom-full duration-700">
                                 <div className="flex flex-col items-center text-center">
-                                    <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mb-6 rotate-12 shadow-xl shadow-indigo-100 border border-indigo-100 relative">
-                                        <Trophy size={40} className="text-indigo-600 -rotate-12" />
+                                    <div className="w-20 h-20 bg-[#EEF3FF] rounded-3xl flex items-center justify-center mb-6 rotate-12 shadow-xl shadow-[#C6D8F7] border border-[#DCE7F8] relative">
+                                        <Trophy size={40} className="text-[#2F6FFF] -rotate-12" />
                                         <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center font-black text-xs border-2 border-white shadow-lg">10</div>
                                     </div>
                                     <h2 className="text-2xl font-black text-slate-800 mb-2">太棒了！</h2>
                                     <p className="text-slate-500 text-sm mb-8 max-w-[280px] leading-relaxed">
-                                        您今天已助力 <span className="text-indigo-600 font-black">10</span> 位同学。
-                                        节省重复机械工作约 <span className="text-indigo-600 font-black">30 分钟</span> ⌛
+                                        您今天已助力 <span className="text-[#2F6FFF] font-black">10</span> 位同学。
+                                        节省重复机械工作约 <span className="text-[#2F6FFF] font-black">30 分钟</span> ⌛
                                     </p>
                                     <div className="w-full space-y-3">
-                                        <Button variant="gradient" fullWidth className="py-4 rounded-2xl text-base font-black tracking-widest shadow-xl shadow-indigo-200 active:scale-95 transition-all" onClick={() => setIsActivationOpen(true)}>
+                                        <Button variant="gradient" fullWidth className="py-4 rounded-2xl text-base font-black tracking-widest shadow-xl shadow-[#B4C7EA] active:scale-95 transition-all" onClick={() => setIsActivationOpen(true)}>
                                             立即开启专业版
                                         </Button>
                                         <button onClick={() => setStatus('idle')} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors py-2">
@@ -689,15 +691,23 @@ export default function GradingViewV2() {
 
                     {/* Fixed Action Dock */}
                     <div className={`absolute bottom-4 left-4 right-4 z-30 transition-transform duration-500 ${quota.status === 'expired' ? 'translate-y-24' : ''}`}>
-                        <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-2 flex items-center gap-2 shadow-2xl shadow-indigo-500/20 border border-white/5">
-                            <button onClick={() => setStatus('idle')} className="p-3 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors" title="放弃本次批改">
-                                <RotateCcw className="w-5 h-5" />
-                            </button>
-                            <div className="w-[1px] h-6 bg-white/10"></div>
-                            <button onClick={confirmSubmit} className={`flex-1 font-bold py-3 px-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg ${gradingMode === 'auto' && !isIntervening ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-white text-slate-900 hover:bg-slate-100'}`}>
-                                <span className="text-sm">{isIntervening ? '确认修改并下一份' : (gradingMode === 'auto' && autoCountdown !== null ? `自动提交中 (${autoCountdown}s)` : '确认并下一份')}</span>
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
+                        <div className="rounded-2xl border border-[#DDE7F4] bg-white/96 p-2 shadow-[0_14px_28px_rgba(23,39,68,0.14)] backdrop-blur-xl">
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setStatus('idle')} className="p-3 rounded-xl hover:bg-[#F1F5FB] text-[#7A8AA3] hover:text-[#4A5E7A] transition-colors" title="放弃本次批改">
+                                    <RotateCcw className="w-5 h-5" />
+                                </button>
+                                <div className="h-6 w-[1px] bg-[#E4ECF8]"></div>
+                                <button
+                                    onClick={confirmSubmit}
+                                    className={`flex-1 font-bold py-3 px-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm ${gradingMode === 'auto' && !isIntervening
+                                        ? 'bg-[#47A078] text-white hover:bg-[#3A8F69]'
+                                        : 'bg-gradient-to-r from-[#2F6FFF] to-[#5F92FF] text-white hover:from-[#235EEA] hover:to-[#5A8DEE]'
+                                        }`}
+                                >
+                                    <span className="text-sm">{isIntervening ? '确认修改并下一份' : (gradingMode === 'auto' && autoCountdown !== null ? `自动提交中 (${autoCountdown}s)` : '确认并下一份')}</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -723,7 +733,7 @@ export default function GradingViewV2() {
                 @keyframes shimmer-fast { 0% { transform: translateX(-200%); } 100% { transform: translateX(200%); } }
                 .animate-shimmer-fast { position: relative; overflow: hidden; }
                 .animate-shimmer-fast::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer-fast 2s infinite linear; }
-                @keyframes glow { 0% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); } 50% { box-shadow: 0 0 50px rgba(79, 70, 229, 0.7); } 100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); } }
+                @keyframes glow { 0% { box-shadow: 0 0 14px rgba(47, 111, 255,0.26); } 50% { box-shadow: 0 0 26px rgba(47, 111, 255,0.45); } 100% { box-shadow: 0 0 14px rgba(47, 111, 255,0.26); } }
                 .animate-outline-glow { animation: glow 3s infinite ease-in-out; }
             `}} />
         </div>

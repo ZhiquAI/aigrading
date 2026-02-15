@@ -21,7 +21,7 @@ interface CreateRubricWizardProps {
 
 type WizardStep = 'basic' | 'upload' | 'generating';
 
-const SUBJECTS = ['语文', '数学', '英语', '物理', '化学', '生物', '历史', '地理', '政治'];
+const SUBJECTS = ['语文', '数学', '英语', '物理', '化学', '生物', '历史', '地理', '道法'];
 const GRADES = ['初一', '初二', '初三', '高一', '高二', '高三'];
 
 const CreateRubricWizard: React.FC<CreateRubricWizardProps> = ({ onBack, onComplete }) => {

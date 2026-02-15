@@ -1,76 +1,85 @@
 import { NextResponse } from "next/server";
+import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
-import { apiErrorSchema, gradingEvaluateRequestSchema } from "@ai-grading/api-contracts";
+import { gradingEvaluateRequestSchema } from "@ai-grading/api-contracts";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 import { prisma } from "@/lib/prisma";
-import { isScopeResolutionError, resolveRequestScope } from "@/lib/request-scope";
+import { isScopeResolutionError, resolveRequestScope } from "@/shared/scope-resolver/request-scope";
+import { executeIdempotent, isIdempotencyConflictError } from "@/shared/idempotency/service";
 import { evaluateGrading, getQuotaStatus, isGradingDomainError } from "@/modules/grading/grading-service";
+import { jsonApiError } from "@/shared/errors/api-error";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const identity = resolveRequestScope(request, { requireIdentity: true });
     const body = gradingEvaluateRequestSchema.parse(await request.json());
+    const deviceId = normalizeNonEmpty(request.headers.get("x-device-id"));
+    const idempotencyKey = normalizeNonEmpty(request.headers.get("idempotency-key"));
 
-    const data = await evaluateGrading(prisma, {
-      identity,
-      rubric: body.rubric,
-      studentName: body.studentName,
-      questionNo: body.questionNo,
-      questionKey: body.questionKey,
-      examNo: body.examNo,
-      deviceId: normalizeNonEmpty(request.headers.get("x-device-id")),
-      imageBase64: body.imageBase64
+    const result = await executeIdempotent(prisma, {
+      scopeKey: identity.scopeKey,
+      endpoint: "v2.gradings.evaluate",
+      idempotencyKey,
+      requestPayload: {
+        ...body,
+        deviceId: deviceId ?? null
+      }
+    }, async () => {
+      const data = await evaluateGrading(prisma, {
+        identity,
+        rubric: body.rubric,
+        studentName: body.studentName,
+        questionNo: body.questionNo,
+        questionKey: body.questionKey,
+        examNo: body.examNo,
+        deviceId,
+        imageBase64: body.imageBase64
+      });
+
+      return {
+        statusCode: 200,
+        payload: data
+      };
     });
 
-    return NextResponse.json({ ok: true, data }, {
-      status: 200,
-      headers: { "x-request-id": requestId }
+    return NextResponse.json({ ok: true, data: result.payload }, {
+      status: result.statusCode,
+      headers: {
+        "x-request-id": requestId,
+        ...(result.replayed ? { "x-idempotency-replayed": "true" } : {})
+      }
     });
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const payload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-      return NextResponse.json({ ok: false, error: payload }, { status: error.statusCode });
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
+    }
+
+    if (isIdempotencyConflictError(error)) {
+      return jsonApiError(requestId, "IDEMPOTENCY_CONFLICT", error.message, 409);
     }
 
     if (isGradingDomainError(error)) {
-      const payload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-      return NextResponse.json({ ok: false, error: payload }, { status: error.statusCode });
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
     const isBadRequest = error instanceof ZodError || error instanceof SyntaxError;
-    const payload = apiErrorSchema.parse(
-      isBadRequest
-        ? {
-            code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Invalid grading payload.",
-            requestId
-          }
-        : {
-            code: "INTERNAL_SERVER_ERROR",
-            message: error instanceof Error ? error.message : "Failed to evaluate grading.",
-            requestId
-          }
+    return jsonApiError(
+      requestId,
+      isBadRequest ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+      error instanceof Error
+        ? error.message
+        : isBadRequest
+          ? "Invalid grading payload."
+          : "Failed to evaluate grading.",
+      isBadRequest ? 400 : 500
     );
-
-    return NextResponse.json({ ok: false, error: payload }, {
-      status: isBadRequest ? 400 : 500,
-      headers: { "x-request-id": requestId }
-    });
   }
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = getRequestId(request);
 
   try {
     const identity = resolveRequestScope(request, { requireIdentity: true });
@@ -82,23 +91,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     });
   } catch (error) {
     if (isScopeResolutionError(error)) {
-      const payload = apiErrorSchema.parse({
-        code: error.code,
-        message: error.message,
-        requestId
-      });
-      return NextResponse.json({ ok: false, error: payload }, { status: error.statusCode });
+      return jsonApiError(requestId, error.code, error.message, error.statusCode);
     }
 
-    const payload = apiErrorSchema.parse({
-      code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "Failed to get quota status.",
-      requestId
-    });
-
-    return NextResponse.json({ ok: false, error: payload }, {
-      status: 500,
-      headers: { "x-request-id": requestId }
-    });
+    return jsonApiError(
+      requestId,
+      "INTERNAL_SERVER_ERROR",
+      error instanceof Error ? error.message : "Failed to get quota status.",
+      500
+    );
   }
 }

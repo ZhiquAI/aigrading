@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Educacy 侧边栏版总览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css" />
+  <style>
+    .panel { height: auto; min-height: 680px; grid-template-rows: 62px 1fr; }
+    .list { display: grid; gap: 8px; }
+    .entry {
+      border: 1px solid #edf0f4;
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+      text-decoration: none;
+      color: inherit;
+      display: grid;
+      gap: 5px;
+    }
+    .entry:hover { border-color: #d4def8; background: #fbfcff; }
+    .entry h4 { margin: 0; font-size: 13px; }
+    .entry p { margin: 0; font-size: 11px; color: #7f8ba0; line-height: 1.55; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="panel">
+      <header class="topbar">
+        <div class="brand"><span class="logo"></span><div><h1>Educacy Side Panel</h1><p>360-390px 适配设计稿</p></div></div>
+        <div class="top-actions"><span class="icon-btn">i</span></div>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <article class="metric"><p>模块页面</p><strong>4</strong><small>已完成</small></article>
+          <article class="metric"><p>版式</p><strong>Side</strong><small>360~390</small></article>
+          <article class="metric"><p>风格</p><strong>Educacy</strong><small>统一 Token</small></article>
+          <article class="metric"><p>状态</p><strong>待确认</strong><small>确认后实施</small></article>
+        </div>
+
+        <section class="surface">
+          <header class="surface-head"><h3>模块入口</h3><span class="meta">不会覆盖旧版本</span></header>
+          <div class="surface-body list">
+            <a class="entry" href="./rubric-sidepanel.html"><h4>细则模块</h4><p>模板筛选、细则卡片、创建入口与状态管理。</p></a>
+            <a class="entry" href="./grading-sidepanel.html"><h4>阅卷模块</h4><p>扫描/结果/自动提交倒计时/确认动作。</p></a>
+            <a class="entry" href="./records-sidepanel.html"><h4>记录模块</h4><p>检索筛选、记录详情、导出操作。</p></a>
+            <a class="entry" href="./settings-sidepanel.html"><h4>设置模块</h4><p>激活配额、API 平台、模型配置与连接测试。</p></a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
