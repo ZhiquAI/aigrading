@@ -12,8 +12,6 @@ import { rootStoreActions } from "../../store/useRootStore";
 import { KeyIcon, PlugIcon, RefreshIcon, SaveIcon, ShieldIcon } from "../shared/icons";
 
 type ProviderType = "openrouter" | "openai" | "gemini" | "zhipu" | "dashscope";
-type GradingMode = "assist" | "auto";
-type GradingStrategy = "flash" | "balanced" | "reasoning";
 
 const PROVIDER_OPTIONS: Array<{ value: ProviderType; label: string }> = [
   { value: "openai", label: "OpenAI Compatible" },
@@ -89,9 +87,6 @@ export const SettingsSheetPanel = () => {
   const [endpoint, setEndpoint] = useState("https://openrouter.ai/api/v1/chat/completions");
   const [modelName, setModelName] = useState("google/gemini-2.5-flash");
   const [apiKey, setApiKey] = useState("");
-  const [gradingMode, setGradingMode] = useState<GradingMode>("assist");
-  const [gradingStrategy, setGradingStrategy] = useState<GradingStrategy>("balanced");
-  const [intervalSeconds, setIntervalSeconds] = useState(3);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -133,23 +128,16 @@ export const SettingsSheetPanel = () => {
         providerEntry,
         endpointEntry,
         modelEntry,
-        keyEntry,
-        modeEntry,
-        strategyEntry,
-        intervalEntry
+        keyEntry
       ] = await Promise.all([
         fetchSettingByKey("model.provider"),
         fetchSettingByKey("model.endpoint"),
         fetchSettingByKey("model.name"),
-        fetchSettingByKey("model.apiKey"),
-        fetchSettingByKey("grading.mode"),
-        fetchSettingByKey("grading.strategy"),
-        fetchSettingByKey("grading.intervalMs")
+        fetchSettingByKey("model.apiKey")
       ]);
 
       let nextProvider = provider;
       let nextModelName = modelName;
-      let nextGradingMode = gradingMode;
 
       const providerValue = toStringValue(parseStoredValue(providerEntry?.value ?? ""));
       if (PROVIDER_OPTIONS.some((item) => item.value === providerValue)) {
@@ -174,26 +162,9 @@ export const SettingsSheetPanel = () => {
         setApiKey(apiKeyValue);
       }
 
-      const modeValue = toStringValue(parseStoredValue(modeEntry?.value ?? ""));
-      if (modeValue === "assist" || modeValue === "auto") {
-        setGradingMode(modeValue);
-        nextGradingMode = modeValue;
-      }
-
-      const strategyValue = toStringValue(parseStoredValue(strategyEntry?.value ?? ""));
-      if (strategyValue === "flash" || strategyValue === "balanced" || strategyValue === "reasoning") {
-        setGradingStrategy(strategyValue);
-      }
-
-      const intervalValue = Number(parseStoredValue(intervalEntry?.value ?? ""));
-      if (Number.isFinite(intervalValue) && intervalValue > 0) {
-        setIntervalSeconds(Math.max(1, Math.round(intervalValue / 1000)));
-      }
-
       rootStoreActions.setSettingsSnapshot({
         provider: nextProvider,
-        modelName: nextModelName,
-        gradingMode: nextGradingMode
+        modelName: nextModelName
       });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "读取设置失败");
@@ -240,15 +211,11 @@ export const SettingsSheetPanel = () => {
         upsertSettingByKey("model.provider", provider),
         upsertSettingByKey("model.endpoint", endpoint.trim()),
         upsertSettingByKey("model.name", modelName.trim()),
-        upsertSettingByKey("model.apiKey", apiKey.trim()),
-        upsertSettingByKey("grading.mode", gradingMode),
-        upsertSettingByKey("grading.strategy", gradingStrategy),
-        upsertSettingByKey("grading.intervalMs", intervalSeconds * 1000)
+        upsertSettingByKey("model.apiKey", apiKey.trim())
       ]);
       rootStoreActions.setSettingsSnapshot({
         provider,
-        modelName: modelName.trim(),
-        gradingMode
+        modelName: modelName.trim()
       });
       setSuccessMessage("保存配置成功");
     } catch (error) {
@@ -294,7 +261,7 @@ export const SettingsSheetPanel = () => {
         <header className="settings-card-head classic-settings-card-head">
           <div>
             <h3>SettingsView</h3>
-            <p>账户、批改策略与模型配置</p>
+            <p>账户与模型配置</p>
           </div>
           <span className="app-trial-chip classic-trial-chip">试用版</span>
         </header>
@@ -338,81 +305,6 @@ export const SettingsSheetPanel = () => {
             {loading ? "刷新中..." : "刷新额度"}
           </button>
         </div>
-      </section>
-
-      <section className="settings-card classic-settings-card">
-        <header className="settings-card-head classic-settings-card-head">
-          <div>
-            <h3>批改偏好</h3>
-          </div>
-        </header>
-
-        <div className="settings-group-title classic-settings-group-title">批改模式</div>
-        <div className="settings-radio-row classic-settings-radio-row">
-          <label className="settings-radio-option classic-settings-radio-option">
-            <input
-              type="radio"
-              name="grading-mode"
-              checked={gradingMode === "assist"}
-              onChange={() => setGradingMode("assist")}
-            />
-            <span>辅助模式</span>
-          </label>
-          <label className="settings-radio-option classic-settings-radio-option">
-            <input
-              type="radio"
-              name="grading-mode"
-              checked={gradingMode === "auto"}
-              onChange={() => setGradingMode("auto")}
-            />
-            <span>自动模式</span>
-          </label>
-        </div>
-
-        <div className="settings-group-title classic-settings-group-title">AI 策略</div>
-        <div className="settings-radio-row classic-settings-radio-row">
-          <label className="settings-radio-option classic-settings-radio-option">
-            <input
-              type="radio"
-              name="grading-strategy"
-              checked={gradingStrategy === "flash"}
-              onChange={() => setGradingStrategy("flash")}
-            />
-            <span>快速</span>
-          </label>
-          <label className="settings-radio-option classic-settings-radio-option">
-            <input
-              type="radio"
-              name="grading-strategy"
-              checked={gradingStrategy === "balanced"}
-              onChange={() => setGradingStrategy("balanced")}
-            />
-            <span>精准</span>
-          </label>
-          <label className="settings-radio-option classic-settings-radio-option">
-            <input
-              type="radio"
-              name="grading-strategy"
-              checked={gradingStrategy === "reasoning"}
-              onChange={() => setGradingStrategy("reasoning")}
-            />
-            <span>深度</span>
-          </label>
-        </div>
-
-        <div className="settings-slider-head classic-settings-slider-head">
-          <span>自动模式提交倒计时（秒）</span>
-          <strong>{intervalSeconds}</strong>
-        </div>
-        <input
-          className="settings-slider classic-settings-slider"
-          type="range"
-          min={1}
-          max={20}
-          step={1}
-          value={intervalSeconds}
-          onChange={(event) => setIntervalSeconds(Number(event.target.value))}
-        />
       </section>
 
       <section className="settings-card classic-settings-card">
