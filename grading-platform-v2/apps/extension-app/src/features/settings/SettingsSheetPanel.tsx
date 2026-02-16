@@ -258,14 +258,6 @@ export const SettingsSheetPanel = () => {
   return (
     <div className="settings-sheet classic-settings-sheet">
       <section className="settings-card classic-settings-card">
-        <header className="settings-card-head classic-settings-card-head">
-          <div>
-            <h3>SettingsView</h3>
-            <p>账户与模型配置</p>
-          </div>
-          <span className="app-trial-chip classic-trial-chip">试用版</span>
-        </header>
-
         <div className="settings-metrics classic-settings-metrics">
           <article>
             <span>剩余额度</span>
