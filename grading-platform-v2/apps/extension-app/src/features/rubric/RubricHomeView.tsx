@@ -90,11 +90,9 @@ export const RubricHomeView = ({
             <span className="rubric-home-wand-icon classic-wand-icon">
               <WandIcon className="classic-symbol-icon rubric-home-wand-svg classic-wand-svg" />
             </span>
-            <span className="rubric-home-ai-chip classic-ai-chip">AI 驱动</span>
           </div>
-          <h2>智能创建细则</h2>
-          <p>输入题号、上传试题与答案，自动生成可保存评分细则。</p>
-          <div className="rubric-home-start-btn classic-start-btn">立即开始</div>
+          <h2>AI 一键生成细则</h2>
+          <div className="rubric-home-start-btn classic-start-btn">立即开始 →</div>
         </Button>
 
         <Card variant="unstyled" className="rubric-home-recent-panel classic-recent-panel">
