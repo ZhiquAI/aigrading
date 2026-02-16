@@ -3,6 +3,7 @@ import {
   activateLicenseCode,
   fetchLicenseStatus,
   fetchSettingByKey,
+  generateRubric,
   upsertSettingByKey,
   type LicenseStatusData
 } from "../../lib/api";
@@ -62,6 +63,22 @@ const toLicenseSliceStatus = (
     return "expired";
   }
   return "inactive";
+};
+
+const resolveProviderTraceMessage = (trace: {
+  mode?: string;
+  reason?: string;
+  attempts?: Array<{ provider?: string; message?: string }>;
+}): string => {
+  const firstAttempt = trace.attempts?.[0];
+  const provider = firstAttempt?.provider ? `[${firstAttempt.provider}] ` : "";
+  const message = firstAttempt?.message?.trim();
+
+  if (message) {
+    return `${provider}${message}`;
+  }
+
+  return trace.reason ?? "AI 连接失败，请检查 Endpoint、模型名称与 API Key。";
 };
 
 export const SettingsSheetPanel = () => {
@@ -252,11 +269,29 @@ export const SettingsSheetPanel = () => {
     clearMessages();
 
     try {
-      // v2 目前未暴露独立 provider ping，先做配置有效性校验反馈。
-      await new Promise((resolve) => window.setTimeout(resolve, 280));
-      setSuccessMessage("测试连接通过");
-    } catch {
-      setErrorMessage("测试连接失败");
+      await Promise.all([
+        upsertSettingByKey("model.provider", provider),
+        upsertSettingByKey("model.endpoint", endpoint.trim()),
+        upsertSettingByKey("model.name", modelName.trim()),
+        upsertSettingByKey("model.apiKey", apiKey.trim())
+      ]);
+
+      const probe = await generateRubric({
+        questionId: `probe-${Date.now()}`,
+        answerText: "请给出一个历史主观题评分细则示例。",
+        subject: "history",
+        questionType: "analysis",
+        strategyType: "standard",
+        totalScore: 10
+      });
+
+      if (probe.providerTrace.mode === "ai") {
+        setSuccessMessage(`测试连接通过（${probe.provider}）`);
+      } else {
+        setErrorMessage(resolveProviderTraceMessage(probe.providerTrace));
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "测试连接失败");
     } finally {
       setTesting(false);
     }
