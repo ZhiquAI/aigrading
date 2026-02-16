@@ -137,6 +137,7 @@ type ScopeIdentity = {
 12. `DELETE /api/v2/records/:id`
 13. `GET /api/v2/settings`
 14. `PUT /api/v2/settings`
+15. `POST /api/v2/settings/model/test`
 
 ## 3) 旧系统隔离策略
 1. 旧接口仅保留在旧项目目录中运行，不进入 `grading-platform-v2`。

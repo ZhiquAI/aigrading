@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { AiGatewayRequest, AiGatewayRuntimeConfig } from "@ai-grading/ai-gateway";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 
-type ModelProviderSetting = "openrouter" | "openai" | "gemini" | "zhipu" | "dashscope";
+export type ModelProviderSetting = "openrouter" | "openai" | "gemini" | "zhipu" | "dashscope";
 
 type ModelSettingKey = "model.provider" | "model.endpoint" | "model.name" | "model.apiKey";
 
@@ -67,38 +67,20 @@ const getZhipuModelByTask = (task: "rubric_generate" | "grading_evaluate"): stri
 
 export type AiGatewayOverrides = Pick<AiGatewayRequest, "preferredProviders" | "runtime">;
 
-export const resolveAiGatewayRuntime = async (
-  db: PrismaClient,
-  scopeKey: string
-): Promise<AiGatewayOverrides | undefined> => {
-  const entries = await db.settingEntry.findMany({
-    where: {
-      scopeKey,
-      key: {
-        in: [...MODEL_SETTING_KEYS]
-      }
-    },
-    select: {
-      key: true,
-      value: true
-    }
-  });
+export type AiRuntimeInput = {
+  provider?: string | null;
+  endpoint?: string | null;
+  modelName?: string | null;
+  apiKey?: string | null;
+};
 
-  if (entries.length === 0) {
-    return undefined;
-  }
-
-  const valueByKey = new Map<ModelSettingKey, string>();
-  for (const entry of entries) {
-    if (MODEL_SETTING_KEYS.includes(entry.key as ModelSettingKey)) {
-      valueByKey.set(entry.key as ModelSettingKey, entry.value);
-    }
-  }
-
-  const providerRaw = toSettingString(valueByKey.get("model.provider") ?? "");
-  const endpoint = toSettingString(valueByKey.get("model.endpoint") ?? "");
-  const modelName = toSettingString(valueByKey.get("model.name") ?? "");
-  const apiKey = toSettingString(valueByKey.get("model.apiKey") ?? "");
+export const resolveAiGatewayRuntimeFromInput = (
+  input: AiRuntimeInput
+): AiGatewayOverrides | undefined => {
+  const providerRaw = normalizeNonEmpty(input.provider ?? "");
+  const endpoint = normalizeNonEmpty(input.endpoint ?? "");
+  const modelName = normalizeNonEmpty(input.modelName ?? "");
+  const apiKey = normalizeNonEmpty(input.apiKey ?? "");
 
   const providerSetting = providerRaw && isProviderSetting(providerRaw) ? providerRaw : undefined;
   const mappedProvider = providerSetting === "zhipu" ? "zhipu" : "openrouter";
@@ -137,4 +119,45 @@ export const resolveAiGatewayRuntime = async (
       }
     } satisfies Partial<AiGatewayRuntimeConfig>
   };
+};
+
+export const resolveAiGatewayRuntime = async (
+  db: PrismaClient,
+  scopeKey: string
+): Promise<AiGatewayOverrides | undefined> => {
+  const entries = await db.settingEntry.findMany({
+    where: {
+      scopeKey,
+      key: {
+        in: [...MODEL_SETTING_KEYS]
+      }
+    },
+    select: {
+      key: true,
+      value: true
+    }
+  });
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  const valueByKey = new Map<ModelSettingKey, string>();
+  for (const entry of entries) {
+    if (MODEL_SETTING_KEYS.includes(entry.key as ModelSettingKey)) {
+      valueByKey.set(entry.key as ModelSettingKey, entry.value);
+    }
+  }
+
+  const providerRaw = toSettingString(valueByKey.get("model.provider") ?? "");
+  const endpoint = toSettingString(valueByKey.get("model.endpoint") ?? "");
+  const modelName = toSettingString(valueByKey.get("model.name") ?? "");
+  const apiKey = toSettingString(valueByKey.get("model.apiKey") ?? "");
+
+  return resolveAiGatewayRuntimeFromInput({
+    provider: providerRaw,
+    endpoint,
+    modelName,
+    apiKey
+  });
 };

@@ -88,6 +88,7 @@
 12. `DELETE /api/v2/records/:id`
 13. `GET /api/v2/settings`
 14. `PUT /api/v2/settings`
+15. `POST /api/v2/settings/model/test`
 
 旧系统隔离策略（迁移期）：
 - 旧接口仅在旧项目服务实例中保留（`aigradingfrontend` / `aigradingbackend`）
@@ -155,4 +156,4 @@ cd aigradingbackend && npm run build && npm run check:rubric-contract
 
 ---
 
-> **最后更新**: 2026-02-13
+> **最后更新**: 2026-02-16

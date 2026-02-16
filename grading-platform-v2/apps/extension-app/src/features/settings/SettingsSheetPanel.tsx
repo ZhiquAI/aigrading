@@ -3,7 +3,7 @@ import {
   activateLicenseCode,
   fetchLicenseStatus,
   fetchSettingByKey,
-  generateRubric,
+  testModelConnection,
   upsertSettingByKey,
   type LicenseStatusData
 } from "../../lib/api";
@@ -269,26 +269,17 @@ export const SettingsSheetPanel = () => {
     clearMessages();
 
     try {
-      await Promise.all([
-        upsertSettingByKey("model.provider", provider),
-        upsertSettingByKey("model.endpoint", endpoint.trim()),
-        upsertSettingByKey("model.name", modelName.trim()),
-        upsertSettingByKey("model.apiKey", apiKey.trim())
-      ]);
-
-      const probe = await generateRubric({
-        questionId: `probe-${Date.now()}`,
-        answerText: "请给出一个历史主观题评分细则示例。",
-        subject: "history",
-        questionType: "analysis",
-        strategyType: "standard",
-        totalScore: 10
+      const probe = await testModelConnection({
+        provider,
+        endpoint: endpoint.trim(),
+        modelName: modelName.trim(),
+        apiKey: apiKey.trim()
       });
 
-      if (probe.providerTrace.mode === "ai") {
+      if (probe.connected) {
         setSuccessMessage(`测试连接通过（${probe.provider}）`);
       } else {
-        setErrorMessage(resolveProviderTraceMessage(probe.providerTrace));
+        setErrorMessage(resolveProviderTraceMessage(probe));
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "测试连接失败");

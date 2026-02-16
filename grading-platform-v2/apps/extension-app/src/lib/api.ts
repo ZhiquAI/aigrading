@@ -45,6 +45,18 @@ export type SettingEntryDTO = {
   updatedAt: string;
 };
 
+export type ModelProviderDTO = "openrouter" | "openai" | "gemini" | "zhipu" | "dashscope";
+
+export type ModelConnectionTestResultDTO = {
+  connected: boolean;
+  provider?: string;
+  reason?: string;
+  attempts?: Array<{
+    provider: string;
+    message: string;
+  }>;
+};
+
 export type HealthStatusDTO = {
   status: "ok" | "error";
   timestamp: string;
@@ -326,6 +338,42 @@ const coerceRubricStandardizeResult = (input: unknown): RubricStandardizeResultD
   };
 };
 
+const coerceModelConnectionTestResult = (input: unknown): ModelConnectionTestResultDTO => {
+  if (!input || typeof input !== "object") {
+    throw new Error("模型测试返回数据格式非法");
+  }
+
+  const record = input as Record<string, unknown>;
+  const attemptsRaw = Array.isArray(record.attempts) ? record.attempts : [];
+  const attempts = attemptsRaw
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const row = item as Record<string, unknown>;
+      const provider = normalizeText(row.provider);
+      const message = normalizeText(row.message);
+
+      if (!provider || !message) {
+        return null;
+      }
+
+      return {
+        provider,
+        message
+      };
+    })
+    .filter((item): item is { provider: string; message: string } => Boolean(item));
+
+  return {
+    connected: Boolean(record.connected),
+    provider: normalizeText(record.provider) || undefined,
+    reason: normalizeText(record.reason) || undefined,
+    attempts
+  };
+};
+
 const requestJson = async <T>(
   path: string,
   init: RequestInit,
@@ -448,6 +496,25 @@ export const upsertSettingByKey = async (key: string, value: unknown): Promise<S
     },
     "保存设置失败"
   );
+};
+
+export const testModelConnection = async (input: {
+  provider: ModelProviderDTO;
+  endpoint: string;
+  modelName: string;
+  apiKey: string;
+}): Promise<ModelConnectionTestResultDTO> => {
+  const data = await requestJson<unknown>(
+    "/api/v2/settings/model/test",
+    {
+      method: "POST",
+      headers: buildHeaders(),
+      body: JSON.stringify(input)
+    },
+    "测试模型连接失败"
+  );
+
+  return coerceModelConnectionTestResult(data);
 };
 
 export const deleteSettingByKey = async (key: string): Promise<void> => {

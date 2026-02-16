@@ -20,6 +20,7 @@ All business requests send:
 | Settings | list all | GET | `/api/v2/settings` |
 | Settings | upsert | PUT | `/api/v2/settings` |
 | Settings | delete | DELETE | `/api/v2/settings?key=...` |
+| Settings | model connection test | POST | `/api/v2/settings/model/test` |
 | Exams | list | GET | `/api/v2/exams` |
 | Exams | create | POST | `/api/v2/exams` |
 | Rubrics | list | GET | `/api/v2/rubrics` |

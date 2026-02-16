@@ -87,6 +87,17 @@ export const settingUpsertRequestSchema = z.object({
 
 export type SettingUpsertRequest = z.infer<typeof settingUpsertRequestSchema>;
 
+export const modelProviderSchema = z.enum(["openrouter", "openai", "gemini", "zhipu", "dashscope"]);
+
+export const modelConnectionTestRequestSchema = z.object({
+  provider: modelProviderSchema.optional(),
+  endpoint: z.string().trim().min(1).max(2000).optional(),
+  modelName: z.string().trim().min(1).max(256).optional(),
+  apiKey: z.string().trim().min(1).max(4096).optional()
+});
+
+export type ModelConnectionTestRequest = z.infer<typeof modelConnectionTestRequestSchema>;
+
 export const recordItemSchema = z.object({
   questionNo: z.string().trim().min(1).max(64).optional(),
   questionKey: z.string().trim().min(1).max(128).optional(),

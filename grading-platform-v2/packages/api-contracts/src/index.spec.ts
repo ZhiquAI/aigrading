@@ -4,6 +4,7 @@ import {
   gradingEvaluateRequestSchema,
   licenseActivateRequestSchema,
   licenseStatusResponseSchema,
+  modelConnectionTestRequestSchema,
   recordsBatchRequestSchema,
   rubricGenerateRequestSchema,
   rubricStandardizeRequestSchema,
@@ -126,5 +127,17 @@ describe("license contracts", () => {
       }
     });
     expect(parsed.rubric).toBeTypeOf("object");
+  });
+
+  it("validates model connection test request", () => {
+    const parsed = modelConnectionTestRequestSchema.parse({
+      provider: "openrouter",
+      endpoint: "https://openrouter.ai/api/v1/chat/completions",
+      modelName: "google/gemini-2.5-flash",
+      apiKey: "sk-or-test"
+    });
+
+    expect(parsed.provider).toBe("openrouter");
+    expect(parsed.modelName).toBe("google/gemini-2.5-flash");
   });
 });

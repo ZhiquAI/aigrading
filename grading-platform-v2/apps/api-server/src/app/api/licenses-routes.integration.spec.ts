@@ -30,6 +30,7 @@ let v2StatusGet: RouteHandler;
 let v2SettingsGet: RouteHandler;
 let v2SettingsPut: RouteHandler;
 let v2SettingsDelete: RouteHandler;
+let v2SettingsModelTestPost: RouteHandler;
 let v2RecordsGet: RouteHandler;
 let v2RecordsPost: RouteHandler;
 let v2RecordsDelete: RouteHandler;
@@ -89,6 +90,7 @@ beforeAll(async () => {
   const v2ActivateRoute = await import("@/app/api/v2/licenses/activate/route");
   const v2StatusRoute = await import("@/app/api/v2/licenses/status/route");
   const v2SettingsRoute = await import("@/app/api/v2/settings/route");
+  const v2SettingsModelTestRoute = await import("@/app/api/v2/settings/model/test/route");
   const v2RecordsRoute = await import("@/app/api/v2/records/route");
   const v2RecordsBatchRoute = await import("@/app/api/v2/records/batch/route");
   const v2RecordsDeleteByIdRoute = await import("@/app/api/v2/records/[id]/route");
@@ -103,6 +105,7 @@ beforeAll(async () => {
   v2SettingsGet = v2SettingsRoute.GET;
   v2SettingsPut = v2SettingsRoute.PUT;
   v2SettingsDelete = v2SettingsRoute.DELETE;
+  v2SettingsModelTestPost = v2SettingsModelTestRoute.POST;
   v2RecordsGet = v2RecordsRoute.GET;
   v2RecordsPost = v2RecordsRoute.POST;
   v2RecordsDelete = v2RecordsRoute.DELETE;
@@ -384,6 +387,82 @@ describe("v2 settings routes", () => {
     expect(json.ok).toBe(false);
     expect(json.error.code).toBe("BAD_REQUEST");
     expect(json.error.requestId).toBe(requestIdHeader);
+  });
+
+  it("returns unauthorized for model connection test when identity is missing", async () => {
+    const response = await v2SettingsModelTestPost(
+      new Request("http://localhost/api/v2/settings/model/test", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          provider: "openrouter",
+          endpoint: "https://openrouter.ai/api/v1/chat/completions",
+          modelName: "google/gemini-2.5-flash",
+          apiKey: "sk-or-test"
+        })
+      })
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("supports model connection test with explicit runtime payload", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: "{\"ok\":true,\"message\":\"pong\"}"
+              }
+            }
+          ]
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const response = await v2SettingsModelTestPost(
+        new Request("http://localhost/api/v2/settings/model/test", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-device-id": "settings-test-device"
+          },
+          body: JSON.stringify({
+            provider: "openrouter",
+            endpoint: "https://openrouter.ai/api/v1/chat/completions",
+            modelName: "google/gemini-2.5-flash",
+            apiKey: "sk-or-test"
+          })
+        })
+      );
+
+      expect(response.status).toBe(200);
+      const json = await parseJson<{
+        ok: boolean;
+        data: {
+          connected: boolean;
+          provider?: string;
+        };
+      }>(response);
+      expect(json.ok).toBe(true);
+      expect(json.data.connected).toBe(true);
+      expect(json.data.provider).toContain("openrouter:google/gemini-2.5-flash");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.stubGlobal("fetch", originalFetch);
+    }
   });
 });
 

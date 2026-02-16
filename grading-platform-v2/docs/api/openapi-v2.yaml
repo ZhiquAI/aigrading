@@ -88,6 +88,25 @@ paths:
           description: Deleted
         "409":
           $ref: "#/components/responses/ApiError"
+  /api/v2/settings/model/test:
+    post:
+      summary: Test model connectivity via backend ai-gateway
+      parameters:
+        - $ref: "#/components/parameters/XActivationCode"
+        - $ref: "#/components/parameters/XDeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelConnectionTestRequest"
+      responses:
+        "200":
+          description: Connected or failed with provider attempts
+        "400":
+          $ref: "#/components/responses/ApiError"
+        "401":
+          $ref: "#/components/responses/ApiError"
   /api/v2/exams:
     get:
       summary: List exams
@@ -340,6 +359,18 @@ components:
         key:
           type: string
         value: {}
+    ModelConnectionTestRequest:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [openrouter, openai, gemini, zhipu, dashscope]
+        endpoint:
+          type: string
+        modelName:
+          type: string
+        apiKey:
+          type: string
     ExamCreateRequest:
       type: object
       required: [name]
