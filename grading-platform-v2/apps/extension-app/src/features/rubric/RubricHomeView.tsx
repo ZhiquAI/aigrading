@@ -1,109 +1,59 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RubricEntryIntent } from "../../store/useRootStore";
+import { fetchRubricSummaries, type RubricSummaryDTO } from "../../lib/api";
 import { Badge, Button, Card } from "@ai-grading/ui-kit";
-import { FileIcon, GearIcon, PuzzleIcon, WandIcon } from "../shared/icons";
-
-type HomeRubricPreview = {
-  title: string;
-  questionId: string;
-  pointCount: number;
-  totalScore: number;
-};
+import { GearIcon, WandIcon } from "../shared/icons";
 
 type RubricHomeViewProps = {
-  questionKey: string;
-  rubricText: string;
-  hasRubric: boolean;
-  rubricCountLabel: string;
   onOpenSettings: () => void;
   onOpenRubricWorkspace: (intent: RubricEntryIntent) => void;
-  onOpenGeneratedResult: () => void;
 };
 
-const toRecord = (value: unknown): Record<string, unknown> | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
+const formatSummarySubline = (item: RubricSummaryDTO): string => {
+  const left = item.pointCount > 0 ? `${item.pointCount} 点` : "暂无要点";
+  const right = item.totalScore > 0 ? `${item.totalScore} 分` : "未设分值";
+  return `${left} · ${right}`;
 };
 
-const toRecordList = (value: unknown): Record<string, unknown>[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .map((item) => toRecord(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item));
-};
-
-const firstText = (...values: unknown[]): string => {
-  for (const value of values) {
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (trimmed) {
-        return trimmed;
-      }
-    }
-  }
-  return "";
-};
-
-const toPositiveNumber = (value: unknown): number => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-};
-
-const buildHomeRubricPreview = (rubricText: string, fallbackQuestionKey: string): HomeRubricPreview | null => {
-  const trimmed = rubricText.trim();
-  if (!trimmed) {
-    return null;
+const formatDateLabel = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "时间未知";
   }
 
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    const root = toRecord(parsed);
-    if (!root) {
-      return null;
-    }
-
-    const metadata = toRecord(root.metadata) ?? {};
-    const content = toRecord(root.content) ?? {};
-    const points = [
-      ...toRecordList(root.answerPoints),
-      ...toRecordList(content.points),
-      ...toRecordList(content.steps)
-    ];
-    const pointScore = points.reduce((sum, point) => sum + toPositiveNumber(point.score), 0);
-    const totalScore = toPositiveNumber(root.totalScore)
-      || toPositiveNumber(content.totalScore)
-      || toPositiveNumber(metadata.totalScore)
-      || pointScore;
-
-    return {
-      title: firstText(metadata.title) || "已生成评分细则",
-      questionId: firstText(metadata.questionId, root.questionId, root.questionKey) || fallbackQuestionKey || "未命名题号",
-      pointCount: points.length,
-      totalScore
-    };
-  } catch {
-    return {
-      title: "已生成评分细则",
-      questionId: fallbackQuestionKey || "未命名题号",
-      pointCount: 0,
-      totalScore: 0
-    };
-  }
+  return date.toLocaleDateString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit"
+  });
 };
 
 export const RubricHomeView = ({
-  questionKey,
-  rubricText,
-  hasRubric,
-  rubricCountLabel,
   onOpenSettings,
-  onOpenRubricWorkspace,
-  onOpenGeneratedResult
+  onOpenRubricWorkspace
 }: RubricHomeViewProps) => {
-  const latestPreview = buildHomeRubricPreview(rubricText, questionKey);
+  const [summaries, setSummaries] = useState<RubricSummaryDTO[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadSummaries = useCallback(async (): Promise<void> => {
+    setLoadingList(true);
+    setLoadError(null);
+
+    try {
+      const items = await fetchRubricSummaries();
+      setSummaries(items);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "读取评分细则失败");
+    } finally {
+      setLoadingList(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSummaries();
+  }, [loadSummaries]);
+
+  const listCountLabel = useMemo(() => String(summaries.length), [summaries.length]);
 
   return (
     <>
@@ -143,75 +93,56 @@ export const RubricHomeView = ({
             <span className="rubric-home-ai-chip classic-ai-chip">AI 驱动</span>
           </div>
           <h2>智能创建细则</h2>
-          <p>上传试题与答案，让 AI 自动分析并生成可编辑评分标准。</p>
+          <p>输入题号、上传试题与答案，自动生成可保存评分细则。</p>
           <div className="rubric-home-start-btn classic-start-btn">立即开始</div>
         </Button>
 
-        <div className="rubric-home-action-grid classic-action-grid">
-          <Button
-            type="button"
-            variant="unstyled"
-            className="rubric-home-action-card classic-action-card"
-            onClick={() => onOpenRubricWorkspace("import")}
-          >
-            <span className="rubric-home-action-icon rubric-home-action-icon-cyan classic-action-icon classic-action-icon-cyan">
-              <FileIcon className="classic-symbol-icon rubric-home-action-svg classic-action-svg" />
-            </span>
-            <strong>导入细则</strong>
-            <span>支持 JSON 文件继续编辑</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="unstyled"
-            className="rubric-home-action-card classic-action-card"
-            onClick={() => onOpenRubricWorkspace("list")}
-          >
-            <span className="rubric-home-action-icon rubric-home-action-icon-purple classic-action-icon classic-action-icon-purple">
-              <PuzzleIcon className="classic-symbol-icon rubric-home-action-svg classic-action-svg" />
-            </span>
-            <span className="rubric-home-action-count classic-action-count">{rubricCountLabel}</span>
-            <strong>模板库</strong>
-            <span>常用标准合集</span>
-          </Button>
-        </div>
-
-        <Card variant="unstyled" className="rubric-home-recent-panel classic-recent-panel">
-          <div className="classic-recent-header classic-home-generated-header">
-            <span>已生成结果</span>
-            <button
-              type="button"
-              className="classic-home-generated-link"
-              onClick={onOpenGeneratedResult}
-              disabled={!hasRubric}
-            >
-              查看预览
-            </button>
-          </div>
-          {hasRubric && latestPreview ? (
-            <div className="classic-home-generated-card">
-              <strong>{latestPreview.title}</strong>
-              <p>
-                题号 {latestPreview.questionId} · 得分点 {latestPreview.pointCount} 条 · 总分 {latestPreview.totalScore}
-              </p>
-            </div>
-          ) : (
-            <div className="classic-empty-card">
-              <strong>暂无生成结果</strong>
-              <p>进入新建页生成后，可在这里快速回看预览。</p>
-            </div>
-          )}
-        </Card>
-
         <Card variant="unstyled" className="rubric-home-recent-panel classic-recent-panel">
           <div className="rubric-home-recent-header classic-recent-header">
-            <span>最近细则</span>
-            <span className="rubric-home-action-count classic-action-count">{rubricCountLabel}</span>
+            <span>已创建评分细则</span>
+            <div className="classic-home-rubric-head-actions">
+              <span className="rubric-home-action-count classic-action-count">{listCountLabel}</span>
+              <button
+                type="button"
+                className="classic-home-rubric-refresh"
+                onClick={() => {
+                  void loadSummaries();
+                }}
+                disabled={loadingList}
+              >
+                {loadingList ? "加载中" : "刷新"}
+              </button>
+            </div>
           </div>
-          <div className="rubric-home-empty-card classic-empty-card">
-            <strong>{hasRubric ? "已有评分细则" : "暂无评分细则"}</strong>
-            <p>{hasRubric ? `当前题目标识：${questionKey}` : "先创建或导入一个细则开始使用"}</p>
-          </div>
+
+          {loadError ? <p className="classic-home-rubric-error">{loadError}</p> : null}
+
+          {summaries.length === 0 ? (
+            <div className="rubric-home-empty-card classic-empty-card">
+              <strong>{loadingList ? "正在读取评分细则" : "暂无评分细则"}</strong>
+              <p>{loadingList ? "请稍候..." : "先创建一个评分细则后，这里会自动显示列表。"}</p>
+            </div>
+          ) : (
+            <div className="classic-home-rubric-list">
+              {summaries.map((item) => (
+                <button
+                  key={item.questionId}
+                  type="button"
+                  className="classic-home-rubric-item"
+                  onClick={() => onOpenRubricWorkspace("list")}
+                >
+                  <div>
+                    <strong>{item.title || item.questionId}</strong>
+                    <p>{formatSummarySubline(item)}</p>
+                    <span>题号 {item.questionId} · 更新于 {formatDateLabel(item.updatedAt)}</span>
+                  </div>
+                  <em className={item.lifecycleStatus === "published" ? "is-published" : ""}>
+                    {item.lifecycleStatus === "published" ? "已发布" : "草稿"}
+                  </em>
+                </button>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </>

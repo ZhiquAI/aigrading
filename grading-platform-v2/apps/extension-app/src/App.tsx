@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { AppBottomNav } from "./app-shell/AppBottomNav";
 import { GradingHomeView } from "./features/grading/GradingHomeView";
 import { RecordsHomeView } from "./features/records/RecordsHomeView";
@@ -108,9 +108,7 @@ const App = () => {
   const setShowSettingsSheet = rootStoreActions.setShowSettingsSheet;
 
   const hasRubric = useMemo(() => rubricText.trim().length > 0, [rubricText]);
-  const rubricCountLabel = hasRubric ? "1" : "0";
   const gradingReadyLabel = hasRubric ? "细则已就绪" : "缺少细则";
-  const previousActiveViewRef = useRef<ModuleView | null>(null);
 
   const openRubricWorkspace = (intent: RubricEntryIntent): void => {
     setRubricEntryIntent(intent);
@@ -120,15 +118,6 @@ const App = () => {
   useEffect(() => {
     rootStoreActions.setActiveView(getInitialView());
   }, []);
-
-  useEffect(() => {
-    const previousActiveView = previousActiveViewRef.current;
-    if (activeView === "rubric" && previousActiveView !== "rubric") {
-      setRubricEntryIntent("input");
-      setWorkspaceView("rubric");
-    }
-    previousActiveViewRef.current = activeView;
-  }, [activeView, setRubricEntryIntent, setWorkspaceView]);
 
   useEffect(() => {
     window.localStorage.setItem(ACTIVE_VIEW_STORAGE_KEY, activeView);
@@ -183,13 +172,8 @@ const App = () => {
       >
         {activeView === "rubric" ? (
           <RubricHomeView
-            questionKey={questionKey}
-            rubricText={rubricText}
-            hasRubric={hasRubric}
-            rubricCountLabel={rubricCountLabel}
             onOpenSettings={() => setShowSettingsSheet(true)}
             onOpenRubricWorkspace={openRubricWorkspace}
-            onOpenGeneratedResult={() => openRubricWorkspace("input")}
           />
         ) : null}
 

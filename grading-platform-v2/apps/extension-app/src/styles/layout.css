@@ -386,11 +386,13 @@ body {
   padding: 10px;
 }
 
-.classic-home-generated-header {
-  margin-bottom: 10px;
+.classic-home-rubric-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.classic-home-generated-link {
+.classic-home-rubric-refresh {
   border: 0;
   border-radius: 999px;
   background: #eaf0ff;
@@ -402,31 +404,85 @@ body {
   cursor: pointer;
 }
 
-.classic-home-generated-link:disabled {
+.classic-home-rubric-refresh:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.classic-home-generated-card {
-  border: 1px solid #d7e2f4;
-  border-radius: 14px;
-  background: linear-gradient(140deg, #ffffff 0%, #f6f9ff 100%);
-  padding: 10px;
+.classic-home-rubric-error {
+  margin: 0 0 8px;
+  border-radius: 10px;
+  border: 1px solid #f4c7cb;
+  background: #fef2f2;
+  color: #b4232f;
+  padding: 6px 8px;
+  font-size: var(--classic-fs-xs);
+  line-height: 1.3;
+  font-weight: 700;
 }
 
-.classic-home-generated-card strong {
+.classic-home-rubric-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.classic-home-rubric-item {
+  width: 100%;
+  border: 1px solid #dbe4f4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.classic-home-rubric-item strong {
+  display: block;
   color: #1f2d48;
-  font-size: var(--classic-fs-base);
+  font-size: var(--classic-fs-sm);
   line-height: 1.2;
   font-weight: 800;
 }
 
-.classic-home-generated-card p {
-  margin: 6px 0 0;
+.classic-home-rubric-item p {
+  margin: 4px 0 0;
   color: #60708d;
   font-size: var(--classic-fs-xs);
-  line-height: 1.35;
+  line-height: 1.3;
   font-weight: 700;
+}
+
+.classic-home-rubric-item span {
+  display: block;
+  margin-top: 3px;
+  color: #8a95a8;
+  font-size: var(--classic-fs-xxs);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.classic-home-rubric-item em {
+  font-style: normal;
+  border-radius: 999px;
+  border: 1px solid #dbe4f4;
+  background: #f4f7fc;
+  color: #61708c;
+  min-width: 48px;
+  text-align: center;
+  padding: 2px 8px;
+  font-size: var(--classic-fs-xxs);
+  font-weight: 700;
+}
+
+.classic-home-rubric-item em.is-published {
+  border-color: #b9e6cb;
+  background: #eaf9f0;
+  color: #1f7a4a;
 }
 
 .classic-recent-header {
