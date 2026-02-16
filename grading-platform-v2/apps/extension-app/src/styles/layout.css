@@ -386,6 +386,49 @@ body {
   padding: 10px;
 }
 
+.classic-home-generated-header {
+  margin-bottom: 10px;
+}
+
+.classic-home-generated-link {
+  border: 0;
+  border-radius: 999px;
+  background: #eaf0ff;
+  color: #38589a;
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: var(--classic-fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.classic-home-generated-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.classic-home-generated-card {
+  border: 1px solid #d7e2f4;
+  border-radius: 14px;
+  background: linear-gradient(140deg, #ffffff 0%, #f6f9ff 100%);
+  padding: 10px;
+}
+
+.classic-home-generated-card strong {
+  color: #1f2d48;
+  font-size: var(--classic-fs-base);
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.classic-home-generated-card p {
+  margin: 6px 0 0;
+  color: #60708d;
+  font-size: var(--classic-fs-xs);
+  line-height: 1.35;
+  font-weight: 700;
+}
+
 .classic-recent-header {
   display: flex;
   justify-content: space-between;
