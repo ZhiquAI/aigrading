@@ -29,9 +29,9 @@ body {
 .classic-shell {
   position: relative;
   width: 100%;
-  max-width: 368px;
+  max-width: none;
   height: 100%;
-  margin: 0 auto;
+  margin: 0;
   background: var(--classic-bg);
   border: 1px solid #59694c;
   border-radius: 18px;
@@ -214,10 +214,11 @@ body {
 
 .classic-rubric-scroll,
 .classic-page-scroll {
-  padding: 10px 6px 12px;
+  padding: clamp(10px, 2.2vw, 16px) clamp(8px, 2.4vw, 18px) 12px;
 }
 
 .classic-hero-card {
+  display: block;
   width: 100%;
   border: 1px solid rgba(47, 111, 228, 0.22);
   border-radius: 24px;
@@ -277,7 +278,7 @@ body {
 
 .classic-hero-card p {
   margin: 8px 0 16px;
-  max-width: 90%;
+  max-width: 100%;
   font-size: var(--classic-fs-sm);
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.88);
@@ -483,6 +484,22 @@ body {
   border-color: #b9e6cb;
   background: #eaf9f0;
   color: #1f7a4a;
+}
+
+@media (min-width: 520px) {
+  .classic-hero-card {
+    padding: 22px;
+  }
+
+  .classic-hero-card h2 {
+    font-size: clamp(30px, 4vw, 38px);
+  }
+
+  .classic-home-rubric-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
 }
 
 .classic-recent-header {
