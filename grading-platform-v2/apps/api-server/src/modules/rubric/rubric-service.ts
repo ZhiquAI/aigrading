@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { callAiGatewayJson, isAiGatewayError, type AiProviderAttempt } from "@ai-grading/ai-gateway";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
+import type { AiGatewayOverrides } from "@/modules/settings/ai-runtime-service";
 
 export type RubricLifecycleStatus = "draft" | "published";
 
@@ -643,6 +644,7 @@ const extractStandardizedRubric = (candidate: Record<string, unknown>): string |
 export const standardizeRubric = async (input: {
   rubric: string | Record<string, unknown>;
   maxScore?: number;
+  gatewayOverrides?: AiGatewayOverrides;
 }): Promise<{
   rubric: string;
   provider: string;
@@ -669,6 +671,8 @@ export const standardizeRubric = async (input: {
       task: "rubric_generate",
       systemPrompt: "你是一名评分细则格式化专家，请输出 JSON 对象。",
       userPrompt,
+      preferredProviders: input.gatewayOverrides?.preferredProviders,
+      runtime: input.gatewayOverrides?.runtime,
       temperature: 0.1,
       maxTokens: 2048
     });
@@ -715,6 +719,7 @@ export const generateRubricDraft = async (input: {
   totalScore?: number;
   questionImage?: string;
   answerImage?: string;
+  gatewayOverrides?: AiGatewayOverrides;
 }): Promise<{
   rubric: Record<string, unknown>;
   provider: string;
@@ -758,6 +763,8 @@ export const generateRubricDraft = async (input: {
       systemPrompt,
       userPrompt,
       images,
+      preferredProviders: input.gatewayOverrides?.preferredProviders,
+      runtime: input.gatewayOverrides?.runtime,
       temperature: 0.2,
       maxTokens: 2048
     });

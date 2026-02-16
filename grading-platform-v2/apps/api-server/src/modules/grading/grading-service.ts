@@ -3,6 +3,7 @@ import type { ScopeIdentity } from "@ai-grading/api-contracts";
 import { callAiGatewayJson, isAiGatewayError, type AiProviderAttempt } from "@ai-grading/ai-gateway";
 import { buildActivationScopeKey, normalizeNonEmpty } from "@ai-grading/domain-core";
 import { RubricDomainError } from "@/modules/rubric/rubric-service";
+import type { AiGatewayOverrides } from "@/modules/settings/ai-runtime-service";
 
 export class GradingDomainError extends Error {
   constructor(
@@ -251,6 +252,7 @@ const evaluateWithAiGateway = async (input: {
   questionKey?: string;
   examNo?: string;
   imageBase64?: string;
+  gatewayOverrides?: AiGatewayOverrides;
 }): Promise<{
   score: number;
   maxScore: number;
@@ -290,6 +292,8 @@ const evaluateWithAiGateway = async (input: {
     systemPrompt,
     userPrompt,
     images,
+    preferredProviders: input.gatewayOverrides?.preferredProviders,
+    runtime: input.gatewayOverrides?.runtime,
     temperature: 0.1,
     maxTokens: 1200
   });
@@ -347,6 +351,7 @@ export const evaluateGrading = async (
     examNo?: string;
     deviceId?: string;
     imageBase64?: string;
+    gatewayOverrides?: AiGatewayOverrides;
   }
 ): Promise<{
   score: number;
@@ -393,7 +398,8 @@ export const evaluateGrading = async (
       questionNo: input.questionNo,
       questionKey: input.questionKey,
       examNo: input.examNo,
-      imageBase64: input.imageBase64
+      imageBase64: input.imageBase64,
+      gatewayOverrides: input.gatewayOverrides
     });
 
     score = aiResult.score;

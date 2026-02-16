@@ -8,6 +8,7 @@ import { isScopeResolutionError, resolveRequestScope } from "@/shared/scope-reso
 import { executeIdempotent, isIdempotencyConflictError } from "@/shared/idempotency/service";
 import { evaluateGrading, getQuotaStatus, isGradingDomainError } from "@/modules/grading/grading-service";
 import { jsonApiError } from "@/shared/errors/api-error";
+import { resolveAiGatewayRuntime } from "@/modules/settings/ai-runtime-service";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const requestId = getRequestId(request);
@@ -27,6 +28,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         deviceId: deviceId ?? null
       }
     }, async () => {
+      const gatewayOverrides = await resolveAiGatewayRuntime(prisma, identity.scopeKey);
       const data = await evaluateGrading(prisma, {
         identity,
         rubric: body.rubric,
@@ -35,7 +37,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         questionKey: body.questionKey,
         examNo: body.examNo,
         deviceId,
-        imageBase64: body.imageBase64
+        imageBase64: body.imageBase64,
+        gatewayOverrides
       });
 
       return {

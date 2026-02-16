@@ -4,15 +4,21 @@ import { ZodError } from "zod";
 import { rubricStandardizeRequestSchema } from "@ai-grading/api-contracts";
 import { standardizeRubric } from "@/modules/rubric/rubric-service";
 import { jsonApiError } from "@/shared/errors/api-error";
+import { prisma } from "@/lib/prisma";
+import { resolveRequestScope } from "@/shared/scope-resolver/request-scope";
+import { resolveAiGatewayRuntime } from "@/modules/settings/ai-runtime-service";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const requestId = getRequestId(request);
 
   try {
+    const scope = resolveRequestScope(request);
     const body = rubricStandardizeRequestSchema.parse(await request.json());
+    const gatewayOverrides = await resolveAiGatewayRuntime(prisma, scope.scopeKey);
     const standardized = await standardizeRubric({
       rubric: body.rubric,
-      maxScore: body.maxScore
+      maxScore: body.maxScore,
+      gatewayOverrides
     });
 
     return NextResponse.json({ ok: true, data: standardized }, {

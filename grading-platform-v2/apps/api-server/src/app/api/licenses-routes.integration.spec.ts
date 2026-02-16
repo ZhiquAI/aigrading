@@ -772,7 +772,8 @@ describe("v2 grading and rubric generate routes", () => {
       new Request("http://localhost/api/v2/rubrics/generate", {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
+          "x-device-id": "rubric-generate-device"
         },
         body: JSON.stringify({
           questionId: "Q2",
@@ -908,6 +909,85 @@ describe("v2 grading and rubric generate routes", () => {
     );
     expect(conflict.status).toBe(409);
   });
+
+  it("applies model provider settings to rubric generate and grading evaluate", async () => {
+    const settingResponse = await v2SettingsPut(
+      new Request("http://localhost/api/v2/settings", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "provider-setting-device"
+        },
+        body: JSON.stringify({
+          key: "model.provider",
+          value: "zhipu"
+        })
+      })
+    );
+    expect(settingResponse.status).toBe(200);
+
+    const generated = await v2RubricsGeneratePost(
+      new Request("http://localhost/api/v2/rubrics/generate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "provider-setting-device"
+        },
+        body: JSON.stringify({
+          questionId: "Q-provider",
+          answerText: "史实准确，论证完整",
+          subject: "history",
+          totalScore: 10
+        })
+      })
+    );
+    expect(generated.status).toBe(200);
+    const generatedJson = await parseJson<{
+      ok: boolean;
+      data: {
+        providerTrace: { mode: string; attempts?: Array<{ provider: string }> };
+      };
+    }>(generated);
+    expect(generatedJson.ok).toBe(true);
+    if (generatedJson.data.providerTrace.mode === "fallback") {
+      const providers = generatedJson.data.providerTrace.attempts?.map((item) => item.provider) ?? [];
+      expect(providers).toEqual(["zhipu"]);
+    }
+
+    const evaluate = await v2GradingEvaluatePost(
+      new Request("http://localhost/api/v2/gradings/evaluate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-activation-code": "BASIC-AAAA-BBBB-CCCC",
+          "x-device-id": "provider-setting-device"
+        },
+        body: JSON.stringify({
+          rubric: {
+            metadata: { questionId: "Q-provider", title: "Provider Test" },
+            answerPoints: [{ content: "史实准确", score: 10 }]
+          },
+          studentName: "Test Student",
+          questionNo: "Q-provider",
+          imageBase64: "base64-placeholder"
+        })
+      })
+    );
+    expect(evaluate.status).toBe(200);
+    const evaluateJson = await parseJson<{
+      ok: boolean;
+      data: {
+        providerTrace: { mode: string; attempts?: Array<{ provider: string }> };
+      };
+    }>(evaluate);
+    expect(evaluateJson.ok).toBe(true);
+    if (evaluateJson.data.providerTrace.mode === "fallback") {
+      const providers = evaluateJson.data.providerTrace.attempts?.map((item) => item.provider) ?? [];
+      expect(providers).toEqual(["zhipu"]);
+    }
+  });
 });
 
 describe("v2 rubric standardize route", () => {
@@ -916,7 +996,8 @@ describe("v2 rubric standardize route", () => {
       new Request("http://localhost/api/v2/rubrics/standardize", {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
+          "x-device-id": "rubric-standardize-device"
         },
         body: JSON.stringify({
           rubric: "1. 史实准确（6分）\n2. 逻辑完整（4分）",
