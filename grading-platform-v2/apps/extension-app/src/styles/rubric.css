@@ -514,8 +514,7 @@
 
 .classic-rubric-actions button:disabled,
 .classic-rubric-subheader button:disabled,
-.classic-rubric-toolbar button:disabled,
-.classic-rubric-template-action:disabled {
+.classic-rubric-toolbar button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -649,16 +648,6 @@
   padding: 8px 10px;
 }
 
-.classic-rubric-template-panel {
-  border: 1px solid #d6deeb;
-  border-radius: 14px;
-  background: rgba(247, 250, 255, 0.88);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .classic-rubric-latest-card {
   border: 1px solid #d8e4f7;
   border-radius: 14px;
@@ -719,54 +708,6 @@
   font-size: var(--classic-fs-sm);
   font-weight: 800;
   cursor: pointer;
-}
-
-.classic-rubric-template-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.classic-rubric-template-head h4 {
-  margin: 0;
-  color: #2e3d58;
-  font-size: var(--classic-fs-base);
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.classic-rubric-template-head p {
-  margin: 4px 0 0;
-  color: #6b7891;
-  font-size: var(--classic-fs-xs);
-  line-height: 1.35;
-  font-weight: 600;
-}
-
-.classic-rubric-template-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.classic-rubric-template-action {
-  border: 1px solid #d4deee;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #476083;
-  min-width: 52px;
-  height: 28px;
-  padding: 0 10px;
-  font-size: var(--classic-fs-xs);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.classic-rubric-template-action-primary {
-  border-color: #b9c9e7;
-  background: #eaf0ff;
-  color: #345188;
 }
 
 .classic-rubric-latest-card-btn:disabled {
