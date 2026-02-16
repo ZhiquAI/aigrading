@@ -747,6 +747,9 @@ export const RubricPanel = ({
         loadingList={loadingList}
         summaries={summaries}
         templatePanelOpen={templatePanelOpen}
+        hasGeneratedResult={Boolean(rubricText.trim())}
+        resultPreview={resultPreview}
+        lifecycleStatus={lifecycleStatus}
         onBack={() => setViewState("welcome")}
         onOpenSettings={onOpenSettings}
         onClear={handleClearInput}
@@ -777,6 +780,7 @@ export const RubricPanel = ({
         onLoadTemplate={(questionId) => {
           void handleLoad(questionId);
         }}
+        onOpenResultPreview={() => setViewState("result")}
         onExamIdChange={onExamIdChange}
         formatSummarySubline={formatSummarySubline}
         onImportJson={(event) => {

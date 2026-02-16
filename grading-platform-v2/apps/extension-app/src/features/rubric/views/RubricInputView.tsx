@@ -1,6 +1,8 @@
 import type { ChangeEvent, ReactNode, RefObject } from "react";
 import type { RubricSummaryDTO } from "../../../lib/api";
+import type { RubricLifecycleStatus } from "../../../lib/api";
 import { GearIcon } from "../../shared/icons";
+import type { RubricResultPreview } from "../types";
 
 type RubricInputViewProps = {
   statusMessage: ReactNode;
@@ -24,6 +26,9 @@ type RubricInputViewProps = {
   loadingList: boolean;
   summaries: RubricSummaryDTO[];
   templatePanelOpen: boolean;
+  hasGeneratedResult: boolean;
+  resultPreview: RubricResultPreview;
+  lifecycleStatus: RubricLifecycleStatus;
   onBack: () => void;
   onOpenSettings?: () => void;
   onClear: () => void;
@@ -31,6 +36,7 @@ type RubricInputViewProps = {
   onToggleTemplatePanel: () => void;
   onRefreshTemplate: () => void;
   onLoadTemplate: (questionKey: string) => void;
+  onOpenResultPreview: () => void;
   onExamNameChange: (value: string) => void;
   onGradeChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
@@ -69,6 +75,9 @@ export const RubricInputView = ({
   loadingList,
   summaries,
   templatePanelOpen,
+  hasGeneratedResult,
+  resultPreview,
+  lifecycleStatus,
   onBack,
   onOpenSettings,
   onClear,
@@ -76,6 +85,7 @@ export const RubricInputView = ({
   onToggleTemplatePanel,
   onRefreshTemplate,
   onLoadTemplate,
+  onOpenResultPreview,
   onExamNameChange,
   onGradeChange,
   onSubjectChange,
@@ -254,6 +264,22 @@ export const RubricInputView = ({
 
         <p className="classic-rubric-ai-note">AI 将自动拆分并填充：问题词、得分点、分值、关键词。</p>
       </div>
+
+      {hasGeneratedResult ? (
+        <section className="classic-rubric-latest-card">
+          <header className="classic-rubric-latest-card-head">
+            <h4>已生成结果</h4>
+            <span>{lifecycleStatus === "published" ? "已发布" : "草稿"}</span>
+          </header>
+          <p className="classic-rubric-latest-card-title">{resultPreview.title}</p>
+          <p className="classic-rubric-latest-card-meta">
+            题号 {resultPreview.questionId} · 得分点 {resultPreview.points.length} 条 · 总分 {resultPreview.totalScore}
+          </p>
+          <button type="button" className="classic-rubric-latest-card-btn" onClick={onOpenResultPreview}>
+            查看结果预览
+          </button>
+        </section>
+      ) : null}
 
       <section className="classic-rubric-template-panel">
         <header className="classic-rubric-template-head">
