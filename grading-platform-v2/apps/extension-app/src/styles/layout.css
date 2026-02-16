@@ -935,6 +935,8 @@ body {
   border-top: 0;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .classic-sheet-panel-header {
@@ -989,10 +991,12 @@ body {
 }
 
 .classic-sheet-panel-body-settings {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  height: auto;
   max-height: none;
   background: #f2f4f8;
-  padding: 10px 8px 14px;
+  padding: 10px 8px calc(78px + env(safe-area-inset-bottom, 0px));
 }
 
 /* styles for v2 module panels in sheet */
