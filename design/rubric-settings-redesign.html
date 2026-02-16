@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 评分细则设置 (Rubric Settings)</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+
+        /* 拖拽把手样式 */
+        .drag-handle {
+            cursor: grab;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* 关键词标签样式 */
+        .keyword-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+        }
+
+        .keyword-tag:hover {
+            background: #e5e7eb;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            subtle: 'rgba(245, 165, 36, 0.1)',
+                            fg: '#482C03'
+                        },
+                        danger: {
+                            DEFAULT: '#F31260',
+                            subtle: 'rgba(243, 18, 96, 0.1)',
+                            fg: '#5E0824'
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex justify-center">
+
+    <!-- Design: 评分细则设置 (Rubric Settings - Create/Edit) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='rubric-list-redesign.html'"
+                    class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <h1 class="font-bold text-gray-800 text-sm">设置评分细则</h1>
+            </div>
+            <button
+                class="text-xs font-semibold text-primary hover:text-primary-hover px-2 py-1 hover:bg-primary/5 rounded">
+                导入 JSON
+            </button>
+        </header>
+
+        <!-- Main Content (Form) -->
+        <main class="flex-1 overflow-y-auto bg-gray-50/50 p-4 pb-20">
+
+            <!-- Section 1: Basic Info -->
+            <div class="space-y-4 mb-6">
+                <!-- Exam Selector -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">所属考试 /
+                        科目</label>
+                    <div class="flex gap-2">
+                        <select
+                            class="flex-1 h-9 bg-white border border-gray-200 rounded-lg text-sm px-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                            <option>高三历史第一次模拟</option>
+                            <option>期中考试</option>
+                        </select>
+                        <div
+                            class="w-24 px-3 h-9 bg-gray-100 border border-gray-200 rounded-lg text-sm flex items-center justify-center text-gray-500 font-medium cursor-not-allowed">
+                            历史
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question Info -->
+                <div class="flex gap-3">
+                    <div class="w-20">
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">题号</label>
+                        <input type="text" value="12"
+                            class="w-full h-9 bg-white border border-gray-200 rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">题型</label>
+                        <select
+                            class="w-full h-9 bg-white border border-gray-200 rounded-lg text-sm px-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                            <option>简答题 (Subjective)</option>
+                            <option>论述题 (Essay)</option>
+                        </select>
+                    </div>
+                    <div class="w-20">
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">总分</label>
+                        <div class="relative">
+                            <input type="number" value="10"
+                                class="w-full h-9 bg-white border border-gray-200 rounded-lg text-sm text-center font-bold text-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-6">
+                            <span class="absolute right-2 top-2.5 text-xs text-gray-400 font-normal">分</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: AI Generation Entry (Collapsible Hero) -->
+            <div class="bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-xl border border-primary/10 p-1 mb-6">
+                <div class="bg-white/60 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-primary">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <span class="text-sm font-bold text-gray-800">AI 自动生成细则</span>
+                    </div>
+                    <textarea
+                        class="w-full h-20 bg-white border border-gray-200 rounded-lg p-3 text-xs placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
+                        placeholder="在此粘贴标准答案或题目要求，AI 将自动拆解得分点..."></textarea>
+
+                    <div class="flex justify-between items-center mt-2.5">
+                        <button
+                            class="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                            title="上传图片">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                        </button>
+                        <button
+                            class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all shadow-lg shadow-gray-200 transform hover:scale-105 active:scale-95">
+                            生成细则 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Points Editor (Structured) -->
+            <div>
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">得分点列表 (Points)</h3>
+                    <div class="flex gap-1">
+                        <span
+                            class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">当前总分:
+                            10</span>
+                        <button
+                            class="text-[10px] text-primary hover:bg-primary/5 px-1.5 py-0.5 rounded font-medium transition-colors">+
+                            添加</button>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+
+                    <!-- Point Card 1 -->
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm group">
+                        <!-- Header / Main Content -->
+                        <div class="p-3 pb-2 flex gap-3">
+                            <div class="mt-1 text-gray-300 cursor-grab hover:text-gray-500 drag-handle">
+                                <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <div class="flex justify-between gap-2">
+                                    <input type="text" value="推翻清朝统治"
+                                        class="flex-1 text-sm font-semibold text-gray-800 border-none p-0 focus:ring-0 placeholder-gray-300 bg-transparent"
+                                        placeholder="得分点描述">
+                                    <div
+                                        class="flex items-center gap-1 bg-gray-50 px-1.5 rounded border border-gray-100">
+                                        <input type="number" value="3"
+                                            class="w-6 text-center text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0">
+                                        <span class="text-[10px] text-gray-400">分</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 items-center">
+                                    <span class="text-[10px] text-gray-400">关键词:</span>
+                                    <div class="keyword-tag">
+                                        清王朝 <button class="hover:text-red-500"><i data-lucide="x"
+                                                class="w-2.5 h-2.5"></i></button>
+                                    </div>
+                                    <div class="keyword-tag">
+                                        帝制 <button class="hover:text-red-500"><i data-lucide="x"
+                                                class="w-2.5 h-2.5"></i></button>
+                                    </div>
+                                    <button
+                                        class="text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 p-0.5 transition-colors">
+                                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="text-gray-400 hover:text-danger p-1 rounded hover:bg-danger/5 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Settings Toggle (Hidden by default, shown just for improved UX simulation) -->
+                        <!-- Footer -->
+                        <div
+                            class="px-3 py-1.5 bg-gray-50 border-t border-gray-100 rounded-b-xl flex justify-between items-center">
+                            <div class="flex gap-2 text-[10px]">
+                                <label class="flex items-center gap-1.5 text-gray-500 cursor-pointer">
+                                    <input type="checkbox"
+                                        class="rounded border-gray-300 w-3 h-3 text-primary focus:ring-primary/20">
+                                    必需得分点 (Strict)
+                                </label>
+                            </div>
+                            <i data-lucide="chevron-down"
+                                class="w-3 h-3 text-gray-300 cursor-pointer hover:text-gray-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- Point Card 2 -->
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm group">
+                        <div class="p-3 pb-2 flex gap-3">
+                            <div class="mt-1 text-gray-300 cursor-grab hover:text-gray-500 drag-handle">
+                                <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <div class="flex justify-between gap-2">
+                                    <input type="text" value="结束君主专制"
+                                        class="flex-1 text-sm font-semibold text-gray-800 border-none p-0 focus:ring-0 placeholder-gray-300 bg-transparent"
+                                        placeholder="得分点描述">
+                                    <div
+                                        class="flex items-center gap-1 bg-gray-50 px-1.5 rounded border border-gray-100">
+                                        <input type="number" value="3"
+                                            class="w-6 text-center text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0">
+                                        <span class="text-[10px] text-gray-400">分</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 items-center">
+                                    <span class="text-[10px] text-gray-400">关键词:</span>
+                                    <div class="keyword-tag">
+                                        两千多年 <button class="hover:text-red-500"><i data-lucide="x"
+                                                class="w-2.5 h-2.5"></i></button>
+                                    </div>
+                                    <div class="keyword-tag">
+                                        专制制度 <button class="hover:text-red-500"><i data-lucide="x"
+                                                class="w-2.5 h-2.5"></i></button>
+                                    </div>
+                                    <button
+                                        class="text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 p-0.5 transition-colors">
+                                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="text-gray-400 hover:text-danger p-1 rounded hover:bg-danger/5 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div
+                            class="px-3 py-1.5 bg-gray-50 border-t border-gray-100 rounded-b-xl flex justify-between items-center">
+                            <div class="flex gap-2 text-[10px]">
+                                <label class="flex items-center gap-1.5 text-gray-500 cursor-pointer">
+                                    <input type="checkbox"
+                                        class="rounded border-gray-300 w-3 h-3 text-primary focus:ring-primary/20">
+                                    必需得分点 (Strict)
+                                </label>
+                            </div>
+                            <i data-lucide="chevron-down"
+                                class="w-3 h-3 text-gray-300 cursor-pointer hover:text-gray-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- Point Card 3 -->
+                    <div
+                        class="bg-white border border-gray-200 rounded-xl shadow-sm group opacity-75 hover:opacity-100 transition-opacity">
+                        <div class="p-3 pb-2 flex gap-3">
+                            <div class="mt-1 text-gray-300 cursor-grab hover:text-gray-500 drag-handle">
+                                <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <div class="flex justify-between gap-2">
+                                    <input type="text" value="建立中华民国"
+                                        class="flex-1 text-sm font-semibold text-gray-800 border-none p-0 focus:ring-0 placeholder-gray-300 bg-transparent"
+                                        placeholder="得分点描述">
+                                    <div
+                                        class="flex items-center gap-1 bg-gray-50 px-1.5 rounded border border-gray-100">
+                                        <input type="number" value="2"
+                                            class="w-6 text-center text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0">
+                                        <span class="text-[10px] text-gray-400">分</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 items-center">
+                                    <span class="text-[10px] text-gray-400">关键词:</span>
+                                    <div class="keyword-tag">
+                                        民国 <button class="hover:text-red-500"><i data-lucide="x"
+                                                class="w-2.5 h-2.5"></i></button>
+                                    </div>
+                                    <button
+                                        class="text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 p-0.5 transition-colors">
+                                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="text-gray-400 hover:text-danger p-1 rounded hover:bg-danger/5 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div
+                            class="px-3 py-1.5 bg-gray-50 border-t border-gray-100 rounded-b-xl flex justify-between items-center">
+                            <div class="flex gap-2 text-[10px]">
+                                <label class="flex items-center gap-1.5 text-gray-500 cursor-pointer">
+                                    <input type="checkbox"
+                                        class="rounded border-gray-300 w-3 h-3 text-primary focus:ring-primary/20">
+                                    必需得分点 (Strict)
+                                </label>
+                            </div>
+                            <i data-lucide="chevron-down"
+                                class="w-3 h-3 text-gray-300 cursor-pointer hover:text-gray-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- Point Card 4 -->
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm group">
+                        <div class="p-3 pb-2 flex gap-3">
+                            <div class="mt-1 text-gray-300 cursor-grab hover:text-gray-500 drag-handle">
+                                <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <div class="flex justify-between gap-2">
+                                    <input type="text" value="民主共和观念深入人心"
+                                        class="flex-1 text-sm font-semibold text-gray-800 border-none p-0 focus:ring-0 placeholder-gray-300 bg-transparent"
+                                        placeholder="得分点描述">
+                                    <div
+                                        class="flex items-center gap-1 bg-gray-50 px-1.5 rounded border border-gray-100">
+                                        <input type="number" value="2"
+                                            class="w-6 text-center text-sm font-bold text-gray-800 bg-transparent border-none p-0 focus:ring-0">
+                                        <span class="text-[10px] text-gray-400">分</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 items-center">
+                                    <span class="text-[10px] text-gray-400">关键词:</span>
+                                    <button
+                                        class="text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 p-0.5 transition-colors">
+                                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="text-gray-400 hover:text-danger p-1 rounded hover:bg-danger/5 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div
+                            class="px-3 py-1.5 bg-gray-50 border-t border-gray-100 rounded-b-xl flex justify-between items-center">
+                            <div class="flex gap-2 text-[10px]">
+                                <label class="flex items-center gap-1.5 text-gray-500 cursor-pointer">
+                                    <input type="checkbox"
+                                        class="rounded border-gray-300 w-3 h-3 text-primary focus:ring-primary/20">
+                                    必需得分点 (Strict)
+                                </label>
+                            </div>
+                            <i data-lucide="chevron-down"
+                                class="w-3 h-3 text-gray-300 cursor-pointer hover:text-gray-500"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoring Strategy Selector -->
+            <div class="mt-6">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">评分策略 (Strategy)</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <label
+                        class="relative flex flex-col p-3 bg-white border-2 border-primary/40 rounded-lg cursor-pointer hover:border-primary/60 transition-colors shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-gray-800">累加模式</span>
+                            <div class="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] text-gray-500 leading-tight">踩中几个点得几分，即使顺序不同。</span>
+                    </label>
+                    <label
+                        class="relative flex flex-col p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-colors shadow-sm opacity-60 hover:opacity-100">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-gray-800">全匹配模式</span>
+                            <div class="w-4 h-4 rounded-full border border-gray-300"></div>
+                        </div>
+                        <span class="text-[10px] text-gray-500 leading-tight">必须包含所有核心点才能得分。</span>
+                    </label>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Actions -->
+        <footer class="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-20">
+            <div class="flex gap-3">
+                <button onclick="window.location.href='rubric-list-redesign.html'"
+                    class="flex-1 h-10 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-lg transition-colors">
+                    取消
+                </button>
+                <button onclick="window.location.href='rubric-list-redesign.html'"
+                    class="flex-1 h-10 bg-primary hover:bg-primary-hover text-white font-medium text-sm rounded-lg shadow-lg shadow-primary/20 transition-all transform active:scale-95">
+                    保存细则
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

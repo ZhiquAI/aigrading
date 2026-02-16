@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 阅卷记录 (Grading Records)</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            subtle: 'rgba(245, 165, 36, 0.1)',
+                            fg: '#482C03'
+                        },
+                        danger: {
+                            DEFAULT: '#F31260',
+                            subtle: 'rgba(243, 18, 96, 0.1)',
+                            fg: '#5E0824'
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex justify-center">
+
+    <!-- Design: 分析报告 (Grading Report - Analytics) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                    class="hover:bg-gray-100 p-1 rounded-md transition-colors text-gray-500">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <div class="flex flex-col">
+                    <h1 class="font-bold text-gray-800 text-sm">阅卷记录</h1>
+                    <span class="text-[10px] text-gray-400">初三历史 - 2026春期中考试</span>
+                </div>
+            </div>
+            <button class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-primary" title="导出报告">
+                <i data-lucide="download" class="w-5 h-5"></i>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto px-4 py-4 pb-20 space-y-5 bg-gray-50">
+
+            <!-- Summary Cars -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase">平均分</span>
+                    <span class="text-xl font-bold text-primary mt-1">78.5</span>
+                    <span class="text-[10px] text-success flex items-center gap-0.5 mt-1">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i> +2.1
+                    </span>
+                </div>
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase">最高分</span>
+                    <span class="text-xl font-bold text-gray-800 mt-1">98</span>
+                    <span class="text-[10px] text-gray-400 mt-1">李雷</span>
+                </div>
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase">及格率</span>
+                    <span class="text-xl font-bold text-gray-800 mt-1">92%</span>
+                    <span class="text-[10px] text-gray-400 mt-1">18/200 没过</span>
+                </div>
+            </div>
+
+            <!-- Score Distribution Chart -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xs font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="bar-chart-big" class="w-4 h-4 text-primary"></i>
+                    分数段分布
+                </h2>
+                <div class="h-40 w-full relative">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Insights / Common Errors -->
+            <div>
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 pl-1">高频失分点 (Top Mistakes)</h2>
+                <div class="space-y-2">
+
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-danger/10 text-danger flex items-center justify-center font-bold text-xs shrink-0">
+                            1
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-xs font-bold text-gray-800 mb-1">辛亥革命的历史局限性</h3>
+                                <span class="text-[10px] font-mono text-danger">-35% 得分率</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">
+                                大部分学生未能答出"没有发动广大人民群众"这一点。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-warning/10 text-warning flex items-center justify-center font-bold text-xs shrink-0">
+                            2
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-xs font-bold text-gray-800 mb-1">新文化运动的口号</h3>
+                                <span class="text-[10px] font-mono text-warning">-42% 得分率</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">
+                                容易混淆"民主与科学"与"德先生与赛先生"的表述。
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Student List (Preview) -->
+            <div>
+                <div class="flex items-center justify-between mb-3 pl-1">
+                    <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide">学生成绩单</h2>
+                    <button class="text-[10px] text-primary hover:underline">查看所有</button>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-50 border-b border-gray-100 text-gray-500">
+                            <tr>
+                                <th class="p-3 font-medium">姓名</th>
+                                <th class="p-3 font-medium">得分</th>
+                                <th class="p-3 font-medium text-right">排名</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="p-3 font-medium text-gray-800">李雷</td>
+                                <td class="p-3 text-primary font-bold">98</td>
+                                <td class="p-3 text-right text-gray-400 font-mono">1</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="p-3 font-medium text-gray-800">韩梅梅</td>
+                                <td class="p-3 text-gray-800 font-semibold">95</td>
+                                <td class="p-3 text-right text-gray-400 font-mono">2</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="p-3 font-medium text-gray-800">Jim Green</td>
+                                <td class="p-3 text-gray-800 font-semibold">92</td>
+                                <td class="p-3 text-right text-gray-400 font-mono">3</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- Initialize Lucide icons & Chart.js -->
+    <script>
+        lucide.createIcons();
+
+        // Initialize Chart.js
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['<60', '60-70', '70-80', '80-90', '90-100'],
+                datasets: [{
+                    label: '人数',
+                    data: [18, 32, 65, 55, 30],
+                    backgroundColor: '#006FEE',
+                    borderRadius: 4,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f3f4f6' },
+                        ticks: { font: { size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

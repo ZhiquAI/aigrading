@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 阅卷看板 (Grading Dashboard)</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+
+        .exam-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            subtle: 'rgba(245, 165, 36, 0.1)',
+                            fg: '#482C03'
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex justify-center">
+
+    <!-- Design: 阅卷看板 (Grading Dashboard - Entry Point) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+
+        <!-- Header with User Profile -->
+        <header class="h-16 px-4 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-primary/20">
+                    张
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-gray-800">早安，张老师</h1>
+                    <p class="text-[10px] text-gray-500">今日待批改: <span class="text-primary font-semibold">124</span> 份
+                    </p>
+                </div>
+            </div>
+            <button
+                class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+                <span class="absolute top-2 right-2 w-1.5 h-1.5 bg-danger rounded-full ring-2 ring-white"></span>
+            </button>
+        </header>
+
+        <!-- Quick Actions -->
+        <div class="p-4 grid grid-cols-2 gap-3">
+            <button onclick="window.location.href='rubric-settings-redesign.html'"
+                class="bg-primary hover:bg-primary-hover text-white p-3 rounded-xl shadow-lg shadow-primary/20 transition-all transform active:scale-95 flex flex-col items-center justify-center gap-1.5 group">
+                <div class="p-2 bg-white/20 rounded-full group-hover:bg-white/30 transition-colors">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xs font-semibold">新建考试</span>
+            </button>
+            <button
+                class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 p-3 rounded-xl shadow-sm transition-all transform active:scale-95 flex flex-col items-center justify-center gap-1.5 group">
+                <div
+                    class="p-2 bg-gray-100 rounded-full group-hover:bg-gray-200 transition-colors text-gray-500 group-hover:text-gray-700">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xs font-semibold">导入文件</span>
+            </button>
+        </div>
+
+        <!-- Section Title: 进行中 (In Progress) -->
+        <div class="px-4 pb-2 flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide">进行中任务</h2>
+            <button class="text-[10px] text-primary hover:underline">查看全部</button>
+        </div>
+
+        <!-- Exam List -->
+        <main class="flex-1 overflow-y-auto px-4 pb-20 space-y-3">
+
+            <!-- Exam Card 1 (Smart Grading) -->
+            <div onclick="window.location.href='grading-status-smart.html'"
+                class="exam-card bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer relative overflow-hidden group">
+                <!-- Progress Bar Background -->
+                <div class="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
+                    <div class="h-full bg-success w-[75%] shadow-[0_0_8px_rgba(23,201,100,0.5)]"></div>
+                </div>
+
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span
+                            class="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100 mb-1">初三历史</span>
+                        <h3 class="font-bold text-sm text-gray-800">2026春期中考试 - 综合卷</h3>
+                    </div>
+                    <span class="text-xs font-mono font-bold text-gray-400">#01</span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-gray-500 mt-3 mb-1">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                        <span>批改中</span>
+                    </div>
+                    <span class="font-semibold text-gray-700">75% <span
+                            class="text-gray-400 font-normal">completed</span></span>
+                </div>
+                <div class="text-[10px] text-gray-400 flex justify-between">
+                    <span>已批: 150</span>
+                    <span>剩余: 50</span>
+                </div>
+
+                <!-- Hover Overlay Action -->
+                <div
+                    class="absolute inset-0 bg-white/90 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="event.stopPropagation(); window.location.href='grading-status-smart.html'"
+                        class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                        继续批改
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam Card 2 (Assisted Grading) -->
+            <div onclick="window.location.href='grading-status-assisted.html'"
+                class="exam-card bg-white rounded-xl p-4 border border-purple-100 shadow-sm transition-all cursor-pointer relative overflow-hidden group">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span
+                            class="inline-block px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-bold border border-purple-100 mb-1">初三英语</span>
+                        <h3 class="font-bold text-sm text-gray-800">英语期末 - 作文专项</h3>
+                    </div>
+                    <span class="text-xs font-mono font-bold text-gray-400">#02</span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-gray-500 mt-3 mb-1">
+                    <div class="flex items-center gap-1.5">
+                        <i data-lucide="pen-tool" class="w-3.5 h-3.5 text-secondary"></i>
+                        <span>辅助批改</span>
+                    </div>
+                    <span class="font-semibold text-gray-700">30% <span
+                            class="text-gray-400 font-normal">completed</span></span>
+                </div>
+                <div class="text-[10px] text-gray-400 flex justify-between">
+                    <span>待批: 45</span>
+                    <span>总计: 150</span>
+                </div>
+
+                <!-- Hover Overlay Action -->
+                <div
+                    class="absolute inset-0 bg-white/90 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="event.stopPropagation(); window.location.href='grading-status-assisted.html'"
+                        class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                        进入队列
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam Card 3 (Completed) -->
+            <div onclick="window.location.href='grading-report-redesign.html'"
+                class="exam-card bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer group opacity-80 hover:opacity-100">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span
+                            class="inline-block px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-bold border border-purple-100 mb-1">初三政治</span>
+                        <h3 class="font-bold text-sm text-gray-800">第一单元月考测试</h3>
+                    </div>
+                    <span class="text-xs font-mono font-bold text-gray-400">#02</span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-gray-500 mt-3 mb-1">
+                    <div class="flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-primary"></i>
+                        <span>已完成</span>
+                    </div>
+                    <span class="font-semibold text-gray-700">100%</span>
+                </div>
+                <div class="text-[10px] text-gray-400 flex justify-between">
+                    <span>总计: 210 份</span>
+                    <span class="text-primary cursor-pointer hover:underline"
+                        onclick="event.stopPropagation(); window.location.href='grading-report-redesign.html'">查看阅卷记录
+                        ></span>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="pt-4">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">最近动态</h2>
+                <div class="space-y-3 pl-2 border-l border-gray-200 ml-1.5">
+
+                    <div class="relative pl-4">
+                        <div
+                            class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-gray-200 rounded-full border-2 border-white ring-1 ring-gray-100">
+                        </div>
+                        <p class="text-xs text-gray-700"><span class="font-bold">张小明</span> 的试卷需要人工复核。</p>
+                        <span class="text-[10px] text-gray-400">10 分钟前</span>
+                    </div>
+
+                    <div class="relative pl-4">
+                        <div
+                            class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white ring-1 ring-primary/20">
+                        </div>
+                        <p class="text-xs text-gray-700">AI 自动批改了 <span class="font-bold">50 份</span> 试卷。</p>
+                        <span class="text-[10px] text-gray-400">32 分钟前</span>
+                    </div>
+
+                    <div class="relative pl-4">
+                        <div
+                            class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-gray-200 rounded-full border-2 border-white ring-1 ring-gray-100">
+                        </div>
+                        <p class="text-xs text-gray-700">导入了 <span class="font-bold">2026春期中考试</span> 数据。</p>
+                        <span class="text-[10px] text-gray-400">2 小时前</span>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav
+            class="absolute bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-100 flex items-center justify-around px-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-primary">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">看板</span>
+            </button>
+            <button onclick="window.location.href='rubric-list-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="file-check" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">批改</span>
+            </button>
+            <button onclick="window.location.href='grading-report-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">记录</span>
+            </button>
+            <button onclick="window.location.href='global-settings-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">设置</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

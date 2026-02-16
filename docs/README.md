@@ -56,7 +56,9 @@ ai-grading/
 │
 └── docs/                       # 文档
     ├── architecture/           # 架构文档
-    └── design/                # 设计文档
+    ├── design/                 # 设计文档
+    ├── reports/                # 分析/评审报告
+    └── prototypes/             # 页面原型草稿
 ```
 
 ---
@@ -194,6 +196,8 @@ npm run build
 | v2 重构 | `docs/architecture/grading-platform-v2.md` |
 | 前后端交互 | `docs/architecture/frontend-backend-integration.md` |
 | UI 设计分析 | `docs/design/ui-design-analysis.md` |
+| 评审与进展报告 | `docs/reports/` |
+| 原型草稿 | `docs/prototypes/` |
 
 ---
 

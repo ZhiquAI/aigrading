@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 辅助阅卷状态</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            subtle: 'rgba(245, 165, 36, 0.1)',
+                            fg: '#482C03'
+                        },
+                        danger: {
+                            DEFAULT: '#F31260',
+                            subtle: 'rgba(243, 18, 96, 0.1)',
+                            fg: '#5E0824'
+                        },
+                        content1: '#FFFFFF',
+                        content2: '#F4F4F5',
+                        content3: '#E4E4E7',
+                        default: {
+                            100: '#E4E4E7',
+                            200: '#D4D4D8',
+                            300: '#A1A1AA',
+                            400: '#71717A',
+                            500: '#52525B',
+                            DEFAULT: '#3F3F46',
+                        },
+                        secondary: {
+                            DEFAULT: '#9353d3',
+                            subtle: '#efe7f7' // Custom subtle purple
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex justify-center items-start">
+
+    <!-- Design 2: 辅助阅卷 (Assisted Grading - Queue) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                    class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <div class="w-8 h-8 rounded-lg bg-secondary-subtle flex items-center justify-center text-secondary">
+                    <i data-lucide="pen-tool" class="w-4 h-4 text-purple-600"></i>
+                </div>
+                <h1 class="font-bold text-gray-800 text-sm">辅助阅卷模式</h1>
+            </div>
+            <!-- Settings trigger -->
+            <button onclick="window.location.href='global-settings-redesign.html'"
+                class="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                <i data-lucide="settings-2" class="w-4 h-4"></i>
+            </button>
+        </header>
+
+        <!-- Alert Banner -->
+        <div class="bg-blue-50 border-b border-blue-100 px-4 py-2 flex items-start gap-3">
+            <i data-lucide="info" class="w-4 h-4 text-primary mt-0.5 flex-shrink-0"></i>
+            <p class="text-xs text-blue-700 leading-snug">
+                系统将自动填充 AI 建议分数。您只需确认或修改，然后点击“提交”即可自动跳转下一份。
+            </p>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+
+            <!-- Current Queue Status Card -->
+            <div class="bg-white rounded-xl border border-purple-100 shadow-sm overflow-hidden">
+                <div
+                    class="bg-gradient-to-r from-purple-50 to-white px-4 py-3 border-b border-purple-50 flex justify-between items-center">
+                    <span class="text-xs font-bold text-purple-900 uppercase tracking-widest">当前队列</span>
+                    <span
+                        class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[10px] font-bold">READY</span>
+                </div>
+                <div class="p-5 flex flex-col items-center">
+                    <div
+                        class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3 text-purple-600 animate-bounce">
+                        <i data-lucide="layers" class="w-8 h-8"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">50 份试卷待批改</h2>
+                    <p class="text-sm text-gray-500 mt-1">当前题目：<span class="font-medium text-gray-800">第 12 题
+                            (简答)</span></p>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3">
+                    <div class="text-xs text-gray-500 mb-1">今日已批</div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-2xl font-bold text-gray-800">128</span>
+                        <span class="text-xs text-success font-medium flex items-center">
+                            <i data-lucide="arrow-up" class="w-3 h-3"></i> 12%
+                        </span>
+                    </div>
+                </div>
+                <div class="p-3 border-l border-gray-100 pl-4">
+                    <div class="text-xs text-gray-500 mb-1">AI 采纳率</div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-2xl font-bold text-gray-800">92%</span>
+                    </div>
+                    <!-- tiny bar chart simulation -->
+                    <div class="flex gap-0.5 mt-1 h-1.5 w-full max-w-[60px]">
+                        <div class="w-1 bg-primary/20 h-full rounded-sm"></div>
+                        <div class="w-1 bg-primary/40 h-full rounded-sm"></div>
+                        <div class="w-1 bg-primary/60 h-full rounded-sm"></div>
+                        <div class="w-1 bg-primary/80 h-full rounded-sm"></div>
+                        <div class="w-1 bg-primary h-full rounded-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips Section -->
+            <div class="bg-gray-50 rounded-lg p-4 border border-dashed border-gray-200">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="zap" class="w-3 h-3 text-orange-400 fill-current"></i>
+                    <span class="text-xs font-bold text-gray-600">快捷键指南</span>
+                </div>
+                <div class="grid grid-cols-2 gap-y-2 text-xs text-gray-500">
+                    <div class="flex justify-between pr-2">
+                        <span>提交并下一份</span>
+                        <kbd
+                            class="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-sans text-gray-600">Enter</kbd>
+                    </div>
+                    <div class="flex justify-between pr-2">
+                        <span>标记疑问</span>
+                        <kbd
+                            class="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-sans text-gray-600">M</kbd>
+                    </div>
+                    <div class="flex justify-between pr-2">
+                        <span>满分</span>
+                        <kbd
+                            class="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-sans text-gray-600">A</kbd>
+                    </div>
+                    <div class="flex justify-between pr-2">
+                        <span>零分</span>
+                        <kbd
+                            class="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-sans text-gray-600">Z</kbd>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer Actions -->
+        <footer class="p-4 bg-white border-t border-gray-100">
+            <button onclick="window.location.href='grading-detail-redesign.html'"
+                class="w-full h-11 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                开始辅助阅卷
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+            <p class="text-center text-[10px] text-gray-400 mt-2">
+                系统将自动跳转到阅卷页面并定位输入框
+            </p>
+        </footer>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 全局设置 (Global Settings)</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+
+        .setting-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .setting-card:hover {
+            border-color: #d1d5db;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #006FEE;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            subtle: 'rgba(245, 165, 36, 0.1)',
+                            fg: '#482C03'
+                        },
+                        danger: {
+                            DEFAULT: '#F31260',
+                            subtle: 'rgba(243, 18, 96, 0.1)',
+                            fg: '#5E0824'
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex justify-center">
+
+    <!-- Design: 全局设置 (Global Settings - AI Config, Account, Preferences) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <h1 class="font-bold text-gray-800 text-sm">全局设置</h1>
+            <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                class="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-4 pb-20">
+
+            <!-- User Account Card (Hero) -->
+            <div
+                class="bg-gradient-to-br from-primary to-purple-600 rounded-xl p-4 text-white shadow-lg shadow-primary/20 mb-6 relative overflow-hidden group">
+                <div
+                    class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500">
+                </div>
+
+                <div class="flex justify-between items-start mb-4 relative z-10">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-sm font-bold">
+                            张
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm">张老师 (Admin)</div>
+                            <div class="text-[10px] text-white/80 font-medium bg-black/20 px-1.5 rounded inline-block">
+                                PRO 订阅会员</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Stats -->
+                <div class="relative z-10">
+                    <div
+                        class="flex justify-between text-[10px] text-white/80 mb-1.5 uppercase tracking-wide font-medium">
+                        <span>本月额度使用</span>
+                        <span>1,240 / 5,000</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
+                        <div class="h-full bg-white rounded-full w-[25%] shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tabs (Segmented Control) -->
+            <div class="flex bg-white p-1 rounded-lg border border-gray-200 mb-4 shadow-sm" id="tabs">
+                <button onclick="switchTab('ai')" id="tab-ai"
+                    class="flex-1 py-1.5 text-xs font-medium text-gray-800 bg-gray-100 rounded shadow-sm border border-gray-200 transition-all">
+                    AI 配置
+                </button>
+                <button onclick="switchTab('grading')" id="tab-grading"
+                    class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                    阅卷偏好
+                </button>
+                <button onclick="switchTab('system')" id="tab-system"
+                    class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                    系统
+                </button>
+            </div>
+
+            <!-- Tab Content: AI Configuration -->
+            <div id="content-ai" class="space-y-4">
+
+                <!-- Provider Selection -->
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">AI 服务提供商</label>
+                    <div class="space-y-2">
+                        <label
+                            class="flex items-center gap-3 p-2.5 rounded-lg border border-primary/40 bg-primary/5 cursor-pointer transition-colors shadow-sm">
+                            <input type="radio" name="provider" checked
+                                class="text-primary focus:ring-primary w-4 h-4 border-gray-300">
+                            <div class="flex-1">
+                                <span class="text-sm font-semibold text-gray-800">Google Gemini</span>
+                                <p class="text-[10px] text-gray-500">推荐使用，速度快且更智能。</p>
+                            </div>
+                            <span
+                                class="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded font-bold">推荐</span>
+                        </label>
+
+                        <label
+                            class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="radio" name="provider"
+                                class="text-primary focus:ring-primary w-4 h-4 border-gray-300">
+                            <div class="flex-1">
+                                <span class="text-sm font-semibold text-gray-800">智谱 AI (Zhipu)</span>
+                                <p class="text-[10px] text-gray-500">GLM-4 模型，中文理解能力强。</p>
+                            </div>
+                        </label>
+
+                        <label
+                            class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="radio" name="provider"
+                                class="text-primary focus:ring-primary w-4 h-4 border-gray-300">
+                            <div class="flex-1">
+                                <span class="text-sm font-semibold text-gray-800">OpenRouter</span>
+                                <p class="text-[10px] text-gray-500">聚合多个模型 (OpenAI, Claude 等)。</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- API Key Config -->
+                <div class="setting-card">
+                    <label
+                        class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide flex justify-between">
+                        API 密钥配置
+                        <a href="#" class="text-primary hover:underline font-normal normal-case">如何获取?</a>
+                    </label>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-600 mb-1">API Key</label>
+                            <div class="relative">
+                                <input type="password" value="sk-***************"
+                                    class="w-full h-9 pl-3 pr-10 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder-gray-400 font-mono">
+                                <button class="absolute right-2 top-2 text-gray-400 hover:text-gray-600">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                        <button
+                            class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 border border-gray-200 hover:bg-gray-50 rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+                            <i data-lucide="zap" class="w-3.5 h-3.5 text-warning"></i>
+                            测试连接
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Grading Preferences -->
+            <div id="content-grading" class="space-y-4 hidden">
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">评分严格度
+                        (Strictness)</label>
+                    <div class="px-2">
+                        <input type="range" min="1" max="5" value="3"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-gray-500 mt-2 font-medium">
+                            <span>宽松</span>
+                            <span>适中</span>
+                            <span>严格</span>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-[10px] bg-gray-50 p-2 rounded text-gray-500 border border-gray-100">
+                        <i data-lucide="info" class="w-3 h-3 inline mr-1 translate-y-0.5"></i>
+                        较严格的模式会严格匹配关键词，哪怕意思相近也可能扣分。
+                    </p>
+                </div>
+
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">自动化流程</label>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-semibold text-gray-800">自动提交满分项</span>
+                                <p class="text-[10px] text-gray-500">当 AI 判定为满分时，自动跳过人工复核。</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" value="" class="sr-only peer" checked>
+                                <div
+                                    class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary">
+                                </div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-semibold text-gray-800">自动修正错别字</span>
+                                <p class="text-[10px] text-gray-500">在生成评语时自动修正学生错别字。</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" value="" class="sr-only peer">
+                                <div
+                                    class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">评语风格 (Comment
+                        Style)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="border border-primary bg-primary/5 rounded-lg p-2 text-center cursor-pointer">
+                            <div class="text-lg mb-1">🌱</div>
+                            <div class="text-xs font-semibold text-primary">鼓励型</div>
+                        </div>
+                        <div class="border border-gray-200 hover:bg-gray-50 rounded-lg p-2 text-center cursor-pointer">
+                            <div class="text-lg mb-1">🎯</div>
+                            <div class="text-xs font-semibold text-gray-600">犀利型</div>
+                        </div>
+                        <div class="border border-gray-200 hover:bg-gray-50 rounded-lg p-2 text-center cursor-pointer">
+                            <div class="text-lg mb-1">📝</div>
+                            <div class="text-xs font-semibold text-gray-600">简洁型</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: System & Account -->
+            <div id="content-system" class="space-y-4 hidden">
+
+                <!-- Account Management -->
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">账户与安全</label>
+                    <div class="space-y-2">
+                        <button
+                            class="w-full flex items-center justify-between p-2 rounded hover:bg-gray-50 transition-colors text-left group">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-white group-hover:border group-hover:border-gray-200 transition-all">
+                                    <i data-lucide="key" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-sm text-gray-700 font-medium">管理激活码</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                        </button>
+                        <button
+                            class="w-full flex items-center justify-between p-2 rounded hover:bg-gray-50 transition-colors text-left group">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-white group-hover:border group-hover:border-gray-200 transition-all">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-sm text-danger font-medium">退出登录</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Appearance -->
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">外观</label>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-gray-800">深色模式</span>
+                        <select
+                            class="h-8 bg-gray-50 border border-gray-200 rounded-md text-xs px-2 focus:ring-1 focus:ring-primary/50 outline-none">
+                            <option>跟随系统</option>
+                            <option>浅色</option>
+                            <option>深色</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Data Management -->
+                <div class="setting-card">
+                    <label class="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">数据管理</label>
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <span class="text-sm font-semibold text-gray-800">清除缓存</span>
+                            <p class="text-[10px] text-gray-500">释放本地存储空间 (12.5 MB)</p>
+                        </div>
+                        <button
+                            class="px-3 py-1.5 border border-gray-200 hover:bg-gray-50 rounded-lg text-xs font-medium text-gray-600 transition-colors">
+                            清除
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-semibold text-danger">重置所有设置</span>
+                            <p class="text-[10px] text-gray-500">恢复出厂设置，不会删除评分记录。</p>
+                        </div>
+                        <button
+                            class="px-3 py-1.5 bg-danger/10 hover:bg-danger/20 text-danger rounded-lg text-xs font-medium transition-colors">
+                            重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- About -->
+                <div class="text-center py-4">
+                    <div class="text-xs font-bold text-gray-400">AI Grading Assistant</div>
+                    <div class="text-[10px] text-gray-400 mt-0.5">Version 2.0.1 (Build 20260215)</div>
+                    <div class="mt-2 text-[10px] text-primary hover:underline cursor-pointer">检查更新</div>
+                </div>
+            </div>
+
+            <!-- Save Action ( Moved to content) -->
+            <div class="pt-4 pb-2">
+                <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                    class="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium text-sm rounded-lg shadow-lg shadow-gray-200 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]">
+                    保存设置
+                </button>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav
+            class="absolute bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-100 flex items-center justify-around px-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">看板</span>
+            </button>
+            <button onclick="window.location.href='rubric-list-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="file-check" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">批改</span>
+            </button>
+            <button onclick="window.location.href='grading-report-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">记录</span>
+            </button>
+            <button onclick="window.location.href='global-settings-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-primary">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">设置</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+
+        // Simple Tab Switching Logic
+        function switchTab(tabName) {
+            // Hide all contents
+            document.getElementById('content-ai').classList.add('hidden');
+            document.getElementById('content-grading').classList.add('hidden');
+            document.getElementById('content-system').classList.add('hidden');
+
+            // Show active content
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+
+            // Reset tab styles
+            const tabs = ['ai', 'grading', 'system'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tabName) {
+                    btn.className = 'flex-1 py-1.5 text-xs font-medium text-gray-800 bg-gray-100 rounded shadow-sm border border-gray-200 transition-all';
+                } else {
+                    btn.className = 'flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors';
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

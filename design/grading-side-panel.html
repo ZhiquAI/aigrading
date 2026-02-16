@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Sage - Side Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #fafafa;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .rubric-item {
+            transition: all 0.2s;
+        }
+
+        .rubric-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .rubric-item.checked {
+            background-color: #f0fdf4;
+            /* green-50 */
+            border-color: #bbf7d0;
+            /* green-200 */
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .view-content {
+            height: calc(100vh - 56px);
+            /* Subtract bottom nav height */
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#006FEE', hover: '#005BC4' },
+                        success: { DEFAULT: '#17C964', fg: '#004434' },
+                        warning: { DEFAULT: '#F5A524', fg: '#482C03' },
+                        danger: { DEFAULT: '#F31260', fg: '#5E0824' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-white flex flex-col h-screen overflow-hidden">
+
+    <!-- VIEW: DASHBOARD (看板) -->
+    <div id="view-dashboard" class="view-content">
+        <!-- Header -->
+        <header class="h-16 px-4 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-primary/20">
+                    张</div>
+                <div>
+                    <h1 class="text-sm font-bold text-gray-800">早安，张老师</h1>
+                    <p class="text-[10px] text-gray-500">今日待批改: <span class="text-primary font-semibold">124</span> 份
+                    </p>
+                </div>
+            </div>
+            <button
+                class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+                <span class="absolute top-2 right-2 w-1.5 h-1.5 bg-danger rounded-full ring-2 ring-white"></span>
+            </button>
+        </header>
+
+        <!-- Quick Actions -->
+        <div class="p-4 grid grid-cols-2 gap-3">
+            <button onclick="switchView('view-rubric-generate')"
+                class="bg-primary hover:bg-primary-hover text-white p-3 rounded-xl shadow-lg shadow-primary/20 transition-all transform active:scale-95 flex flex-col items-center justify-center gap-1.5 group">
+                <div class="p-2 bg-white/20 rounded-full group-hover:bg-white/30 transition-colors">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xs font-semibold">AI 生成细则</span>
+            </button>
+            <button onclick="switchView('view-rubric-import')"
+                class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 p-3 rounded-xl shadow-sm transition-all transform active:scale-95 flex flex-col items-center justify-center gap-1.5 group">
+                <div
+                    class="p-2 bg-gray-100 rounded-full group-hover:bg-gray-200 transition-colors text-gray-500 group-hover:text-gray-700">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xs font-semibold">导入细则</span>
+            </button>
+        </div>
+
+        <!-- Section Title: Grading Tasks -->
+        <div class="px-4 pb-2 flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide">阅卷任务 (Grading Tasks)</h2>
+            <button class="text-[10px] text-primary hover:underline">查看全部</button>
+        </div>
+
+        <!-- Exam List -->
+        <div class="px-4 pb-20 space-y-3">
+            <!-- Card 1 -->
+            <div onclick="switchView('view-grading')"
+                class="bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer relative overflow-hidden group hover:shadow-md">
+                <div class="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
+                    <div class="h-full bg-success w-[75%]"></div>
+                </div>
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span
+                            class="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100 mb-1">初三历史</span>
+                        <h3 class="font-bold text-sm text-gray-800">2026春期中考试 - 综合卷</h3>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-xs text-gray-500 mt-3 mb-1">
+                    <div class="flex items-center gap-1.5"><span
+                            class="w-2 h-2 rounded-full bg-success animate-pulse"></span><span>批改中</span></div>
+                    <span class="font-semibold text-gray-700">75%</span>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div
+                class="bg-white rounded-xl p-4 border border-purple-100 shadow-sm transition-all cursor-pointer relative overflow-hidden group hover:shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span
+                            class="inline-block px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-bold border border-purple-100 mb-1">初三英语</span>
+                        <h3 class="font-bold text-sm text-gray-800">英语期末 - 作文专项</h3>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-xs text-gray-500 mt-3 mb-1">
+                    <div class="flex items-center gap-1.5"><i data-lucide="pen-tool"
+                            class="w-3.5 h-3.5 text-secondary"></i><span>辅助批改</span></div>
+                    <span class="font-semibold text-gray-700">30%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: RUBRIC GENERATE (生成细则 - was Create Rubric) -->
+    <div id="view-rubric-generate" class="view-content hidden">
+        <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="switchView('view-rubric')" class="text-gray-400 hover:text-gray-600"><i
+                        data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                <h1 class="font-bold text-gray-800 text-sm">AI 生成细则</h1>
+            </div>
+        </header>
+        <div class="p-4 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1.5">题目内容 / 题干</label>
+                <textarea rows="3" placeholder="复制题目内容..."
+                    class="w-full p-2.5 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1.5">参考答案 (Standard Answer)</label>
+                <textarea rows="4" placeholder="粘贴参考答案..."
+                    class="w-full p-2.5 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1.5">满分值</label>
+                <input type="number" value="10"
+                    class="w-full p-2.5 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+            </div>
+
+            <button onclick="switchView('view-rubric-result')"
+                class="w-full bg-gradient-to-r from-primary to-blue-600 hover:to-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/20 mt-4 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4"></i> 开始生成
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW: RUBRIC IMPORT (导入细则) -->
+    <div id="view-rubric-import" class="view-content hidden">
+        <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="switchView('view-rubric')" class="text-gray-400 hover:text-gray-600"><i
+                        data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                <h1 class="font-bold text-gray-800 text-sm">导入评分细则</h1>
+            </div>
+        </header>
+        <div class="p-4 flex flex-col items-center justify-center h-[80%]">
+            <div
+                class="w-full border-2 border-dashed border-gray-300 hover:border-primary/50 hover:bg-primary/5 rounded-2xl p-8 flex flex-col items-center text-center transition-all cursor-pointer">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="upload-cloud" class="w-6 h-6 text-gray-400"></i>
+                </div>
+                <h3 class="text-sm font-bold text-gray-700 mb-1">点击或拖拽上传</h3>
+                <p class="text-[10px] text-gray-400 mb-4">支持 .json, .xlsx 格式</p>
+                <button
+                    class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50">选择文件</button>
+            </div>
+            <div class="mt-6 w-full">
+                <div class="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                    <span class="h-[1px] flex-1 bg-gray-200"></span>
+                    OR
+                    <span class="h-[1px] flex-1 bg-gray-200"></span>
+                </div>
+                <button onclick="switchView('view-rubric-generate')"
+                    class="w-full py-3 text-primary text-xs font-bold hover:bg-primary/5 rounded-xl transition-colors">
+                    直接粘贴文本生成 &rarr;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: RUBRIC RESULT (细则结果页) -->
+    <div id="view-rubric-result" class="view-content hidden">
+        <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="switchView('view-rubric-generate')" class="text-gray-400 hover:text-gray-600"><i
+                        data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                <h1 class="font-bold text-gray-800 text-sm">细则生成结果</h1>
+            </div>
+            <button onclick="switchView('view-rubric')"
+                class="text-xs font-bold text-primary hover:underline">保存</button>
+        </header>
+        <div class="p-4 space-y-4">
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-[11px] text-blue-700 flex gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 shrink-0 mt-0.5"></i>
+                <span>AI 已根据参考答案自动提取了 3 个得分点。您可以手动调整分值或编辑内容。</span>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Editable Item 1 -->
+                <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group">
+                    <div class="flex justify-between items-start mb-2">
+                        <textarea rows="2"
+                            class="w-full text-xs text-gray-800 font-medium bg-transparent border-none p-0 focus:ring-0 resize-none">打破封建专制束缚</textarea>
+                        <div class="flex items-center gap-1 shrink-0 ml-2">
+                            <input type="number" value="4"
+                                class="w-8 text-center text-xs font-bold border-b border-gray-200 focus:border-primary outline-none">
+                            <span class="text-[10px] text-gray-400">分</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded hover:bg-primary hover:text-white transition-colors">关键词:
+                            封建, 专制</button>
+                        <button class="text-[10px] text-gray-400 hover:text-danger"><i data-lucide="trash-2"
+                                class="w-3 h-3"></i></button>
+                    </div>
+                </div>
+                <!-- Editable Item 2 -->
+                <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group">
+                    <div class="flex justify-between items-start mb-2">
+                        <textarea rows="2"
+                            class="w-full text-xs text-gray-800 font-medium bg-transparent border-none p-0 focus:ring-0 resize-none">事件：议会召开</textarea>
+                        <div class="flex items-center gap-1 shrink-0 ml-2">
+                            <input type="number" value="2"
+                                class="w-8 text-center text-xs font-bold border-b border-gray-200 focus:border-primary outline-none">
+                            <span class="text-[10px] text-gray-400">分</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded hover:bg-primary hover:text-white transition-colors">关键词:
+                            议会</button>
+                        <button class="text-[10px] text-gray-400 hover:text-danger"><i data-lucide="trash-2"
+                                class="w-3 h-3"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <button
+                class="w-full py-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 flex items-center justify-center gap-1">
+                <i data-lucide="plus" class="w-3 h-3"></i> 添加得分点
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW: RUBRIC (批改/细则) -->
+    <div id="view-rubric" class="view-content hidden">
+        <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white sticky top-0 z-10">
+            <h1 class="font-bold text-gray-800 text-sm">评分细则库</h1>
+            <div class="flex gap-2">
+                <button
+                    class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-400 hover:text-gray-600"><i
+                        data-lucide="search" class="w-4 h-4"></i></button>
+                <button onclick="switchView('view-rubric-generate')"
+                    class="bg-primary hover:bg-primary-hover text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-lg shadow-primary/20"><i
+                        data-lucide="sparkles" class="w-3.5 h-3.5"></i> 新建</button>
+            </div>
+        </header>
+        <div class="px-4 py-3 bg-white border-b border-gray-100 flex gap-2 overflow-x-auto no-scrollbar">
+            <button
+                class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-semibold whitespace-nowrap">全部</button>
+            <button
+                class="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 text-[11px] font-medium whitespace-nowrap">历史</button>
+            <button
+                class="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 text-[11px] font-medium whitespace-nowrap">语文</button>
+        </div>
+        <div class="p-4 space-y-3">
+            <!-- Rubric Card -->
+            <div onclick="switchView('view-grading')"
+                class="bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer relative group hover:border-primary hover:shadow-lg">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-bold border border-gray-200">Q12</span>
+                        <h3 class="font-bold text-sm text-gray-800 line-clamp-1">辛亥革命的历史意义</h3>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                    <div class="flex items-center gap-1"><i data-lucide="award"
+                            class="w-3.5 h-3.5 text-gray-400"></i><span>10 分</span></div>
+                    <div class="flex items-center gap-1"><i data-lucide="list-checks"
+                            class="w-3.5 h-3.5 text-gray-400"></i><span>4 个得分点</span></div>
+                </div>
+                <div class="flex justify-between items-end border-t border-gray-50 pt-3">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                        <span class="text-[10px] text-gray-400 font-medium">Active</span>
+                    </div>
+                    <button
+                        class="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-1 rounded hover:bg-primary hover:text-white transition-colors">使用此规则</button>
+                </div>
+            </div>
+            <!-- Rubric Card 2 -->
+            <div
+                class="bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer group hover:border-gray-300">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-bold border border-gray-200">Q15</span>
+                        <h3 class="font-bold text-sm text-gray-800 line-clamp-1">新航路开辟的影响</h3>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                    <div class="flex items-center gap-1"><i data-lucide="award"
+                            class="w-3.5 h-3.5 text-gray-400"></i><span>15 分</span></div>
+                    <div class="flex items-center gap-1"><i data-lucide="list-checks"
+                            class="w-3.5 h-3.5 text-gray-400"></i><span>6 个得分点</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: RESULTS (结果) -->
+    <div id="view-records" class="view-content hidden">
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <h1 class="font-bold text-gray-800 text-sm">阅卷结果</h1>
+            <button class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-primary" title="导出报告"><i
+                    data-lucide="download" class="w-5 h-5"></i></button>
+        </header>
+        <div class="p-4 space-y-5">
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase">平均分</span>
+                    <span class="text-xl font-bold text-primary mt-1">78.5</span>
+                </div>
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase">最高分</span>
+                    <span class="text-xl font-bold text-gray-800 mt-1">98</span>
+                </div>
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                    <span class="text-[10px] text-gray-400 font-medium uppercase">及格率</span>
+                    <span class="text-xl font-bold text-gray-800 mt-1">92%</span>
+                </div>
+            </div>
+            <!-- Student List -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-50 border-b border-gray-100 text-gray-500">
+                        <tr>
+                            <th class="p-3 font-medium">Task ID</th>
+                            <th class="p-3 font-medium">得分</th>
+                            <th class="p-3 font-medium text-right">时间</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-medium text-gray-800 font-mono">#45</td>
+                            <td class="p-3 text-primary font-bold">12</td>
+                            <td class="p-3 text-right text-gray-400">10:42</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-medium text-gray-800 font-mono">#44</td>
+                            <td class="p-3 text-gray-800 font-semibold">10</td>
+                            <td class="p-3 text-right text-gray-400">10:40</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-medium text-gray-800 font-mono">#43</td>
+                            <td class="p-3 text-gray-800 font-semibold">8</td>
+                            <td class="p-3 text-right text-gray-400">10:38</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: SETTINGS (设置) -->
+    <div id="view-settings" class="view-content hidden">
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <h1 class="font-bold text-gray-800 text-sm">全局设置</h1>
+        </header>
+        <div class="p-4 space-y-4">
+            <!-- User Info -->
+            <div
+                class="bg-gradient-to-br from-primary to-purple-600 rounded-xl p-4 text-white shadow-lg shadow-primary/20 mb-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-sm font-bold">
+                        张</div>
+                    <div>
+                        <div class="font-bold text-sm">张老师 (Admin)</div>
+                        <div class="text-[10px] text-white/80 font-medium bg-black/20 px-1.5 rounded inline-block">PRO
+                            订阅会员</div>
+                    </div>
+                </div>
+                <div class="relative z-10">
+                    <div class="flex justify-between text-[10px] text-white/80 mb-1.5 font-medium">
+                        <span>额度</span><span>1,240 / 5,000</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
+                        <div class="h-full bg-white rounded-full w-[25%]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings List -->
+            <div class="bg-white rounded-xl border border-gray-200">
+                <div class="p-3 border-b border-gray-100 flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">AI 提供商</span>
+                    <span class="text-xs text-gray-400 flex items-center gap-1">Gemini Pro <i
+                            data-lucide="chevron-right" class="w-3 h-3"></i></span>
+                </div>
+                <div class="p-3 border-b border-gray-100 flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">评分严格度</span>
+                    <span class="text-xs text-gray-400 flex items-center gap-1">适中 <i data-lucide="chevron-right"
+                            class="w-3 h-3"></i></span>
+                </div>
+                <!-- ... other settings -->
+            </div>
+            <button
+                class="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium text-sm rounded-lg shadow-lg flex items-center justify-center gap-2">保存设置</button>
+        </div>
+    </div>
+
+
+    <!-- VIEW: GRADING (智能阅卷 - Default View from previous step) -->
+    <div id="view-grading" class="view-content hidden">
+        <!-- Header -->
+        <header class="h-12 border-b border-gray-200 flex items-center justify-between px-4 bg-white sticky top-0 z-20">
+            <div class="flex items-center gap-2">
+                <button onclick="switchView('view-dashboard')" class="text-gray-400 hover:text-gray-600"><i
+                        data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                <span class="font-bold text-gray-800 text-sm">智能阅卷助手</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[10px] text-green-700 font-medium">已同步</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Task Info (Synced) -->
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+            <div>
+                <div class="text-xs text-gray-400">当前任务 (Task)</div>
+                <div class="font-bold text-gray-800 text-sm font-mono">#46 / 50</div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-gray-400">题号 (Question)</div>
+                <div class="font-bold text-primary text-sm">第 15 题</div>
+            </div>
+        </div>
+
+        <main class="p-4 space-y-4">
+            <!-- AI Score Summary -->
+            <div
+                class="bg-gradient-to-br from-primary/5 to-white rounded-xl border border-primary/10 p-4 shadow-sm flex justify-between items-center relative overflow-hidden group">
+                <div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-4xl font-bold text-primary tracking-tighter">8</span>
+                        <span class="text-sm text-gray-400 font-medium">/ 15</span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 mt-1">AI 建议得分 (置信度高)</div>
+                </div>
+                <button
+                    class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center gap-1.5 z-10">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i> 一键填分
+                </button>
+            </div>
+
+            <!-- Rubric Match Detail -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">得分点匹配</h3>
+                    <span class="text-[10px] text-gray-400">Gemini Pro 分析中...</span>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <!-- Point 1: Hit -->
+                    <div
+                        class="rubric-item checked p-3 rounded-lg border border-gray-100 flex justify-between items-start cursor-pointer group">
+                        <div class="flex gap-2.5">
+                            <div class="mt-0.5"><i data-lucide="check-circle-2"
+                                    class="w-4 h-4 text-success fill-success/10"></i></div>
+                            <div>
+                                <div class="font-medium text-gray-800">打破封建专制束缚</div>
+                                <div
+                                    class="mt-1 h-3 w-32 bg-gray-200 rounded animate-pulse opacity-50 group-hover:bg-success/20 transition-colors">
+                                </div>
+                            </div>
+                        </div>
+                        <span class="font-bold text-success">+4</span>
+                    </div>
+                    <!-- Point 2: Hit -->
+                    <div
+                        class="rubric-item checked p-3 rounded-lg border border-gray-100 flex justify-between items-start cursor-pointer group">
+                        <div class="flex gap-2.5">
+                            <div class="mt-0.5"><i data-lucide="check-circle-2"
+                                    class="w-4 h-4 text-success fill-success/10"></i></div>
+                            <div>
+                                <div class="font-medium text-gray-800">事件：议会召开</div>
+                                <div
+                                    class="mt-1 h-3 w-24 bg-gray-200 rounded animate-pulse opacity-50 group-hover:bg-success/20 transition-colors">
+                                </div>
+                            </div>
+                        </div>
+                        <span class="font-bold text-success">+2</span>
+                    </div>
+                    <!-- Point 3: Missed -->
+                    <div
+                        class="rubric-item p-3 rounded-lg border border-gray-100 flex justify-between items-start cursor-pointer hover:border-gray-200">
+                        <div class="flex gap-2.5">
+                            <div class="mt-0.5"><i data-lucide="circle" class="w-4 h-4 text-gray-300"></i></div>
+                            <div class="opacity-60">
+                                <div class="font-medium text-gray-600">特点：不彻底</div>
+                                <div class="mt-1 h-3 w-20 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                        <span class="font-bold text-gray-300">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-2 gap-2 mt-4">
+                <button
+                    class="py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-medium text-gray-600 transition-colors">查看原题</button>
+                <button
+                    class="py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-medium text-gray-600 transition-colors">修改细则</button>
+            </div>
+        </main>
+
+        <!-- Footer: Manual Override -->
+        <footer class="p-4 border-t border-gray-200 bg-white">
+            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                <input type="checkbox" class="w-3.5 h-3.5 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    checked>
+                <span class="text-xs text-gray-600">自动提交 (Auto Submit)</span>
+            </label>
+            <div class="grid grid-cols-4 gap-2 mb-3">
+                <button
+                    class="h-8 rounded bg-gray-50 hover:bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600">0</button>
+                <button
+                    class="h-8 rounded bg-gray-50 hover:bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600">满分</button>
+                <button
+                    class="h-8 rounded bg-gray-50 hover:bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600">及格</button>
+                <button
+                    class="h-8 rounded bg-gray-50 hover:bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600">...</button>
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- Bottom Navigation -->
+    <nav
+        class="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-100 flex items-center justify-around px-2 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button onclick="switchView('view-rubric')" id="nav-rubric"
+            class="flex flex-col items-center gap-0.5 p-2 text-primary">
+            <i data-lucide="layout-list" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">细则</span>
+        </button>
+        <button onclick="switchView('view-dashboard')" id="nav-dashboard"
+            class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <i data-lucide="pen-tool" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">阅卷</span>
+        </button>
+        <button onclick="switchView('view-records')" id="nav-records"
+            class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">结果</span>
+        </button>
+        <button onclick="switchView('view-settings')" id="nav-settings"
+            class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">设置</span>
+        </button>
+    </nav>
+
+    <!-- Navigation Logic -->
+    <script>
+        lucide.createIcons();
+
+        function switchView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+            // Show selected view
+            document.getElementById(viewId).classList.remove('hidden');
+
+            // Update Nav State
+            // Reset all
+            const navItems = ['dashboard', 'rubric', 'records', 'settings'];
+            navItems.forEach(item => {
+                const btn = document.getElementById('nav-' + item);
+                // If referencing grading, buttons might not map 1:1, but 'dashboard' is the home.
+                if (btn) {
+                    btn.className = 'flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors';
+                }
+            });
+
+            // Set Active
+            let activeNav = viewId.replace('view-', 'nav-');
+            if (viewId === 'view-records') activeNav = 'nav-records';
+            if (viewId === 'view-grading') activeNav = 'nav-dashboard';
+            // New map for rubric sub-pages
+            if (viewId.startsWith('view-rubric-')) activeNav = 'nav-rubric';
+
+            const activeBtn = document.getElementById(activeNav);
+            if (activeBtn) {
+                activeBtn.className = 'flex flex-col items-center gap-0.5 p-2 text-primary';
+            }
+
+            // Re-render icons if needed (though lucide usually handles static content)
+            lucide.createIcons();
+        }
+
+        // Initialize Default View (Rubric)
+        switchView('view-rubric');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Sage - 评分细则管理</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+            --primary: #006FEE;
+            --primary-glow: rgba(0, 111, 238, 0.2);
+            --bg-glass: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Side Panel Simulation */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        /* Glass Gradient Background */
+        .bg-mesh {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 240px;
+            background: radial-gradient(at 0% 0%, rgba(0, 111, 238, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
+            z-index: 0;
+        }
+
+        /* Creation Card Hover */
+        .create-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .create-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -10px var(--primary-glow);
+        }
+
+        /* Rubric Item Hover */
+        .rubric-item {
+            transition: all 0.2s ease;
+        }
+
+        .rubric-item:hover {
+            transform: translateX(4px);
+            border-color: var(--primary);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            hover: '#005BC4'
+                        },
+                        accent: '#8B5CF6'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-slate-100 p-8">
+
+    <div class="side-panel rounded-3xl overflow-hidden border border-slate-200">
+        <div class="bg-mesh"></div>
+
+        <!-- Header -->
+        <header class="relative z-10 px-6 pt-8 pb-4 flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold font-heading text-slate-800">评分细则</h1>
+                <p class="text-xs text-slate-400 mt-1">创建规则以开始智能评分</p>
+            </div>
+            <button
+                class="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+                <i data-lucide="search" class="w-5 h-5"></i>
+            </button>
+        </header>
+
+        <!-- Upper Section: AI Creation Card -->
+        <section class="relative z-10 px-6 mt-4">
+            <div onclick="switchView('view-rubric-generate')"
+                class="create-card p-8 bg-gradient-to-br from-primary to-blue-600 rounded-[32px] shadow-xl shadow-primary/25 text-center cursor-pointer group relative overflow-hidden">
+                <!-- Decorative Glow -->
+                <div
+                    class="absolute -top-4 -right-4 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform">
+                </div>
+
+                <div class="relative z-10 flex flex-col items-center gap-6">
+                    <div class="flex flex-col items-center gap-3">
+                        <div
+                            class="w-14 h-14 rounded-3xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-inner">
+                            <i data-lucide="sparkles" class="w-7 h-7"></i>
+                        </div>
+                        <div class="text-base font-bold text-white font-heading">AI 一键生成细则</div>
+                    </div>
+                    <!-- Start Now Button -->
+                    <button
+                        class="bg-white text-primary hover:bg-slate-50 text-sm font-bold px-10 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 active:scale-95 group/btn">
+                        立即开始
+                        <i data-lucide="arrow-right"
+                            class="w-4 h-4 group-hover/btn:translate-x-1 transition-transform"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lower Section: Rubric List -->
+        <section class="relative z-10 flex-1 overflow-y-auto px-6 py-8 no-scrollbar">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">已创建的细则 (All Rubrics)</h2>
+                <div class="flex gap-2">
+                    <span
+                        class="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">12
+                        份</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Rubric Item 1 -->
+                <div
+                    class="rubric-item bg-white border border-slate-100 rounded-2xl p-4 shadow-sm cursor-pointer hover:shadow-md">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center font-bold text-xs">Q12</span>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-700">辛亥革命的历史意义</h3>
+                                <p class="text-[10px] text-slate-400">初三历史 · 核心素养题</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">10分</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex -space-x-2">
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                P1</div>
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                P2</div>
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                P3</div>
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-300">
+                                +2</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-primary transition-colors">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button
+                                class="p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-danger transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rubric Item 2 -->
+                <div
+                    class="rubric-item bg-white border border-slate-100 rounded-2xl p-4 shadow-sm cursor-pointer hover:shadow-md">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center font-bold text-xs">Q15</span>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-700">新航路开辟的影响</h3>
+                                <p class="text-[10px] text-slate-400">初三历史 · 期末重点</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">15分</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex -space-x-2">
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                P1</div>
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                P2</div>
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-300">
+                                +5</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-primary transition-colors">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button
+                                class="p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-danger transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rubric Item 3 -->
+                <div
+                    class="rubric-item bg-white border border-slate-100 rounded-2xl p-4 shadow-sm cursor-pointer hover:shadow-md">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center font-bold text-xs">Q04</span>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-700">百家争鸣局面的形成</h3>
+                                <p class="text-[10px] text-slate-400">初三历史 · 考前查漏补缺</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">8分</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex -space-x-2 text-[8px]">
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                P1</div>
+                            <div
+                                class="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-300">
+                                +3</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-primary transition-colors">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button
+                                class="p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-danger transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty state filler -->
+                <div class="py-10 text-center">
+                    <div
+                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 text-slate-200 mb-2">
+                        <i data-lucide="layout" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-[10px] text-slate-300 font-medium tracking-wide">END OF LIST</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bottom Fade -->
+        <div
+            class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none z-20">
+        </div>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

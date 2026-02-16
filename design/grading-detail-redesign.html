@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 批改详情页设计</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .diff-added {
+            background-color: rgba(23, 201, 100, 0.15);
+            text-decoration: underline;
+            text-decoration-color: #17C964;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .diff-removed {
+            background-color: rgba(243, 18, 96, 0.15);
+            text-decoration: line-through;
+            text-decoration-color: #F31260;
+            padding: 0 2px;
+            border-radius: 2px;
+            color: #5E0824;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                        warning: {
+                            DEFAULT: '#F5A524',
+                            subtle: 'rgba(245, 165, 36, 0.1)',
+                            fg: '#482C03'
+                        },
+                        danger: {
+                            DEFAULT: '#F31260',
+                            subtle: 'rgba(243, 18, 96, 0.1)',
+                            fg: '#5E0824'
+                        },
+                        content1: '#FFFFFF',
+                        content2: '#F4F4F5',
+                        content3: '#E4E4E7',
+                        default: {
+                            100: '#E4E4E7',
+                            200: '#D4D4D8',
+                            300: '#A1A1AA',
+                            400: '#71717A',
+                            500: '#52525B',
+                            DEFAULT: '#3F3F46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex gap-8 justify-center items-start">
+
+    <!-- Design 1: 辅助阅卷详情 (Assisted Grading Detail - Human Review) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10 z-[100]">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='grading-status-redesign.html'"
+                    class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <div class="flex flex-col">
+                    <h1 class="font-bold text-gray-800 text-sm leading-tight">王晓明 (10302)</h1>
+                    <span class="text-[10px] text-gray-400 font-medium">第 12 题 · 简答题 (10分)</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <span
+                    class="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-medium border border-gray-200">12/50</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50/50 pb-20">
+
+            <!-- Student Answer Preview (Simulated) -->
+            <div class="bg-white border-b border-gray-200 p-4 relative group">
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="bg-black/60 text-white p-1 rounded hover:bg-black/80"><i data-lucide="maximize-2"
+                            class="w-3 h-3"></i></button>
+                </div>
+                <div
+                    class="aspect-[3/1] bg-gray-100 rounded-lg overflow-hidden border border-gray-100 flex items-center justify-center relative">
+                    <!-- Placeholder for Student Image -->
+                    <div
+                        class="absolute inset-0 bg-[url('https://placehold.co/400x120/f3f4f6/a1a1aa?text=Student+Handwriting+Image')] bg-cover bg-center opacity-80 mix-blend-multiply">
+                    </div>
+                    <span
+                        class="text-xs text-gray-400 font-medium relative z-10 bg-white/80 px-2 py-1 rounded backdrop-blur-sm shadow-sm">
+                        点击查看答题卡原图
+                    </span>
+                </div>
+                <!-- OCR Text (Collapsible) -->
+                <div
+                    class="mt-2 text-sm text-gray-600 font-serif leading-relaxed line-clamp-2 hover:line-clamp-none cursor-pointer transition-all border-l-2 border-primary/30 pl-2">
+                    "辛亥革命推翻了清王朝的统治，结束了统治中国两千多年的<span class="bg-yellow-100">君主专制</span>制度，建立了中华民国..."
+                </div>
+            </div>
+
+            <!-- AI Suggestion Box (The "Copilot") -->
+            <div
+                class="mx-4 mt-4 bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-xl border border-primary/10 overflow-hidden relative">
+                <div class="absolute right-0 top-0 p-2 opacity-10 pointer-events-none">
+                    <i data-lucide="sparkles" class="w-16 h-16 text-primary"></i>
+                </div>
+                <div class="px-4 py-3 border-b border-primary/10 flex justify-between items-center bg-white/40">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="bot" class="w-4 h-4 text-primary"></i>
+                        <span class="text-xs font-bold text-primary">AI 建议评分</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-gray-500">置信度</span>
+                        <div class="flex gap-0.5">
+                            <div class="w-1 h-3 bg-success rounded-full"></div>
+                            <div class="w-1 h-3 bg-success rounded-full"></div>
+                            <div class="w-1 h-3 bg-success rounded-full"></div>
+                            <div class="w-1 h-3 bg-gray-200 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 flex items-center justify-between">
+                    <div>
+                        <div class="text-3xl font-bold text-gray-800 tracking-tight flex items-baseline gap-1">
+                            8.0
+                            <span class="text-sm font-medium text-gray-400">/ 10</span>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-0.5">建议采纳</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-all hover:border-gray-300">
+                            修改
+                        </button>
+                        <button
+                            class="bg-primary hover:bg-primary-hover text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg shadow-primary/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-1">
+                            采纳 <i data-lucide="check" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rubric Checklist (Interactive) -->
+            <div class="px-4 mt-6">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    评分细则核对
+                    <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 font-normal">点击切换</span>
+                </h3>
+                <div class="space-y-2">
+                    <!-- Item 1 (Checked) -->
+                    <label
+                        class="flex items-start gap-3 p-3 bg-white border border-success/30 rounded-xl shadow-sm cursor-pointer hover:border-success/50 transition-colors group relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-success"></div>
+                        <div class="mt-0.5 relative z-10">
+                            <input type="checkbox" checked
+                                class="w-4 h-4 text-success border-gray-300 rounded focus:ring-success/20 accent-success">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <span
+                                    class="text-sm font-medium text-gray-800 group-hover:text-success-fg transition-colors">推翻清朝统治</span>
+                                <span class="text-xs font-bold text-success">+3</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-1">关键词：清王朝、帝制、封建统治</p>
+                        </div>
+                    </label>
+
+                    <!-- Item 2 (Checked) -->
+                    <label
+                        class="flex items-start gap-3 p-3 bg-white border border-success/30 rounded-xl shadow-sm cursor-pointer hover:border-success/50 transition-colors group relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-success"></div>
+                        <div class="mt-0.5 relative z-10">
+                            <input type="checkbox" checked
+                                class="w-4 h-4 text-success border-gray-300 rounded focus:ring-success/20 accent-success">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <span
+                                    class="text-sm font-medium text-gray-800 group-hover:text-success-fg transition-colors">结束君主专制</span>
+                                <span class="text-xs font-bold text-success">+3</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-1">关键词：两千多年、专制制度</p>
+                        </div>
+                    </label>
+
+                    <!-- Item 3 (Unchecked) -->
+                    <label
+                        class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm cursor-pointer hover:border-gray-300 transition-colors opacity-75 hover:opacity-100">
+                        <div class="mt-0.5">
+                            <input type="checkbox"
+                                class="w-4 h-4 text-success border-gray-300 rounded focus:ring-success/20 accent-success">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <span class="text-sm font-medium text-gray-600">建立中华民国</span>
+                                <span class="text-xs font-bold text-gray-400">+2</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1 line-clamp-1">关键词：民国、共和</p>
+                        </div>
+                    </label>
+
+                    <!-- Item 4 (Partial - Custom Input) -->
+                    <div
+                        class="p-3 bg-white border border-warning/30 rounded-xl shadow-sm group relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-warning"></div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-800">民主共和观念深入人心</span>
+                            <div class="flex items-center gap-1">
+                                <input type="number" value="2"
+                                    class="w-8 h-6 text-center text-xs font-bold border border-warning/50 rounded bg-warning/10 text-warning-fg focus:outline-none focus:ring-1 focus:ring-warning">
+                                <span class="text-xs text-gray-400">/ 2</span>
+                            </div>
+                        </div>
+                        <p
+                            class="text-xs text-warning-fg bg-warning/5 p-1.5 rounded border border-warning/10 flex items-start gap-1">
+                            <i data-lucide="alert-circle" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>
+                            AI: 学生未明确提及"深入人心"，建议酌情扣分
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Custom Comment -->
+                <div class="mt-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">教师评语</h3>
+                    <textarea
+                        class="w-full text-sm p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none h-20 placeholder-gray-400"
+                        placeholder="输入评语...（选填）">概念辨析准确，但对后续影响的论述略显单薄。</textarea>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Floating Footer -->
+        <footer
+            class="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+            <div class="flex gap-3">
+                <div class="flex-1 relative">
+                    <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <span class="text-gray-400 text-xs font-bold">最终得分</span>
+                    </div>
+                    <input type="number" value="8"
+                        class="w-full h-11 pl-20 pr-4 text-right font-bold text-xl text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-white transition-colors">
+                </div>
+                <button onclick="window.location.href='grading-status-redesign.html'"
+                    class="bg-primary hover:bg-primary-hover text-white px-6 h-11 rounded-lg font-semibold shadow-lg shadow-primary/25 flex items-center gap-2 transition-all transform active:scale-95">
+                    提交
+                    <kbd
+                        class="hidden sm:inline-block px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-sans opacity-80">↵</kbd>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- Design 2: 智能阅卷详情 (Smart Grading Detail - AI Result View) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                    class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                <h1 class="font-bold text-gray-800 text-sm">李明 (10305) 评分详情</h1>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-gray-400">
+                <span>Just now</span>
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-success"></i>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-4 pb-8">
+
+            <!-- Result Score Card -->
+            <div
+                class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                <!-- Decorative BG -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-success to-primary"></div>
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-success/5 rounded-full blur-xl"></div>
+
+                <div class="text-center">
+                    <div class="text-5xl font-black text-gray-900 tracking-tighter mb-1">
+                        9<span class="text-2xl text-gray-400 font-medium">.5</span>
+                    </div>
+                    <div
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-500 font-medium uppercase tracking-wide">
+                        Total Score / 10
+                    </div>
+                </div>
+
+                <!-- Confidence/Reasoning -->
+                <div class="mt-6 w-full bg-gray-50 rounded-xl p-3 border border-gray-100 flex items-start gap-2">
+                    <i data-lucide="quote" class="w-4 h-4 text-gray-400 fill-current flex-shrink-0 mt-0.5"></i>
+                    <p class="text-sm text-gray-600 italic leading-relaxed">
+                        回答非常完整。准确指出了辛亥革命的历史意义，包括推翻帝制、建立共和及思想解放。逻辑严密，几乎使用了所有关键词。
+                    </p>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown Table -->
+            <div class="mt-6">
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">得分明细 Breakdown</h3>
+                    <span class="text-[10px] text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded">AI
+                        Model: Gemini Pro</span>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden text-sm">
+                    <!-- Item 1 -->
+                    <div
+                        class="p-3 border-b border-gray-100 flex justify-between items-center group hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center text-success flex-shrink-0">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <span class="font-medium text-gray-700">政治意义 (帝制)</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-gray-900">3.0 <span class="text-gray-400 text-xs font-normal">/
+                                    3</span></span>
+                        </div>
+                    </div>
+                    <!-- Item 2 -->
+                    <div
+                        class="p-3 border-b border-gray-100 flex justify-between items-center group hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center text-success flex-shrink-0">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <span class="font-medium text-gray-700">制度建立 (民国)</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-gray-900">3.0 <span class="text-gray-400 text-xs font-normal">/
+                                    3</span></span>
+                        </div>
+                    </div>
+                    <!-- Item 3 -->
+                    <div
+                        class="p-3 border-b border-gray-100 flex justify-between items-center group hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center text-success flex-shrink-0">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <span class="font-medium text-gray-700">思想解放</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-gray-900">3.0 <span class="text-gray-400 text-xs font-normal">/
+                                    3</span></span>
+                        </div>
+                    </div>
+                    <!-- Item 4 (Partial) with Reasoning Popover -->
+                    <div class="p-3 bg-red-50/30 flex justify-between items-start group transition-colors">
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="w-6 h-6 rounded-full bg-danger/10 flex items-center justify-center text-danger flex-shrink-0 mt-0.5">
+                                <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">社会风俗</span>
+                                <p class="text-xs text-danger/80 mt-0.5 max-w-[180px]">未提及"剪辫易服"或"废止缠足"等具体变化</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-danger">0.5 <span class="text-gray-400 text-xs font-normal">/
+                                    1</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Meta -->
+            <div class="mt-8 flex justify-center pb-4">
+                <button
+                    class="text-xs text-gray-400 hover:text-primary underline decoration-dashed underline-offset-4 transition-colors">
+                    对此结果有异议？请求复核
+                </button>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

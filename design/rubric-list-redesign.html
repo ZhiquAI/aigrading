@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能批改助手 - 评分细则列表 (Rubric List)</title>
+    <!-- Tailwind CSS v3 via CDN for prototype -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 模拟 Chrome Side Panel 尺寸 */
+        .side-panel {
+            width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 20px;
+        }
+
+        .rubric-card:hover {
+            transform: translateY(-2px);
+            border-color: #006FEE;
+            box-shadow: 0 4px 12px rgba(0, 111, 238, 0.1);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#006FEE', // V2 Primary
+                            hover: '#005BC4',
+                            subtle: 'rgba(0, 111, 238, 0.1)',
+                            fg: '#FFFFFF'
+                        },
+                        success: {
+                            DEFAULT: '#17C964',
+                            subtle: 'rgba(23, 201, 100, 0.1)',
+                            fg: '#004434'
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 p-8 flex gap-8 justify-center items-start">
+
+    <!-- Design 1: 列表页 (Dashboard) -->
+    <div class="side-panel rounded-xl shadow-2xl relative">
+
+        <!-- Header -->
+        <header
+            class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <h1 class="font-bold text-gray-800 text-sm">评分细则库</h1>
+            <div class="flex gap-2">
+                <button class="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-400 hover:text-gray-600"
+                    title="搜索">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </button>
+                <button onclick="window.location.href='rubric-settings-redesign.html'"
+                    class="bg-primary hover:bg-primary-hover text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-lg shadow-primary/20 transition-all transform hover:scale-105 active:scale-95">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新建
+                </button>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="px-4 py-3 bg-white border-b border-gray-100 flex gap-2 overflow-x-auto no-scrollbar">
+            <button
+                class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-semibold whitespace-nowrap">全部</button>
+            <button
+                class="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 text-[11px] font-medium whitespace-nowrap">历史</button>
+            <button
+                class="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 text-[11px] font-medium whitespace-nowrap">语文</button>
+            <button
+                class="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 text-[11px] font-medium whitespace-nowrap">政治</button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-4 pb-20 space-y-3">
+
+            <!-- Rubric Card 1 (Active) -->
+            <div onclick="window.location.href='rubric-settings-redesign.html'"
+                class="rubric-card bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer relative group">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-bold border border-gray-200">Q12</span>
+                        <h3 class="font-bold text-sm text-gray-800 line-clamp-1">辛亥革命的历史意义</h3>
+                    </div>
+                    <button class="text-gray-300 hover:text-gray-500 p-1 -mr-2 -mt-2">
+                        <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="award" class="w-3.5 h-3.5 text-gray-400"></i>
+                        <span>10 分</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="list-checks" class="w-3.5 h-3.5 text-gray-400"></i>
+                        <span>4 个得分点</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end border-t border-gray-50 pt-3">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                        <span class="text-[10px] text-gray-400 font-medium">上次编辑: Just now</span>
+                    </div>
+                    <!-- Hover Actions -->
+                    <button onclick="event.stopPropagation(); window.location.href='grading-dashboard-redesign.html'"
+                        class="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-1 rounded hover:bg-primary hover:text-white transition-colors opacity-0 group-hover:opacity-100">
+                        使用此规则
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rubric Card 2 -->
+            <div onclick="window.location.href='rubric-settings-redesign.html'"
+                class="rubric-card bg-white rounded-xl p-4 border border-gray-200 transition-all cursor-pointer group">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-bold border border-gray-200">Q15</span>
+                        <h3 class="font-bold text-sm text-gray-800 line-clamp-1">新航路开辟的影响</h3>
+                    </div>
+                    <button class="text-gray-300 hover:text-gray-500 p-1 -mr-2 -mt-2">
+                        <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="award" class="w-3.5 h-3.5 text-gray-400"></i>
+                        <span>15 分</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="list-checks" class="w-3.5 h-3.5 text-gray-400"></i>
+                        <span>6 个得分点</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end border-t border-gray-50 pt-3">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-400 font-medium">上次编辑: 2 days ago</span>
+                    </div>
+                    <button
+                        class="text-[10px] font-semibold text-primary bg-primary/5 px-2 py-1 rounded hover:bg-primary hover:text-white transition-colors opacity-0 group-hover:opacity-100">
+                        使用此规则
+                    </button>
+                </div>
+            </div>
+
+            <!-- Import CTA -->
+            <div
+                class="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer group">
+                <div
+                    class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+                    <i data-lucide="upload-cloud"
+                        class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors"></i>
+                </div>
+                <p class="text-xs font-semibold text-gray-600 mb-1">导入评分细则</p>
+                <p class="text-[10px] text-gray-400">支持拖入 JSON / Excel 文件</p>
+            </div>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav
+            class="absolute bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-100 flex items-center justify-around px-2 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="window.location.href='grading-dashboard-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">看板</span>
+            </button>
+            <button onclick="window.location.href='rubric-list-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-primary">
+                <i data-lucide="file-check" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">批改</span>
+            </button>
+            <button onclick="window.location.href='grading-report-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">记录</span>
+            </button>
+            <button onclick="window.location.href='global-settings-redesign.html'"
+                class="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">设置</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

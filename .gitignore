@@ -1,2 +1,11 @@
 # Auto Claude data directory
 .auto-claude/
+
+# macOS
+.DS_Store
+
+# dependency / build artifacts
+node_modules/
+dist/
+.next/
+.turbo/
