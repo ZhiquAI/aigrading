@@ -1,4 +1,5 @@
 import type { ChangeEvent, ReactNode, RefObject } from "react";
+import type { RubricSummaryDTO } from "../../../lib/api";
 import { GearIcon } from "../../shared/icons";
 
 type RubricInputViewProps = {
@@ -19,10 +20,17 @@ type RubricInputViewProps = {
   importInputRef: RefObject<HTMLInputElement>;
   questionImageRef: RefObject<HTMLInputElement>;
   answerImageRef: RefObject<HTMLInputElement>;
+  examId: string;
+  loadingList: boolean;
+  summaries: RubricSummaryDTO[];
+  templatePanelOpen: boolean;
   onBack: () => void;
   onOpenSettings?: () => void;
   onClear: () => void;
   onGenerate: () => void;
+  onToggleTemplatePanel: () => void;
+  onRefreshTemplate: () => void;
+  onLoadTemplate: (questionKey: string) => void;
   onExamNameChange: (value: string) => void;
   onGradeChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
@@ -34,6 +42,8 @@ type RubricInputViewProps = {
   onAnswerImageChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveQuestionImage: () => void;
   onRemoveAnswerImage: () => void;
+  onExamIdChange: (value: string) => void;
+  formatSummarySubline: (item: RubricSummaryDTO) => string;
   onImportJson: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -55,10 +65,17 @@ export const RubricInputView = ({
   importInputRef,
   questionImageRef,
   answerImageRef,
+  examId,
+  loadingList,
+  summaries,
+  templatePanelOpen,
   onBack,
   onOpenSettings,
   onClear,
   onGenerate,
+  onToggleTemplatePanel,
+  onRefreshTemplate,
+  onLoadTemplate,
   onExamNameChange,
   onGradeChange,
   onSubjectChange,
@@ -70,6 +87,8 @@ export const RubricInputView = ({
   onAnswerImageChange,
   onRemoveQuestionImage,
   onRemoveAnswerImage,
+  onExamIdChange,
+  formatSummarySubline,
   onImportJson
 }: RubricInputViewProps) => {
   return (
@@ -235,6 +254,65 @@ export const RubricInputView = ({
 
         <p className="classic-rubric-ai-note">AI 将自动拆分并填充：问题词、得分点、分值、关键词。</p>
       </div>
+
+      <section className="classic-rubric-template-panel">
+        <header className="classic-rubric-template-head">
+          <div>
+            <h4>模板库</h4>
+            <p>在当前页直接加载历史评分细则，减少来回切换。</p>
+          </div>
+          <div className="classic-rubric-template-actions">
+            <button
+              type="button"
+              className="classic-rubric-template-action"
+              onClick={onRefreshTemplate}
+              disabled={loadingList}
+            >
+              {loadingList ? "加载中..." : "刷新"}
+            </button>
+            <button
+              type="button"
+              className="classic-rubric-template-action classic-rubric-template-action-primary"
+              onClick={onToggleTemplatePanel}
+            >
+              {templatePanelOpen ? "收起" : "展开"}
+            </button>
+          </div>
+        </header>
+
+        {templatePanelOpen ? (
+          <>
+            <div className="classic-rubric-toolbar">
+              <input
+                type="text"
+                value={examId}
+                onChange={(event) => onExamIdChange(event.target.value)}
+                placeholder="按考试 ID 筛选（可选）"
+              />
+              <button type="button" onClick={onRefreshTemplate} disabled={loadingList}>
+                {loadingList ? "加载中..." : "加载"}
+              </button>
+            </div>
+            {summaries.length === 0 ? (
+              <div className="classic-rubric-empty">暂无匹配细则，可先点击刷新。</div>
+            ) : (
+              <ul className="classic-rubric-list">
+                {summaries.map((item) => (
+                  <li key={item.questionId}>
+                    <button type="button" onClick={() => onLoadTemplate(item.questionId)}>
+                      <div>
+                        <strong>{item.title || item.questionId}</strong>
+                        <span>{formatSummarySubline(item)}</span>
+                      </div>
+                      <em>{item.lifecycleStatus === "published" ? "已发布" : "草稿"}</em>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : null}
+      </section>
 
       <div className="classic-rubric-bottom-bar">
         <button type="button" className="secondary" onClick={onClear} disabled={busy}>清空</button>

@@ -12,7 +12,6 @@ import {
 import type { RubricResultPoint, RubricResultPreview } from "./types";
 import { RubricGeneratingView } from "./views/RubricGeneratingView";
 import { RubricInputView } from "./views/RubricInputView";
-import { RubricListView } from "./views/RubricListView";
 import { RubricResultView } from "./views/RubricResultView";
 import { RubricWelcomeView } from "./views/RubricWelcomeView";
 
@@ -28,7 +27,7 @@ type RubricPanelProps = {
   onOpenSettings?: () => void;
 };
 
-type ViewState = "welcome" | "input" | "list" | "generating" | "result";
+type ViewState = "welcome" | "input" | "generating" | "result";
 type EntryIntent = "input" | "list" | "import";
 
 const GENERATION_MESSAGES = [
@@ -302,8 +301,12 @@ export const RubricPanel = ({
   onOpenSettings
 }: RubricPanelProps) => {
   const resolvedInitialView: ViewState = initialView
-    ?? (entryIntent === "list" ? "list" : "input");
+    ? (initialView === "input" || initialView === "generating" || initialView === "result" || initialView === "welcome"
+      ? initialView
+      : "input")
+    : "input";
   const [viewState, setViewState] = useState<ViewState>(resolvedInitialView);
+  const [templatePanelOpen, setTemplatePanelOpen] = useState(entryIntent === "list");
   const [lifecycleStatus, setLifecycleStatus] = useState<RubricLifecycleStatus>("draft");
   const [summaries, setSummaries] = useState<RubricSummaryDTO[]>([]);
   const [examName, setExamName] = useState("");
@@ -407,7 +410,8 @@ export const RubricPanel = ({
     entryEffectAppliedRef.current = true;
 
     if (entryIntent === "list") {
-      setViewState("list");
+      setViewState("input");
+      setTemplatePanelOpen(true);
       void loadSummaries();
       return;
     }
@@ -430,8 +434,16 @@ export const RubricPanel = ({
     };
   }, [entryIntent]);
 
+  useEffect(() => {
+    if (!templatePanelOpen || loadingList || summaries.length > 0) {
+      return;
+    }
+    void loadSummaries();
+  }, [loadingList, summaries.length, templatePanelOpen]);
+
   const handleEnterList = async (): Promise<void> => {
-    setViewState("list");
+    setViewState("input");
+    setTemplatePanelOpen(true);
     await loadSummaries();
   };
 
@@ -700,26 +712,6 @@ export const RubricPanel = ({
     );
   }
 
-  if (viewState === "list") {
-    return (
-      <RubricListView
-        statusMessage={statusMessage}
-        examId={examId}
-        loadingList={loadingList}
-        summaries={summaries}
-        onBack={() => setViewState("welcome")}
-        onRefresh={() => {
-          void loadSummaries();
-        }}
-        onLoad={(questionId) => {
-          void handleLoad(questionId);
-        }}
-        onExamIdChange={onExamIdChange}
-        formatSummarySubline={formatSummarySubline}
-      />
-    );
-  }
-
   if (viewState === "generating") {
     return (
       <RubricGeneratingView
@@ -751,6 +743,10 @@ export const RubricPanel = ({
         importInputRef={importInputRef}
         questionImageRef={questionImageRef}
         answerImageRef={answerImageRef}
+        examId={examId}
+        loadingList={loadingList}
+        summaries={summaries}
+        templatePanelOpen={templatePanelOpen}
         onBack={() => setViewState("welcome")}
         onOpenSettings={onOpenSettings}
         onClear={handleClearInput}
@@ -772,6 +768,17 @@ export const RubricPanel = ({
         }}
         onRemoveQuestionImage={() => setQuestionImage(null)}
         onRemoveAnswerImage={() => setAnswerImage(null)}
+        onToggleTemplatePanel={() => {
+          setTemplatePanelOpen((previous) => !previous);
+        }}
+        onRefreshTemplate={() => {
+          void loadSummaries();
+        }}
+        onLoadTemplate={(questionId) => {
+          void handleLoad(questionId);
+        }}
+        onExamIdChange={onExamIdChange}
+        formatSummarySubline={formatSummarySubline}
         onImportJson={(event) => {
           void handleImportJson(event);
         }}
@@ -787,7 +794,11 @@ export const RubricPanel = ({
       lifecycleStatus={lifecycleStatus}
       busy={busy}
       onBackInput={() => setViewState("input")}
-      onOpenList={() => setViewState("list")}
+      onOpenList={() => {
+        setViewState("input");
+        setTemplatePanelOpen(true);
+        void loadSummaries();
+      }}
       onOpenSettings={onOpenSettings}
       onRegenerate={() => setViewState("input")}
       onRubricTextChange={onRubricTextChange}
