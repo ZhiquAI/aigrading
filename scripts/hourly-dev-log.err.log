@@ -1,6 +1,0 @@
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-job-working-directory: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-bash: /Users/hero/Desktop/ai-grading/scripts/hourly-dev-log.sh: Operation not permitted
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-job-working-directory: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-/Users/hero/Library/Application Support/ai-grading/hourly-dev-log.sh: line 47: rg: command not found
