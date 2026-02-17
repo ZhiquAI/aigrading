@@ -89,6 +89,7 @@ const App = () => {
   const rubricEntryIntent = useRootStore((store) => store.rubricSlice.rubricEntryIntent);
 
   const latestGrading = useRootStore((store) => store.gradingSlice.latestGrading);
+  const gradingMode = useRootStore((store) => store.settingsSlice.gradingMode);
   const activeTabContext = useRootStore((store) => store.sessionSlice.activeTabContext);
   const recordTotalCount = useRootStore((store) => store.recordSlice.totalCount);
 
@@ -182,6 +183,7 @@ const App = () => {
             questionKey={questionKey}
             hasRubric={hasRubric}
             gradingReadyLabel={gradingReadyLabel}
+            gradingMode={gradingMode}
             studentName={latestGrading?.studentName || "未识别"}
             detectedTab={activeTabContext?.supported ?? false}
             onOpenSettings={() => setShowSettingsSheet(true)}

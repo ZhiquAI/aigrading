@@ -144,6 +144,12 @@ type ScopeIdentity = {
 2. `grading-platform-v2` 只提供 `/api/v2/*` 与基础健康检查接口。
 3. 如需回滚，切回旧项目服务实例，不在 v2 内做双路由转发。
 
+## 4) `gradings/evaluate` 响应迁移约束（2026-02-17）
+1. `POST /api/v2/gradings/evaluate` 在迁移窗口内保留双结构输出：
+   - `breakdown`：legacy 扁平明细，保障旧记录/导出链路兼容。
+   - `gradingResult`：Segment 感知结构，作为 v2 前端评分 UI 主消费字段。
+2. 迁移窗口结束后可逐步下线 `breakdown` 直读路径，但不得在窗口期内破坏历史数据可读性。
+
 ---
 
 ## 七、数据模型重构（Prisma）

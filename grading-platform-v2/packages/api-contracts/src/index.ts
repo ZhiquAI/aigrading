@@ -173,6 +173,126 @@ export const gradingEvaluateRequestSchema = z.object({
 
 export type GradingEvaluateRequest = z.infer<typeof gradingEvaluateRequestSchema>;
 
+export const gradingBreakdownItemSchema = z.object({
+  label: z.string().trim().min(1).max(200),
+  score: z.coerce.number().nonnegative(),
+  max: z.coerce.number().positive(),
+  comment: z.string().trim().max(2000).default("")
+});
+
+export const gradingProviderAttemptSchema = z.object({
+  provider: z.string().trim().min(1).max(128),
+  model: z.string().trim().min(1).max(256).optional(),
+  endpoint: z.string().trim().max(2000).optional(),
+  statusCode: z.number().int().optional(),
+  durationMs: z.number().nonnegative().optional(),
+  errorCode: z.string().trim().max(128).optional(),
+  message: z.string().trim().min(1).max(2000)
+});
+
+export const gradingProviderTraceSchema = z.object({
+  mode: z.enum(["ai", "fallback"]),
+  reason: z.string().trim().max(200).optional(),
+  attempts: z.array(gradingProviderAttemptSchema).optional()
+});
+
+const gradingStrategyTypeSchema = z.enum(["point_accumulation", "sequential_logic", "rubric_matrix"]);
+const gradingSegmentAggregationSchema = z.enum(["sum", "weighted_sum", "max"]);
+
+const gradingPointItemResultSchema = z.object({
+  type: z.literal("point"),
+  pointId: z.string().trim().min(1).max(128),
+  label: z.string().trim().min(1).max(200),
+  score: z.coerce.number().nonnegative(),
+  maxScore: z.coerce.number().nonnegative(),
+  matched: z.boolean(),
+  comment: z.string().trim().max(2000).optional(),
+  matchedText: z.string().trim().max(5000).optional(),
+  confidence: z.number().min(0).max(1).optional()
+});
+
+const gradingStepItemResultSchema = z.object({
+  type: z.literal("step"),
+  stepId: z.string().trim().min(1).max(128),
+  label: z.string().trim().min(1).max(200),
+  score: z.coerce.number().nonnegative(),
+  maxScore: z.coerce.number().nonnegative(),
+  matched: z.boolean(),
+  comment: z.string().trim().max(2000).optional(),
+  matchedText: z.string().trim().max(5000).optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  skippedByDependency: z.boolean().optional()
+});
+
+const gradingDimensionItemResultSchema = z.object({
+  type: z.literal("dimension"),
+  dimensionId: z.string().trim().min(1).max(128),
+  dimensionName: z.string().trim().min(1).max(200),
+  selectedLevel: z.string().trim().min(1).max(128),
+  score: z.coerce.number().nonnegative(),
+  maxScore: z.coerce.number().nonnegative(),
+  comment: z.string().trim().max(2000).optional(),
+  confidence: z.number().min(0).max(1).optional()
+});
+
+export const gradingSegmentItemResultSchema = z.discriminatedUnion("type", [
+  gradingPointItemResultSchema,
+  gradingStepItemResultSchema,
+  gradingDimensionItemResultSchema
+]);
+
+export const gradingSegmentResultSchema = z.object({
+  segmentId: z.string().trim().min(1).max(128),
+  title: z.string().trim().min(1).max(200),
+  strategyType: gradingStrategyTypeSchema,
+  score: z.coerce.number().nonnegative(),
+  maxScore: z.coerce.number().nonnegative(),
+  comment: z.string().trim().max(2000).optional(),
+  items: z.array(gradingSegmentItemResultSchema)
+});
+
+export const gradingResultSchema = z.object({
+  id: z.string().trim().min(1).max(128),
+  studentName: z.string().trim().min(1).max(128),
+  questionNo: z.string().trim().min(1).max(64),
+  questionKey: z.string().trim().min(1).max(128),
+  examNo: z.string().trim().min(1).max(128),
+  score: z.coerce.number().nonnegative(),
+  maxScore: z.coerce.number().nonnegative(),
+  comment: z.string().max(4000),
+  segments: z.array(gradingSegmentResultSchema).min(1),
+  segmentAggregation: gradingSegmentAggregationSchema,
+  provider: z.string().trim().min(1).max(256).optional(),
+  model: z.string().trim().max(256).optional(),
+  durationMs: z.number().nonnegative().optional(),
+  timestamp: z.number().int().positive(),
+  remaining: z.number().int().nonnegative().optional(),
+  totalUsed: z.number().int().nonnegative().optional()
+});
+
+export type GradingResultContract = z.infer<typeof gradingResultSchema>;
+
+export const gradingEvaluateDataSchema = z.object({
+  score: z.coerce.number().nonnegative(),
+  maxScore: z.coerce.number().nonnegative(),
+  breakdown: z.array(gradingBreakdownItemSchema),
+  comment: z.string().max(4000),
+  provider: z.string().trim().min(1).max(256),
+  providerTrace: gradingProviderTraceSchema,
+  remaining: z.number().int().nonnegative(),
+  totalUsed: z.number().int().nonnegative(),
+  gradingResult: gradingResultSchema.optional()
+});
+
+export type GradingEvaluateData = z.infer<typeof gradingEvaluateDataSchema>;
+
+export const gradingEvaluateResponseSchema = z.object({
+  ok: z.literal(true),
+  data: gradingEvaluateDataSchema
+});
+
+export type GradingEvaluateResponse = z.infer<typeof gradingEvaluateResponseSchema>;
+
 export const apiErrorSchema = z.object({
   code: z.string().min(1),
   message: z.string().min(1),

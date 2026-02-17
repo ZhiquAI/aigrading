@@ -6,6 +6,7 @@ type GradingHomeViewProps = {
   questionKey: string;
   hasRubric: boolean;
   gradingReadyLabel: string;
+  gradingMode: "assist" | "auto";
   studentName: string;
   detectedTab: boolean;
   onOpenSettings: () => void;
@@ -17,6 +18,7 @@ export const GradingHomeView = ({
   questionKey,
   hasRubric,
   gradingReadyLabel,
+  gradingMode,
   studentName,
   detectedTab,
   onOpenSettings,
@@ -70,7 +72,7 @@ export const GradingHomeView = ({
               <strong>{studentName}</strong>
             </div>
             <div className="classic-student-right">
-              <span className="classic-mode-chip">辅助模式</span>
+              <span className="classic-mode-chip">{gradingMode === "auto" ? "自动模式" : "辅助模式"}</span>
               <UserIcon className="classic-symbol-icon classic-student-icon" />
             </div>
           </div>

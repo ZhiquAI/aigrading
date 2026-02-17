@@ -1,7 +1,12 @@
 import type { PrismaClient } from "@prisma/client";
 import type { ScopeIdentity } from "@ai-grading/api-contracts";
 import { callAiGatewayJson, isAiGatewayError, type AiProviderAttempt } from "@ai-grading/ai-gateway";
-import { buildActivationScopeKey, normalizeNonEmpty } from "@ai-grading/domain-core";
+import {
+  buildActivationScopeKey,
+  fromFlatBreakdown,
+  normalizeNonEmpty,
+  type GradingResult
+} from "@ai-grading/domain-core";
 import { RubricDomainError } from "@/modules/rubric/rubric-service";
 import type { AiGatewayOverrides } from "@/modules/settings/ai-runtime-service";
 
@@ -201,6 +206,38 @@ const buildMarkdownComment = (breakdown: BreakdownItem[]): string => {
   ].join("\n");
 };
 
+const toGradingResult = (input: {
+  studentName?: string;
+  questionNo?: string;
+  questionKey?: string;
+  examNo?: string;
+  score: number;
+  maxScore: number;
+  comment: string;
+  breakdown: BreakdownItem[];
+  provider: string;
+  remaining: number;
+  totalUsed: number;
+}): GradingResult => {
+  return {
+    ...fromFlatBreakdown({
+      id: crypto.randomUUID(),
+      studentName: input.studentName ?? "未知",
+      questionNo: input.questionNo ?? (input.questionKey ?? "未识别"),
+      questionKey: input.questionKey ?? "unknown",
+      examNo: input.examNo ?? "unknown",
+      score: input.score,
+      maxScore: input.maxScore,
+      comment: input.comment,
+      breakdown: input.breakdown,
+      provider: input.provider,
+      timestamp: Date.now()
+    }),
+    remaining: input.remaining,
+    totalUsed: input.totalUsed
+  };
+};
+
 const normalizeBreakdownFromAi = (candidate: unknown): BreakdownItem[] => {
   if (!Array.isArray(candidate)) {
     return [];
@@ -359,6 +396,7 @@ export const evaluateGrading = async (
   breakdown: BreakdownItem[];
   comment: string;
   provider: string;
+  gradingResult: GradingResult;
   providerTrace: {
     mode: "ai" | "fallback";
     reason?: string;
@@ -467,6 +505,19 @@ export const evaluateGrading = async (
     breakdown,
     comment,
     provider,
+    gradingResult: toGradingResult({
+      studentName: input.studentName,
+      questionNo: input.questionNo,
+      questionKey: input.questionKey,
+      examNo: input.examNo,
+      score,
+      maxScore,
+      comment,
+      breakdown,
+      provider,
+      remaining: updatedQuota.remaining,
+      totalUsed: quota.total - updatedQuota.remaining
+    }),
     providerTrace,
     remaining: updatedQuota.remaining,
     totalUsed: quota.total - updatedQuota.remaining

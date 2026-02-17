@@ -95,6 +95,11 @@
 - `grading-platform-v2` 只提供 `/api/v2/*` 与基础健康检查
 - 如需回滚，切回旧项目服务，不在 v2 中做双路由转发
 
+评分契约迁移约束（2026-02-17 起）：
+- `POST /api/v2/gradings/evaluate` 在迁移窗口内同时返回：
+  - `breakdown`（legacy 扁平结构，兼容旧记录链路）
+  - `gradingResult`（v4 Segment 结构，供新 UI 主链路消费）
+
 ---
 
 ## ✅ 变更完成后的验证规则
@@ -156,4 +161,4 @@ cd aigradingbackend && npm run build && npm run check:rubric-contract
 
 ---
 
-> **最后更新**: 2026-02-16
+> **最后更新**: 2026-02-17

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { GradingResult } from "@ai-grading/domain-core";
 
 export type ModuleView = "rubric" | "grading" | "records";
 export type RubricEntryIntent = "input" | "list" | "import";
@@ -23,7 +24,7 @@ export type LatestGrading = {
   score: number;
   maxScore: number;
   comment: string;
-  breakdown: unknown;
+  breakdown: GradingResult | Array<Record<string, unknown>> | Record<string, unknown> | string | null;
   studentName: string;
   questionNo: string;
   questionKey: string;

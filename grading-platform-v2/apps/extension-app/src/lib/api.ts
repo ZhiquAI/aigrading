@@ -1,4 +1,5 @@
 import { getActivationCode, getDeviceId } from "./device";
+import type { GradingResult } from "@ai-grading/domain-core";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
@@ -104,7 +105,7 @@ export type ProviderTraceDTO = {
   reason?: string;
   attempts?: Array<{
     provider: string;
-    model: string;
+    model?: string;
     endpoint?: string;
     statusCode?: number;
     durationMs?: number;
@@ -132,6 +133,8 @@ export type GradingBreakdownItemDTO = {
   comment: string;
 };
 
+export type GradingResultDTO = GradingResult;
+
 export type GradingEvaluateResultDTO = {
   score: number;
   maxScore: number;
@@ -141,6 +144,7 @@ export type GradingEvaluateResultDTO = {
   providerTrace: ProviderTraceDTO;
   remaining: number;
   totalUsed: number;
+  gradingResult?: GradingResultDTO;
 };
 
 export type QuotaStatusDTO = {
@@ -371,6 +375,145 @@ const coerceModelConnectionTestResult = (input: unknown): ModelConnectionTestRes
     provider: normalizeText(record.provider) || undefined,
     reason: normalizeText(record.reason) || undefined,
     attempts
+  };
+};
+
+const coerceGradingBreakdown = (input: unknown): GradingBreakdownItemDTO[] => {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const row = item as Record<string, unknown>;
+      const label = normalizeText(row.label);
+      if (!label) {
+        return null;
+      }
+
+      return {
+        label,
+        score: normalizeNumber(row.score),
+        max: Math.max(0, normalizeNumber(row.max)),
+        comment: normalizeText(row.comment)
+      };
+    })
+    .filter((item): item is GradingBreakdownItemDTO => Boolean(item));
+};
+
+const coerceProviderTrace = (input: unknown): ProviderTraceDTO => {
+  if (!input || typeof input !== "object") {
+    return { mode: "fallback", reason: "provider trace unavailable" };
+  }
+
+  const row = input as Record<string, unknown>;
+  const mode = row.mode === "ai" ? "ai" : "fallback";
+  const attemptsRaw = Array.isArray(row.attempts) ? row.attempts : [];
+  const attempts: ProviderTraceDTO["attempts"] = [];
+
+  attemptsRaw.forEach((attempt) => {
+    if (!attempt || typeof attempt !== "object") {
+      return;
+    }
+
+    const attemptRow = attempt as Record<string, unknown>;
+    const provider = normalizeText(attemptRow.provider);
+    const model = normalizeText(attemptRow.model);
+    const message = normalizeText(attemptRow.message);
+    if (!provider || !message) {
+      return;
+    }
+
+    attempts.push({
+      provider,
+      model: model || undefined,
+      endpoint: normalizeText(attemptRow.endpoint) || undefined,
+      statusCode: Number.isFinite(Number(attemptRow.statusCode)) ? Number(attemptRow.statusCode) : undefined,
+      durationMs: Number.isFinite(Number(attemptRow.durationMs)) ? Number(attemptRow.durationMs) : undefined,
+      errorCode: normalizeText(attemptRow.errorCode) || undefined,
+      message
+    });
+  });
+
+  return {
+    mode,
+    reason: normalizeText(row.reason) || undefined,
+    attempts
+  };
+};
+
+const coerceGradingResult = (input: unknown): GradingResultDTO | undefined => {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+
+  const row = input as Record<string, unknown>;
+  const id = normalizeText(row.id);
+  const studentName = normalizeText(row.studentName);
+  const questionNo = normalizeText(row.questionNo);
+  const questionKey = normalizeText(row.questionKey);
+  const examNo = normalizeText(row.examNo);
+  const comment = typeof row.comment === "string" ? row.comment : "";
+  const segments = Array.isArray(row.segments) ? row.segments : [];
+  const segmentAggregation = row.segmentAggregation;
+  const timestamp = Number(row.timestamp);
+
+  if (
+    !id
+    || !studentName
+    || !questionNo
+    || !questionKey
+    || !examNo
+    || !Number.isFinite(timestamp)
+    || !Array.isArray(segments)
+    || !["sum", "weighted_sum", "max"].includes(String(segmentAggregation))
+  ) {
+    return undefined;
+  }
+
+  return {
+    id,
+    studentName,
+    questionNo,
+    questionKey,
+    examNo,
+    score: normalizeNumber(row.score),
+    maxScore: normalizeNumber(row.maxScore),
+    comment,
+    segments: segments as GradingResultDTO["segments"],
+    segmentAggregation: segmentAggregation as GradingResultDTO["segmentAggregation"],
+    provider: normalizeText(row.provider) || undefined,
+    model: normalizeText(row.model) || undefined,
+    durationMs: Number.isFinite(Number(row.durationMs)) ? Number(row.durationMs) : undefined,
+    timestamp,
+    remaining: Number.isFinite(Number(row.remaining)) ? Number(row.remaining) : undefined,
+    totalUsed: Number.isFinite(Number(row.totalUsed)) ? Number(row.totalUsed) : undefined
+  };
+};
+
+const coerceGradingEvaluateResult = (input: unknown): GradingEvaluateResultDTO => {
+  if (!input || typeof input !== "object") {
+    throw new Error("批改返回数据格式非法");
+  }
+
+  const row = input as Record<string, unknown>;
+  const provider = normalizeText(row.provider) || "rule-evaluator";
+  const breakdown = coerceGradingBreakdown(row.breakdown);
+
+  return {
+    score: normalizeNumber(row.score),
+    maxScore: normalizeNumber(row.maxScore),
+    breakdown,
+    comment: typeof row.comment === "string" ? row.comment : "",
+    provider,
+    providerTrace: coerceProviderTrace(row.providerTrace),
+    remaining: Math.max(0, Math.floor(normalizeNumber(row.remaining))),
+    totalUsed: Math.max(0, Math.floor(normalizeNumber(row.totalUsed))),
+    gradingResult: coerceGradingResult(row.gradingResult)
   };
 };
 
@@ -684,7 +827,7 @@ export const evaluateGrading = async (input: {
   questionKey?: string;
   examNo?: string;
 }): Promise<GradingEvaluateResultDTO> => {
-  return requestJson<GradingEvaluateResultDTO>(
+  const data = await requestJson<unknown>(
     "/api/v2/gradings/evaluate",
     {
       method: "POST",
@@ -693,6 +836,8 @@ export const evaluateGrading = async (input: {
     },
     "批改失败"
   );
+
+  return coerceGradingEvaluateResult(data);
 };
 
 export const fetchRecords = async (input?: {

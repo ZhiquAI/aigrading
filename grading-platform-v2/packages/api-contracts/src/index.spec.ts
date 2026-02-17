@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   examCreateRequestSchema,
+  gradingEvaluateResponseSchema,
   gradingEvaluateRequestSchema,
   licenseActivateRequestSchema,
   licenseStatusResponseSchema,
@@ -97,6 +98,92 @@ describe("license contracts", () => {
       studentName: "Alice"
     });
     expect(parsed.studentName).toBe("Alice");
+  });
+
+  it("validates grading evaluate response with gradingResult", () => {
+    const parsed = gradingEvaluateResponseSchema.parse({
+      ok: true,
+      data: {
+        score: 8,
+        maxScore: 10,
+        breakdown: [
+          {
+            label: "史实准确",
+            score: 5,
+            max: 6,
+            comment: "要点完整"
+          }
+        ],
+        comment: "整体较好",
+        provider: "openai:gpt-4.1-mini",
+        providerTrace: {
+          mode: "ai"
+        },
+        remaining: 99,
+        totalUsed: 1,
+        gradingResult: {
+          id: "grading-1",
+          studentName: "Alice",
+          questionNo: "Q1",
+          questionKey: "Q1",
+          examNo: "EX-2026-001",
+          score: 8,
+          maxScore: 10,
+          comment: "整体较好",
+          segments: [
+            {
+              segmentId: "seg-1",
+              title: "史实",
+              strategyType: "point_accumulation",
+              score: 8,
+              maxScore: 10,
+              items: [
+                {
+                  type: "point",
+                  pointId: "p-1",
+                  label: "关键词",
+                  score: 4,
+                  maxScore: 5,
+                  matched: true
+                }
+              ]
+            }
+          ],
+          segmentAggregation: "sum",
+          timestamp: Date.now()
+        }
+      }
+    });
+
+    expect(parsed.data.gradingResult?.segments).toHaveLength(1);
+  });
+
+  it("validates grading evaluate response in legacy mode", () => {
+    const parsed = gradingEvaluateResponseSchema.parse({
+      ok: true,
+      data: {
+        score: 9,
+        maxScore: 10,
+        breakdown: [
+          {
+            label: "论证完整",
+            score: 5,
+            max: 5,
+            comment: "结构清晰"
+          }
+        ],
+        comment: "可直接回填",
+        provider: "fallback:rule-evaluator",
+        providerTrace: {
+          mode: "fallback",
+          reason: "AI_GATEWAY_UNKNOWN_ERROR"
+        },
+        remaining: 8,
+        totalUsed: 2
+      }
+    });
+
+    expect(parsed.data.gradingResult).toBeUndefined();
   });
 
   it("validates exam create request", () => {

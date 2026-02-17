@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestId } from "@/shared/middleware/request-context";
 import { ZodError } from "zod";
-import { gradingEvaluateRequestSchema } from "@ai-grading/api-contracts";
+import { gradingEvaluateDataSchema, gradingEvaluateRequestSchema } from "@ai-grading/api-contracts";
 import { normalizeNonEmpty } from "@ai-grading/domain-core";
 import { prisma } from "@/lib/prisma";
 import { isScopeResolutionError, resolveRequestScope } from "@/shared/scope-resolver/request-scope";
@@ -41,9 +41,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         gatewayOverrides
       });
 
+      const parsedData = gradingEvaluateDataSchema.parse(data);
+
       return {
         statusCode: 200,
-        payload: data
+        payload: parsedData
       };
     });
 
