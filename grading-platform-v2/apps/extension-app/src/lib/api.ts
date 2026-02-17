@@ -1,7 +1,32 @@
 import { getActivationCode, getDeviceId } from "./device";
 import type { GradingResult } from "@ai-grading/domain-core";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+const FALLBACK_API_BASE_URLS = [
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:3001",
+  "http://localhost:3001"
+] as const;
+
+const normalizeApiBaseUrl = (value: string): string => value.trim().replace(/\/+$/, "");
+
+const resolveApiBaseUrls = (): string[] => {
+  const envValue = typeof import.meta.env.VITE_API_BASE_URL === "string"
+    ? import.meta.env.VITE_API_BASE_URL
+    : "";
+
+  const candidates = [
+    ...envValue
+      .split(",")
+      .map((value) => normalizeApiBaseUrl(value))
+      .filter((value) => value.length > 0),
+    ...FALLBACK_API_BASE_URLS
+  ];
+
+  return [...new Set(candidates)];
+};
+
+const API_BASE_URLS = resolveApiBaseUrls();
 
 type ApiOk<T> = {
   ok: true;
@@ -212,6 +237,39 @@ const parseErrorMessage = async (response: Response): Promise<string> => {
   } catch {
     return `请求失败 (${response.status})`;
   }
+};
+
+const isNetworkFetchError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error instanceof TypeError ||
+    /failed to fetch|networkerror|load failed|network request failed/i.test(error.message)
+  );
+};
+
+const requestWithApiFallback = async (path: string, init: RequestInit): Promise<Response> => {
+  let lastError: Error | null = null;
+
+  for (const baseUrl of API_BASE_URLS) {
+    try {
+      return await fetch(`${baseUrl}${path}`, init);
+    } catch (error) {
+      if (!isNetworkFetchError(error)) {
+        throw error;
+      }
+
+      lastError = error instanceof Error ? error : new Error("Network request failed");
+    }
+  }
+
+  if (lastError) {
+    throw new Error(`无法连接本地 API 服务（${API_BASE_URLS.join("、")}）。请确认 API 服务已启动。`);
+  }
+
+  throw new Error("请求失败：未找到可用 API 地址");
 };
 
 const normalizeText = (value: unknown): string => {
@@ -522,7 +580,7 @@ const requestJson = async <T>(
   init: RequestInit,
   errorFallbackMessage: string
 ): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${path}`, init);
+  const response = await requestWithApiFallback(path, init);
 
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response));
@@ -548,7 +606,7 @@ export const fetchLicenseStatus = async (): Promise<LicenseStatusData> => {
 };
 
 export const fetchHealthStatus = async (): Promise<HealthStatusDTO> => {
-  const response = await fetch(`${API_BASE_URL}/api/health`, {
+  const response = await requestWithApiFallback("/api/health", {
     method: "GET",
     headers: buildHeaders()
   });
