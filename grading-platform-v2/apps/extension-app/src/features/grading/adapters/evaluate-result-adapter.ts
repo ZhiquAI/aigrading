@@ -1,17 +1,8 @@
-import { fromFlatBreakdown, type GradingResult } from "@ai-grading/domain-core";
+import type { GradingResult } from "@ai-grading/domain-core";
 import type { GradingEvaluateResultDTO } from "../../../lib/api";
 
 type AdaptEvaluateResponseInput = {
   evaluateResult: GradingEvaluateResultDTO;
-  studentName: string;
-  questionNo: string;
-  questionKey: string;
-  examNo: string;
-};
-
-const normalizeValue = (value: string, fallback: string): string => {
-  const trimmed = value.trim();
-  return trimmed || fallback;
 };
 
 export const adaptEvaluateResponseToGradingResult = (input: AdaptEvaluateResponseInput): GradingResult => {
@@ -25,21 +16,5 @@ export const adaptEvaluateResponseToGradingResult = (input: AdaptEvaluateRespons
     };
   }
 
-  return {
-    ...fromFlatBreakdown({
-      id: `legacy-${Date.now()}`,
-      studentName: normalizeValue(input.studentName, "未知"),
-      questionNo: normalizeValue(input.questionNo, normalizeValue(input.questionKey, "未识别")),
-      questionKey: normalizeValue(input.questionKey, "unknown"),
-      examNo: normalizeValue(input.examNo, "unknown"),
-      score: evaluateResult.score,
-      maxScore: evaluateResult.maxScore,
-      comment: evaluateResult.comment,
-      breakdown: evaluateResult.breakdown,
-      provider: evaluateResult.provider,
-      timestamp: Date.now()
-    }),
-    remaining: evaluateResult.remaining,
-    totalUsed: evaluateResult.totalUsed
-  };
+  throw new Error("评分结果缺少 gradingResult（v4 结构），请检查 /api/v2/gradings/evaluate 返回值。");
 };

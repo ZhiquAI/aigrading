@@ -113,11 +113,7 @@ export const useGradingEvaluate = ({
       const normalizedQuestionNo = input.questionNo.trim() || questionKey.trim();
       const normalizedExamNo = input.examNo.trim() || examName.trim() || examId.trim();
       const adapted = adaptEvaluateResponseToGradingResult({
-        evaluateResult,
-        studentName: input.studentName.trim() || "未知",
-        questionNo: normalizedQuestionNo,
-        questionKey: questionKey.trim(),
-        examNo: normalizedExamNo
+        evaluateResult
       });
 
       setResult(evaluateResult);

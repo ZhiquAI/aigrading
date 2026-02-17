@@ -20,7 +20,6 @@ import {
 
 const ACTIVE_VIEW_STORAGE_KEY = "extension-app.heroui.active-view";
 const CLASSIC_ACTIVE_VIEW_STORAGE_KEY = "extension-app.classic-heroui.active-view";
-const PREVIOUS_ACTIVE_VIEW_STORAGE_KEY = `extension-app.${"legacy"}-heroui.active-view`;
 
 const getChromeRuntime = (): {
   sendMessage?: (message: unknown, callback?: (response: unknown) => void) => void;
@@ -72,8 +71,7 @@ const getInitialView = (): ModuleView => {
 
   const savedView =
     window.localStorage.getItem(ACTIVE_VIEW_STORAGE_KEY) ??
-    window.localStorage.getItem(CLASSIC_ACTIVE_VIEW_STORAGE_KEY) ??
-    window.localStorage.getItem(PREVIOUS_ACTIVE_VIEW_STORAGE_KEY);
+    window.localStorage.getItem(CLASSIC_ACTIVE_VIEW_STORAGE_KEY);
   if (savedView === "rubric" || savedView === "grading" || savedView === "records") {
     return savedView;
   }

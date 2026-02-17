@@ -5,11 +5,12 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "turbo lint",
+    "build": "node ./infra/scripts/check-no-legacy-frontend-chain.mjs && turbo build",
+    "lint": "node ./infra/scripts/check-no-legacy-frontend-chain.mjs && turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
-    "check:phase4-gate": "bash ./infra/scripts/check-phase4-regression-gate.sh"
+    "check:phase4-gate": "bash ./infra/scripts/check-phase4-regression-gate.sh",
+    "check:no-legacy-frontend-chain": "node ./infra/scripts/check-no-legacy-frontend-chain.mjs"
   },
   "devDependencies": {
     "pnpm": "9.12.3",
