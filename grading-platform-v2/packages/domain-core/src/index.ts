@@ -22,6 +22,26 @@ export const buildDeviceScopeKey = (deviceId: string): string => `device:${devic
 
 export const buildAnonymousScopeKey = (seed: string): string => `anon:${seed}`;
 
+// ── Rubric v4 类型 ──
+export type {
+  StrategyType, SegmentAggregation, MatchMode, ScoringType, ConstraintType,
+  QuestionType, OcrTolerance, ConflictPolicy,
+  ScoringStrategyV4, MatchingConfigV4, ConstraintV4,
+  RubricPointV4, PointAccumulationContentV4,
+  SequentialLogicStepV4, SequentialLogicContentV4,
+  RubricDimensionLevelV4, RubricDimensionV4, RubricMatrixContentV4,
+  SegmentContentV4, SegmentV4, GlobalPolicyV4, RubricMetadataV4, RubricV4,
+} from './rubric/rubric-v4';
+export { isStrategyType, isRubricV4 } from './rubric/rubric-v4';
+
+// ── Grading Result 类型 ──
+export type {
+  PointItemResult, StepItemResult, DimensionItemResult,
+  SegmentResult, SegmentItemResult,
+  GradingResult, FlatBreakdownItem,
+} from './grading/grading-result';
+export { flattenGradingResult, fromFlatBreakdown } from './grading/grading-result';
+
 export const resolveScopeIdentity = (input: ScopeResolveInput): ScopeIdentity => {
   const activationCode = normalizeActivationCode(input.activationCode);
   if (activationCode) {
