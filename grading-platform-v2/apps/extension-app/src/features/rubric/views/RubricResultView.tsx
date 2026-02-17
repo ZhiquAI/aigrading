@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { RubricLifecycleStatus } from "../../../lib/api";
 import { GearIcon } from "../../shared/icons";
-import type { RubricResultPreview } from "../types";
+import type { RubricResultPoint, RubricResultPreview, SegmentPreview } from "../types";
+import { firstText, toRecord, toRecordList } from "../utils/rubric-parser";
+import { SegmentCardList } from "./SegmentCardList";
 
 type RubricResultViewProps = {
   statusMessage: ReactNode;
@@ -17,76 +19,7 @@ type RubricResultViewProps = {
   onSave: (nextRubricText?: string) => void;
 };
 
-type PointSourceMode = "answerPoints" | "content.points" | "content.steps" | "none";
-
-type EditablePointRow = {
-  id: string;
-  questionSegment: string;
-  content: string;
-  score: number;
-  keywords: string[];
-};
-
-const toRecord = (value: unknown): Record<string, unknown> | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-};
-
-const toRecordList = (value: unknown): Record<string, unknown>[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .map((item) => toRecord(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item));
-};
-
-const firstText = (...values: unknown[]): string => {
-  for (const value of values) {
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (trimmed) {
-        return trimmed;
-      }
-    }
-  }
-  return "";
-};
-
-const normalizeRow = (
-  point: Record<string, unknown>,
-  index: number,
-  segmentLabel?: string
-): EditablePointRow | null => {
-  const content = firstText(point.content, point.standard, point.name);
-  if (!content) {
-    return null;
-  }
-
-  const score = Number(point.score);
-  const keywords = Array.isArray(point.keywords)
-    ? point.keywords.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    : [];
-
-  return {
-    id: firstText(point.id) || `p-${index + 1}`,
-    questionSegment: firstText(point.questionSegment, segmentLabel),
-    content,
-    score: Number.isFinite(score) ? score : 0,
-    keywords
-  };
-};
-
-const parseKeywordInput = (value: string): string[] => {
-  return value
-    .split(/[，,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const toPointPayload = (row: EditablePointRow): Record<string, unknown> => {
+const toPointPayload = (row: RubricResultPoint): Record<string, unknown> => {
   return {
     id: row.id,
     questionSegment: row.questionSegment.trim() || undefined,
@@ -94,6 +27,35 @@ const toPointPayload = (row: EditablePointRow): Record<string, unknown> => {
     score: Number.isFinite(row.score) ? row.score : 0,
     keywords: row.keywords
   };
+};
+
+const toDimensionPayload = (dimension: SegmentPreview["dimensions"][number]): Record<string, unknown> => {
+  return {
+    id: dimension.id,
+    name: dimension.name.trim(),
+    weight: Number.isFinite(dimension.weight) ? dimension.weight : 1,
+    levels: dimension.levels.map((level) => ({
+      label: level.label.trim(),
+      score: Number.isFinite(level.score) ? level.score : 0,
+      description: level.description.trim() || undefined
+    }))
+  };
+};
+
+const buildConstraintLabel = (type: string): string => {
+  if (type === "deduction_fixed") {
+    return "固定扣分";
+  }
+  if (type === "deduction_per_count") {
+    return "按次数扣分";
+  }
+  if (type === "score_cap") {
+    return "分数封顶";
+  }
+  if (type === "logic_check") {
+    return "逻辑校验";
+  }
+  return type;
 };
 
 export const RubricResultView = ({
@@ -123,141 +85,183 @@ export const RubricResultView = ({
     }
   }, [rubricText]);
 
-  const {
-    initialRows,
-    sourceMode,
-    readOnlyReason
-  } = useMemo(() => {
-    if (!parsedRubric) {
-      const fallbackRows = resultPreview.points.map((point) => ({
-        id: point.id,
-        questionSegment: point.questionSegment,
-        content: point.content,
-        score: point.score,
-        keywords: point.keywords
-      }));
-
-      return {
-        initialRows: fallbackRows,
-        sourceMode: "none" as PointSourceMode,
-        readOnlyReason: ""
-      };
-    }
-
-    const content = toRecord(parsedRubric.content) ?? {};
-    const segments = toRecordList(content.segments);
-    if (segments.length > 0) {
-      const rows = segments.flatMap((segment) => {
-        const segmentLabel = firstText(segment.title, segment.name, segment.segment, segment.id);
-        const segmentContent = toRecord(segment.content) ?? {};
-        const segmentPoints = [
-          ...toRecordList(segment.points),
-          ...toRecordList(segmentContent.points),
-          ...toRecordList(segmentContent.steps)
-        ];
-        return segmentPoints
-          .map((point, index) => normalizeRow(point, index, segmentLabel))
-          .filter((item): item is EditablePointRow => Boolean(item));
-      });
-
-      return {
-        initialRows: rows,
-        sourceMode: "none" as PointSourceMode,
-        readOnlyReason: "当前细则包含多小问分段结构，为避免破坏结构，本页仅展示 AI 结果，可直接保存。"
-      };
-    }
-
-    const answerPoints = toRecordList(parsedRubric.answerPoints);
-    if (answerPoints.length > 0) {
-      return {
-        initialRows: answerPoints
-          .map((point, index) => normalizeRow(point, index))
-          .filter((item): item is EditablePointRow => Boolean(item)),
-        sourceMode: "answerPoints" as PointSourceMode,
-        readOnlyReason: ""
-      };
-    }
-
-    const contentPoints = toRecordList(content.points);
-    if (contentPoints.length > 0) {
-      return {
-        initialRows: contentPoints
-          .map((point, index) => normalizeRow(point, index))
-          .filter((item): item is EditablePointRow => Boolean(item)),
-        sourceMode: "content.points" as PointSourceMode,
-        readOnlyReason: ""
-      };
-    }
-
-    const contentSteps = toRecordList(content.steps);
-    if (contentSteps.length > 0) {
-      return {
-        initialRows: contentSteps
-          .map((point, index) => normalizeRow(point, index))
-          .filter((item): item is EditablePointRow => Boolean(item)),
-        sourceMode: "content.steps" as PointSourceMode,
-        readOnlyReason: ""
-      };
-    }
-
-    return {
-      initialRows: resultPreview.points.map((point) => ({
-        id: point.id,
-        questionSegment: point.questionSegment,
-        content: point.content,
-        score: point.score,
-        keywords: point.keywords
-      })),
-      sourceMode: "none" as PointSourceMode,
-      readOnlyReason: ""
-    };
-  }, [parsedRubric, resultPreview.points]);
-
-  const [rows, setRows] = useState<EditablePointRow[]>(initialRows);
+  const [segments, setSegments] = useState<SegmentPreview[]>(resultPreview.segments);
 
   useEffect(() => {
-    setRows(initialRows);
-  }, [initialRows]);
+    setSegments(resultPreview.segments);
+  }, [resultPreview.segments]);
 
   const computedTotalScore = useMemo(() => {
-    const total = rows.reduce((sum, row) => sum + (Number.isFinite(row.score) ? row.score : 0), 0);
+    const total = segments.reduce((segmentSum, segment) => {
+      if (segment.strategyType === "rubric_matrix") {
+        const matrixScore = segment.dimensions.reduce((dimensionSum, dimension) => {
+          const maxLevelScore = dimension.levels.reduce((levelMax, level) => {
+            return Math.max(levelMax, Number.isFinite(level.score) ? level.score : 0);
+          }, 0);
+          const weight = Number.isFinite(dimension.weight) ? dimension.weight : 1;
+          return dimensionSum + (maxLevelScore * weight);
+        }, 0);
+        return segmentSum + (segment.maxScore > 0 ? segment.maxScore : matrixScore);
+      }
+
+      return segmentSum + segment.points.reduce((pointSum, point) => pointSum + (Number.isFinite(point.score) ? point.score : 0), 0);
+    }, 0);
     return total > 0 ? total : resultPreview.totalScore;
-  }, [resultPreview.totalScore, rows]);
+  }, [resultPreview.totalScore, segments]);
 
-  const handleRowChange = (rowId: string, patch: Partial<EditablePointRow>): void => {
-    if (readOnlyReason) {
-      return;
-    }
+  const handleSegmentTitleChange = (segmentId: string, title: string): void => {
+    setSegments((previous) => previous.map((segment) => {
+      return segment.id === segmentId
+        ? { ...segment, title }
+        : segment;
+    }));
+  };
 
-    setRows((previous) => previous.map((row) => (
-      row.id === rowId ? { ...row, ...patch } : row
-    )));
+  const handlePointChange = (segmentId: string, pointId: string, patch: Partial<RubricResultPoint>): void => {
+    setSegments((previous) => previous.map((segment) => {
+      if (segment.id !== segmentId) {
+        return segment;
+      }
+
+      return {
+        ...segment,
+        points: segment.points.map((point) => (
+          point.id === pointId ? { ...point, ...patch } : point
+        ))
+      };
+    }));
+  };
+
+  const handleDimensionChange = (
+    segmentId: string,
+    dimensionId: string,
+    patch: Partial<SegmentPreview["dimensions"][number]>
+  ): void => {
+    setSegments((previous) => previous.map((segment) => {
+      if (segment.id !== segmentId) {
+        return segment;
+      }
+
+      return {
+        ...segment,
+        dimensions: segment.dimensions.map((dimension) => {
+          return dimension.id === dimensionId
+            ? { ...dimension, ...patch }
+            : dimension;
+        })
+      };
+    }));
+  };
+
+  const handleDimensionLevelChange = (
+    segmentId: string,
+    dimensionId: string,
+    levelIndex: number,
+    patch: Partial<SegmentPreview["dimensions"][number]["levels"][number]>
+  ): void => {
+    setSegments((previous) => previous.map((segment) => {
+      if (segment.id !== segmentId) {
+        return segment;
+      }
+
+      return {
+        ...segment,
+        dimensions: segment.dimensions.map((dimension) => {
+          if (dimension.id !== dimensionId) {
+            return dimension;
+          }
+
+          return {
+            ...dimension,
+            levels: dimension.levels.map((level, currentIndex) => {
+              return currentIndex === levelIndex ? { ...level, ...patch } : level;
+            })
+          };
+        })
+      };
+    }));
   };
 
   const handleSaveClick = (): void => {
-    if (readOnlyReason || !parsedRubric) {
+    if (!parsedRubric) {
       onSave();
       return;
     }
 
     const nextRoot = JSON.parse(JSON.stringify(parsedRubric)) as Record<string, unknown>;
-    const nextRows = rows.map(toPointPayload);
     const nextContent = toRecord(nextRoot.content) ?? {};
+    const rootSegments = toRecordList(nextRoot.segments);
+    const contentSegments = toRecordList(nextContent.segments);
 
-    if (sourceMode === "answerPoints") {
-      nextRoot.answerPoints = nextRows;
-    } else if (sourceMode === "content.points") {
-      nextContent.points = nextRows;
-      nextRoot.content = nextContent;
-    } else if (sourceMode === "content.steps") {
-      nextContent.steps = nextRows;
-      nextRoot.content = nextContent;
+    if (rootSegments.length > 0 || contentSegments.length > 0) {
+      const baseSegments = rootSegments.length > 0 ? rootSegments : contentSegments;
+
+      const nextSegments = segments.map((segment, index) => {
+        const baseSegment = baseSegments[index] ?? {};
+        const strategyType = firstText(baseSegment.strategyType) || segment.strategyType;
+        const hasTopLevelPoints = Array.isArray(baseSegment.points);
+        const nextPoints = segment.points.map(toPointPayload);
+        const nextDimensions = segment.dimensions.map(toDimensionPayload);
+        const nextSegmentContent = toRecord(baseSegment.content) ?? {};
+
+        if (strategyType === "sequential_logic") {
+          nextSegmentContent.steps = nextPoints.map((point, stepIndex) => ({
+            ...point,
+            order: stepIndex + 1
+          }));
+          delete nextSegmentContent.points;
+        } else if (strategyType === "rubric_matrix") {
+          nextSegmentContent.dimensions = nextDimensions;
+          delete nextSegmentContent.points;
+          delete nextSegmentContent.steps;
+        } else {
+          nextSegmentContent.points = nextPoints;
+          delete nextSegmentContent.steps;
+        }
+
+        const segmentScore = strategyType === "rubric_matrix"
+          ? (
+            Number(baseSegment.maxScore)
+            || Number(nextSegmentContent.totalScore)
+            || segment.maxScore
+          )
+          : segment.points.reduce((sum, point) => sum + point.score, 0);
+
+        return {
+          ...baseSegment,
+          id: segment.id,
+          title: segment.title,
+          segment: segment.title,
+          strategyType,
+          maxScore: Number.isFinite(segmentScore) ? segmentScore : 0,
+          points: hasTopLevelPoints ? nextPoints : undefined,
+          content: nextSegmentContent
+        };
+      });
+
+      if (rootSegments.length > 0) {
+        nextRoot.segments = nextSegments;
+      } else {
+        nextContent.segments = nextSegments;
+        nextRoot.content = nextContent;
+      }
     } else {
-      nextContent.points = nextRows;
-      nextRoot.content = nextContent;
+      const fallbackPoints = (segments[0]?.points ?? []).map(toPointPayload);
+      const hasAnswerPoints = Array.isArray(nextRoot.answerPoints);
+      const hasSteps = Array.isArray(nextContent.steps);
+
+      if (hasAnswerPoints) {
+        nextRoot.answerPoints = fallbackPoints;
+      } else if (hasSteps) {
+        nextContent.steps = fallbackPoints;
+        nextRoot.content = nextContent;
+      } else {
+        nextContent.points = fallbackPoints;
+        nextRoot.content = nextContent;
+      }
     }
 
-    const nextTotal = rows.reduce((sum, row) => sum + (Number.isFinite(row.score) ? row.score : 0), 0);
+    const nextTotal = computedTotalScore;
     if (nextTotal > 0) {
       const metadata = toRecord(nextRoot.metadata) ?? {};
       metadata.totalScore = nextTotal;
@@ -306,79 +310,40 @@ export const RubricResultView = ({
         </div>
         <div className="classic-rubric-result-tags">
           <span>评分策略：{resultPreview.strategyLabel}</span>
-          <span>得分点：{rows.length} 条</span>
+          <span>题段：{segments.length} 段</span>
+          <span>得分点：{segments.reduce((sum, segment) => sum + segment.points.length, 0)} 条</span>
+          <span>聚合：{resultPreview.segmentAggregation}</span>
           <span>发布状态：{lifecycleStatus === "published" ? "已发布" : "草稿"}</span>
         </div>
-        {readOnlyReason ? (
-          <p className="classic-rubric-result-readonly">{readOnlyReason}</p>
-        ) : (
-          <p className="classic-rubric-result-readonly">可编辑：问题词、得分点、分值、关键词。</p>
-        )}
-      </article>
+        <p className="classic-rubric-result-readonly">可编辑：题段标题、问题词、得分点、分值、关键词。</p>
 
-      {rows.length === 0 ? (
-        <div className="classic-rubric-empty">AI 暂未识别到得分点，请返回重生成。</div>
-      ) : readOnlyReason ? (
-        <div className="classic-rubric-result-list">
-          {rows.map((point, index) => (
-            <article key={point.id} className="classic-rubric-result-item">
-              <div className="classic-rubric-result-item-head">
-                <span className="classic-rubric-result-index">{index + 1}</span>
-                <span className="classic-rubric-result-segment">{point.questionSegment || "得分点"}</span>
-                <span className="classic-rubric-result-point">{point.score}分</span>
-              </div>
-              <p>{point.content}</p>
-              {point.keywords.length > 0 ? (
-                <div className="classic-rubric-result-keywords">
-                  {point.keywords.map((keyword) => (
-                    <span key={`${point.id}-${keyword}`}>{keyword}</span>
-                  ))}
-                </div>
-              ) : null}
-            </article>
-          ))}
-        </div>
-      ) : (
-        <section className="classic-rubric-result-table">
-          <header className="classic-rubric-result-table-head">
-            <span>#</span>
-            <span>问题词</span>
-            <span>得分点</span>
-            <span>分值</span>
-            <span>关键词</span>
-          </header>
-          <div className="classic-rubric-result-table-body">
-            {rows.map((row, index) => (
-              <article key={row.id} className="classic-rubric-result-table-row">
-                <span className="classic-rubric-result-table-index">{index + 1}</span>
-                <input
-                  value={row.questionSegment}
-                  onChange={(event) => handleRowChange(row.id, { questionSegment: event.target.value })}
-                  placeholder="可空"
-                />
-                <textarea
-                  rows={2}
-                  value={row.content}
-                  onChange={(event) => handleRowChange(row.id, { content: event.target.value })}
-                  placeholder="输入得分点"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={row.score}
-                  onChange={(event) => handleRowChange(row.id, { score: Number(event.target.value) || 0 })}
-                />
-                <input
-                  value={row.keywords.join("，")}
-                  onChange={(event) => handleRowChange(row.id, { keywords: parseKeywordInput(event.target.value) })}
-                  placeholder="关键词1，关键词2"
-                />
-              </article>
+        {resultPreview.globalPolicy ? (
+          <div className="classic-rubric-result-policy">
+            <span>冲突策略：{resultPreview.globalPolicy.conflictPolicy}</span>
+            <span>最低置信度：{resultPreview.globalPolicy.minConfidence}</span>
+            <span>OCR 容忍度：{resultPreview.globalPolicy.ocrTolerance}</span>
+          </div>
+        ) : null}
+
+        {resultPreview.constraints.length > 0 ? (
+          <div className="classic-rubric-result-constraints">
+            {resultPreview.constraints.map((constraint) => (
+              <span key={constraint.id} className="classic-rubric-result-constraint-tag">
+                {buildConstraintLabel(constraint.type)}
+              </span>
             ))}
           </div>
-        </section>
-      )}
+        ) : null}
+      </article>
+
+      <SegmentCardList
+        segments={segments}
+        busy={busy}
+        onSegmentTitleChange={handleSegmentTitleChange}
+        onPointChange={handlePointChange}
+        onDimensionChange={handleDimensionChange}
+        onDimensionLevelChange={handleDimensionLevelChange}
+      />
 
       <div className="classic-rubric-result-note">请核对识别内容与分值分配，确认后保存到细则库。</div>
 

@@ -211,7 +211,8 @@ test("rubric input baseline", async ({ page }) => {
 });
 
 test("rubric result baseline", async ({ page }) => {
-  await page.getByRole("button", { name: "导入细则 支持 JSON 文件继续编辑" }).click();
+  await page.getByRole("button", { name: "立即开始" }).click();
+  await expect(page.getByRole("heading", { name: "生成评分细则" })).toBeVisible();
 
   const rubricJson = {
     metadata: {
@@ -265,7 +266,7 @@ test("rubric result baseline", async ({ page }) => {
 test("settings sheet baseline", async ({ page }) => {
   await page.getByRole("button", { name: "打开设置" }).click();
   await expect(page.getByText("系统设置")).toBeVisible();
-  await expect(page.getByText("SettingsView")).toBeVisible();
+  await expect(page.getByText("模型配置（BYOK）")).toBeVisible();
   await expectShellSnapshot(page, "06-settings-sheet.png");
 });
 
@@ -281,7 +282,7 @@ test("rubric generating baseline", async ({ page }) => {
 
   await page.getByLabel("题号 *").fill("13-1");
   await page.getByLabel("总分 *").fill("10");
-  await page.getByRole("button", { name: "生成细则" }).click();
+  await page.getByRole("button", { name: "生成细则", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "正在生成细则" })).toBeVisible();
   await expectShellSnapshot(page, "08-rubric-generating.png");

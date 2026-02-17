@@ -36,6 +36,7 @@ type RubricInputViewProps = {
   onQuestionKeyChange: (value: string) => void;
   onTotalScoreChange: (value: string) => void;
   onSpecialRulesChange: (value: string) => void;
+  onAppendSpecialRule: (value: string) => void;
   onQuestionImageChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onAnswerImageChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveQuestionImage: () => void;
@@ -76,12 +77,20 @@ export const RubricInputView = ({
   onQuestionKeyChange,
   onTotalScoreChange,
   onSpecialRulesChange,
+  onAppendSpecialRule,
   onQuestionImageChange,
   onAnswerImageChange,
   onRemoveQuestionImage,
   onRemoveAnswerImage,
   onImportJson
 }: RubricInputViewProps) => {
+  const quickRules = [
+    "错别字每3个扣1分",
+    "未写结论扣1分",
+    "本题仅有两小问，按两段给分",
+    "任答N点即可得满分"
+  ] as const;
+
   return (
     <section className="classic-rubric-workspace">
       <header className="classic-rubric-subheader">
@@ -233,6 +242,18 @@ export const RubricInputView = ({
 
         <section>
           <h4>3.添加特殊规则</h4>
+          <div className="classic-rubric-rules-quick-tags">
+            {quickRules.map((rule) => (
+              <button
+                key={rule}
+                type="button"
+                className="classic-rubric-rules-quick-tag"
+                onClick={() => onAppendSpecialRule(rule)}
+              >
+                {rule}
+              </button>
+            ))}
+          </div>
           <textarea
             className="classic-rubric-rules-textarea"
             rows={3}
@@ -254,7 +275,7 @@ export const RubricInputView = ({
           </header>
           <p className="classic-rubric-latest-card-title">{resultPreview.title}</p>
           <p className="classic-rubric-latest-card-meta">
-            题号 {resultPreview.questionId} · 得分点 {resultPreview.points.length} 条 · 总分 {resultPreview.totalScore}
+            题号 {resultPreview.questionId} · 得分点 {resultPreview.pointCount} 条 · 总分 {resultPreview.totalScore}
           </p>
           <button type="button" className="classic-rubric-latest-card-btn" onClick={onOpenResultPreview}>
             查看结果预览
