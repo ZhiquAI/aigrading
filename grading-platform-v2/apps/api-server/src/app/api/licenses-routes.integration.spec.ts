@@ -846,6 +846,49 @@ describe("v2 rubrics routes", () => {
 });
 
 describe("v2 grading and rubric generate routes", () => {
+  it("generates rubric v4 with image input and custom rules", async () => {
+    const generated = await v2RubricsGeneratePost(
+      new Request("http://localhost/api/v2/rubrics/generate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-device-id": "rubric-generate-v4-device"
+        },
+        body: JSON.stringify({
+          questionId: "Q-V4-IMG",
+          questionImage: "data:image/png;base64,aGVsbG8=",
+          answerImage: "data:image/png;base64,d29ybGQ=",
+          subject: "history",
+          questionType: "材料题",
+          totalScore: 10,
+          customRules: ["错别字每3个扣1分", "未写结论扣1分"]
+        })
+      })
+    );
+
+    expect(generated.status).toBe(200);
+    const generatedJson = await parseJson<{
+      ok: boolean;
+      data: {
+        rubric: {
+          version?: string;
+          metadata?: { questionId?: string; totalScore?: number; questionType?: string };
+          globalPolicy?: unknown;
+          segments?: unknown[];
+          constraints?: unknown[];
+        };
+      };
+    }>(generated);
+
+    expect(generatedJson.ok).toBe(true);
+    expect(generatedJson.data.rubric.version).toBe("4.0");
+    expect(generatedJson.data.rubric.metadata?.questionId).toBe("Q-V4-IMG");
+    expect(generatedJson.data.rubric.metadata?.totalScore).toBe(10);
+    expect(Array.isArray(generatedJson.data.rubric.segments)).toBe(true);
+    expect(generatedJson.data.rubric.segments?.length).toBeGreaterThan(0);
+    expect(Array.isArray(generatedJson.data.rubric.constraints)).toBe(true);
+  });
+
   it("supports generate/evaluate with shared quota", async () => {
     const generated = await v2RubricsGeneratePost(
       new Request("http://localhost/api/v2/rubrics/generate", {
