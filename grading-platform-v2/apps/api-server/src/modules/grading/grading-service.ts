@@ -121,15 +121,34 @@ const computeMaxScoreFromRubric = (rubric: unknown): number => {
   }
 
   const obj = rubric as {
+    metadata?: { totalScore?: unknown };
+    segments?: Array<Record<string, unknown>>;
     answerPoints?: Array<{ score?: unknown; content?: unknown }>;
     content?: { points?: Array<{ score?: unknown; label?: unknown }> };
     maxScore?: unknown;
     totalScore?: unknown;
   };
 
+  const metadataTotal = Number(obj.metadata?.totalScore);
+  if (Number.isFinite(metadataTotal) && metadataTotal > 0) {
+    return metadataTotal;
+  }
+
   const fromField = Number(obj.maxScore ?? obj.totalScore);
   if (Number.isFinite(fromField) && fromField > 0) {
     return fromField;
+  }
+
+  if (Array.isArray(obj.segments) && obj.segments.length > 0) {
+    const segmentTotal = obj.segments.reduce((sum, segment) => {
+      const record = segment && typeof segment === "object" ? segment as Record<string, unknown> : null;
+      const score = Number(record?.maxScore);
+      return Number.isFinite(score) ? sum + score : sum;
+    }, 0);
+
+    if (segmentTotal > 0) {
+      return segmentTotal;
+    }
   }
 
   const points = Array.isArray(obj.answerPoints)
@@ -150,6 +169,88 @@ const computeMaxScoreFromRubric = (rubric: unknown): number => {
   return pointTotal > 0 ? pointTotal : 10;
 };
 
+const buildBreakdownFromSegments = (segments: Array<Record<string, unknown>>): BreakdownItem[] => {
+  const rows: BreakdownItem[] = [];
+
+  segments.forEach((segment, segmentIndex) => {
+    const content = (
+      segment.content && typeof segment.content === "object" && !Array.isArray(segment.content)
+        ? segment.content
+        : {}
+    ) as Record<string, unknown>;
+
+    const segmentTitle = normalizeNonEmpty(
+      typeof segment.title === "string" ? segment.title : undefined
+    ) ?? `题段${segmentIndex + 1}`;
+
+    const beforeSize = rows.length;
+
+    const pushRow = (label: string, max: number): void => {
+      const normalizedMax = Number.isFinite(max) && max > 0 ? max : 1;
+      rows.push({
+        label,
+        score: normalizedMax,
+        max: normalizedMax,
+        comment: "规则评估：命中要点"
+      });
+    };
+
+    const points = Array.isArray(segment.points)
+      ? segment.points
+      : Array.isArray(content.points)
+        ? content.points
+        : Array.isArray(content.steps)
+          ? content.steps
+          : [];
+
+    points.forEach((point, pointIndex) => {
+      if (!point || typeof point !== "object") {
+        return;
+      }
+
+      const row = point as Record<string, unknown>;
+      const label = normalizeNonEmpty(
+        typeof row.content === "string"
+          ? row.content
+          : typeof row.label === "string"
+            ? row.label
+            : undefined
+      ) ?? `${segmentTitle}-要点${pointIndex + 1}`;
+      const max = Number(row.score);
+      pushRow(label, max);
+    });
+
+    const dimensions = Array.isArray(content.dimensions) ? content.dimensions : [];
+    dimensions.forEach((dimension, dimensionIndex) => {
+      if (!dimension || typeof dimension !== "object") {
+        return;
+      }
+
+      const row = dimension as Record<string, unknown>;
+      const levels = Array.isArray(row.levels) ? row.levels : [];
+      const levelMax = levels.reduce((max, level) => {
+        if (!level || typeof level !== "object") {
+          return max;
+        }
+
+        const score = Number((level as Record<string, unknown>).score);
+        return Number.isFinite(score) && score > max ? score : max;
+      }, 0);
+      const weight = Number(row.weight);
+      const weightedMax = Number.isFinite(weight) && weight > 0 ? levelMax * weight : levelMax;
+      const label = normalizeNonEmpty(typeof row.name === "string" ? row.name : undefined) ?? `${segmentTitle}-维度${dimensionIndex + 1}`;
+      pushRow(`${segmentTitle}-${label}`, weightedMax);
+    });
+
+    if (rows.length === beforeSize) {
+      const max = Number(segment.maxScore);
+      pushRow(segmentTitle, max);
+    }
+  });
+
+  return rows;
+};
+
 const buildBreakdown = (rubric: unknown): BreakdownItem[] => {
   if (!rubric || typeof rubric !== "object") {
     return [
@@ -163,9 +264,19 @@ const buildBreakdown = (rubric: unknown): BreakdownItem[] => {
   }
 
   const obj = rubric as {
+    segments?: Array<Record<string, unknown>>;
     answerPoints?: Array<{ score?: unknown; content?: unknown }>;
     content?: { points?: Array<{ score?: unknown; label?: unknown; comment?: unknown }> };
   };
+
+  if (Array.isArray(obj.segments) && obj.segments.length > 0) {
+    const segmentBreakdown = buildBreakdownFromSegments(
+      obj.segments.filter((segment): segment is Record<string, unknown> => Boolean(segment) && typeof segment === "object")
+    );
+    if (segmentBreakdown.length > 0) {
+      return segmentBreakdown;
+    }
+  }
 
   const points = Array.isArray(obj.answerPoints)
     ? obj.answerPoints.map((item) => ({

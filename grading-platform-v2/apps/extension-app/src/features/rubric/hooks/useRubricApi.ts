@@ -17,6 +17,25 @@ import {
   toPrettyString
 } from "../utils/rubric-parser";
 
+const toV4QuestionType = (value: string): "single" | "mixed" => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return "mixed";
+  }
+
+  if (
+    normalized.includes("选择")
+    || normalized.includes("单选")
+    || normalized.includes("多选")
+    || normalized.includes("判断")
+    || normalized.includes("填空")
+  ) {
+    return "single";
+  }
+
+  return "mixed";
+};
+
 type UseRubricApiArgs = {
   questionKey: string;
   examId: string;
@@ -203,19 +222,38 @@ export const useRubricApi = ({
         customRules: customRules.length > 0 ? customRules : undefined
       });
 
-      const rubricCandidate = (
-        result.rubric && typeof result.rubric === "object"
-      ) ? {
-        ...(result.rubric as Record<string, unknown>),
-        metadata: {
-          ...((result.rubric as { metadata?: Record<string, unknown> }).metadata ?? {}),
+      const rubricCandidate = (() => {
+        if (!(result.rubric && typeof result.rubric === "object")) {
+          return result.rubric;
+        }
+
+        const source = result.rubric as Record<string, unknown>;
+        const metadata = (source.metadata && typeof source.metadata === "object")
+          ? source.metadata as Record<string, unknown>
+          : {};
+
+        const isV4 = source.version === "4.0";
+        const nextMetadata: Record<string, unknown> = {
+          ...metadata,
           questionId: normalizedQuestionKey,
           examName: examName.trim() || undefined,
           subject,
-          grade,
-          questionType
+          grade
+        };
+
+        if (isV4) {
+          nextMetadata.questionType = metadata.questionType === "single" || metadata.questionType === "mixed"
+            ? metadata.questionType
+            : toV4QuestionType(questionType);
+        } else {
+          nextMetadata.questionType = questionType;
         }
-      } : result.rubric;
+
+        return {
+          ...source,
+          metadata: nextMetadata
+        };
+      })();
 
       const rubricContent = toPrettyString(rubricCandidate);
       const nextQuestionKey = extractQuestionKey(rubricCandidate);

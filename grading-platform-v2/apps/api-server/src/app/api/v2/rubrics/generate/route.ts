@@ -30,6 +30,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       totalScore: body.totalScore,
       questionImage: body.questionImage,
       answerImage: body.answerImage,
+      customRules: body.customRules,
       gatewayOverrides
     });
 

@@ -150,6 +150,19 @@ const toConstraintType = (value: unknown): ConstraintType | null => {
     : null;
 };
 
+const toQuestionTypeLabel = (value: unknown, fallback: string): string => {
+  const text = firstText(value);
+  if (!text) {
+    return fallback || "-";
+  }
+
+  if (text === "single" || text === "mixed") {
+    return fallback || (text === "single" ? "单题" : "复合题");
+  }
+
+  return text;
+};
+
 const toOcrTolerance = (value: unknown): OcrTolerance => {
   return value === "low" || value === "high" ? value : "medium";
 };
@@ -391,7 +404,7 @@ export const buildRubricResultPreview = (input: {
       title: firstText(metadata.title) || fallbackTitle,
       questionId: firstText(metadata.questionId, root.questionId, root.questionKey) || fallbackQuestionId,
       subject: firstText(metadata.subject) || input.fallbackSubject || "-",
-      questionType: firstText(metadata.questionType) || input.fallbackQuestionType || "-",
+      questionType: toQuestionTypeLabel(metadata.questionType, input.fallbackQuestionType),
       strategyLabel,
       totalScore,
       pointCount,

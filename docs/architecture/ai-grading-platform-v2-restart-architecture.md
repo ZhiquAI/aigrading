@@ -143,6 +143,12 @@ type ScopeIdentity = {
 2. `grading-platform-v2` 只提供 `/api/v2/*` 与基础健康检查接口。
 3. 如需回滚，切回旧项目服务实例，不在 v2 内做双路由转发。
 
+## 4) Rubric 生成契约（2026-02-17 更新）
+1. `POST /api/v2/rubrics/generate` 默认输出 `RubricV4`，`version` 固定为 `4.0`。
+2. 生成结果必须包含：`metadata`、`globalPolicy`、`segments`、`segmentAggregation`。
+3. 前端传入 `customRules` 时，后端需将规则转译到 `constraints`（顶层或 segment 级）。
+4. 回退路径（rule-based）与 AI 路径输出结构保持一致，禁止再返回 v2 扁平字段作为主结构。
+
 ---
 
 ## 七、数据模型重构（Prisma）

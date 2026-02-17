@@ -82,11 +82,33 @@ const computeRubricSummary = (rubric: unknown): {
   }
 
   const rubricObj = rubric as {
-    metadata?: { title?: unknown; questionType?: unknown };
+    metadata?: { title?: unknown; questionType?: unknown; subject?: unknown; totalScore?: unknown };
     answerPoints?: Array<{ score?: unknown }>;
     content?: { points?: Array<{ score?: unknown }> };
+    segments?: Array<Record<string, unknown>>;
+    segmentAggregation?: unknown;
+    totalScore?: unknown;
     updatedAt?: unknown;
   };
+
+  const segmentRows = Array.isArray(rubricObj.segments)
+    ? rubricObj.segments
+      .filter((segment): segment is Record<string, unknown> => Boolean(segment) && typeof segment === "object")
+    : [];
+
+  const segmentPointsCount = segmentRows.reduce((sum, segment) => {
+    const content = toRecord(segment.content) ?? {};
+    return sum
+      + toRecordList(segment.points).length
+      + toRecordList(content.points).length
+      + toRecordList(content.steps).length
+      + toRecordList(content.dimensions).length;
+  }, 0);
+
+  const segmentScore = segmentRows.reduce((sum, segment) => {
+    const maxScore = Number(segment.maxScore);
+    return Number.isFinite(maxScore) && maxScore > 0 ? sum + maxScore : sum;
+  }, 0);
 
   const answerPoints = Array.isArray(rubricObj.answerPoints)
     ? rubricObj.answerPoints
@@ -94,13 +116,30 @@ const computeRubricSummary = (rubric: unknown): {
       ? rubricObj.content.points
       : [];
 
-  const totalScore = answerPoints.reduce((sum, point) => {
+  const answerPointScore = answerPoints.reduce((sum, point) => {
     const score = Number(point?.score);
     return Number.isFinite(score) ? sum + score : sum;
   }, 0);
 
-  const title = normalizeNonEmpty(
+  const metadataScore = Number(rubricObj.metadata?.totalScore);
+  const rootScore = Number(rubricObj.totalScore);
+  const totalScore = Number.isFinite(metadataScore) && metadataScore > 0
+    ? metadataScore
+    : Number.isFinite(rootScore) && rootScore > 0
+      ? rootScore
+      : segmentScore > 0
+        ? segmentScore
+        : answerPointScore;
+
+  const metadataTitle = normalizeNonEmpty(
     typeof rubricObj.metadata?.title === "string" ? rubricObj.metadata.title : undefined
+  );
+  const fallbackTitle = [rubricObj.metadata?.subject, rubricObj.metadata?.questionType]
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .join(" ");
+
+  const title = normalizeNonEmpty(
+    metadataTitle ?? fallbackTitle
   ) ?? "未命名评分细则";
 
   const updatedAt = normalizeNonEmpty(
@@ -109,7 +148,7 @@ const computeRubricSummary = (rubric: unknown): {
 
   return {
     totalScore,
-    pointCount: answerPoints.length,
+    pointCount: segmentPointsCount > 0 ? segmentPointsCount : answerPoints.length,
     title,
     updatedAt
   };
@@ -309,6 +348,419 @@ const buildAnswerPointsFromText = (answerText: string, totalScore = 10) => {
   }));
 };
 
+type NormalizedRubricPoint = {
+  id: string;
+  content: string;
+  keywords: string[];
+  score: number;
+  questionSegment?: string;
+  order?: number;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+};
+
+const toRecordList = (value: unknown): Record<string, unknown>[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => toRecord(item))
+    .filter((item): item is Record<string, unknown> => Boolean(item));
+};
+
+const firstNonEmptyText = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    const normalized = normalizeNonEmpty(typeof value === "string" ? value : undefined);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+};
+
+const toStrategyType = (value: unknown): "point_accumulation" | "sequential_logic" | "rubric_matrix" | null => {
+  return value === "point_accumulation" || value === "sequential_logic" || value === "rubric_matrix"
+    ? value
+    : null;
+};
+
+const toScoringType = (value: unknown): "all" | "pick_n" | "weighted" => {
+  return value === "pick_n" || value === "weighted" ? value : "all";
+};
+
+const toMatchMode = (value: unknown): "strict" | "keyword" | "semantic" => {
+  return value === "strict" || value === "semantic" ? value : "keyword";
+};
+
+const toSegmentAggregation = (value: unknown): "sum" | "weighted_sum" | "max" => {
+  return value === "weighted_sum" || value === "max" ? value : "sum";
+};
+
+const toQuestionTypeV4 = (value: unknown): "single" | "mixed" => {
+  if (value === "single" || value === "mixed") {
+    return value;
+  }
+
+  const text = normalizeNonEmpty(typeof value === "string" ? value : undefined);
+  if (!text) {
+    return "mixed";
+  }
+
+  if (
+    text.includes("选择")
+    || text.includes("单选")
+    || text.includes("多选")
+    || text.includes("判断")
+    || text.includes("填空")
+  ) {
+    return "single";
+  }
+
+  return "mixed";
+};
+
+const normalizePoint = (row: Record<string, unknown>, index: number): NormalizedRubricPoint | null => {
+  const content = firstNonEmptyText(row.content, row.standard, row.label, row.name, row.description);
+  if (!content) {
+    return null;
+  }
+
+  const score = Number(row.score);
+  const order = Number(row.order);
+  const keywords = Array.isArray(row.keywords)
+    ? row.keywords.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : extractKeywords(content);
+
+  return {
+    id: firstNonEmptyText(row.id) ?? `p${index + 1}`,
+    content,
+    keywords,
+    score: Number.isFinite(score) && score > 0 ? score : 1,
+    questionSegment: firstNonEmptyText(row.questionSegment) ?? undefined,
+    order: Number.isFinite(order) && order > 0 ? Math.floor(order) : undefined
+  };
+};
+
+const normalizePointsFromUnknown = (value: unknown): NormalizedRubricPoint[] => {
+  return toRecordList(value)
+    .map((row, index) => normalizePoint(row, index))
+    .filter((item): item is NormalizedRubricPoint => Boolean(item));
+};
+
+const normalizePointsFromRoot = (
+  root: Record<string, unknown>,
+  fallbackAnswerText: string,
+  fallbackTotalScore: number
+): NormalizedRubricPoint[] => {
+  const content = toRecord(root.content) ?? {};
+  const points = [
+    ...normalizePointsFromUnknown(root.answerPoints),
+    ...normalizePointsFromUnknown(root.points),
+    ...normalizePointsFromUnknown(content.points),
+    ...normalizePointsFromUnknown(content.steps)
+  ];
+
+  if (points.length > 0) {
+    return points;
+  }
+
+  return buildAnswerPointsFromText(fallbackAnswerText, fallbackTotalScore);
+};
+
+const sumPointsScore = (points: NormalizedRubricPoint[]): number => {
+  return points.reduce((sum, point) => sum + point.score, 0);
+};
+
+const normalizeConstraintType = (value: unknown): "deduction_fixed" | "deduction_per_count" | "score_cap" | "logic_check" | null => {
+  return value === "deduction_fixed"
+    || value === "deduction_per_count"
+    || value === "score_cap"
+    || value === "logic_check"
+    ? value
+    : null;
+};
+
+const normalizeConstraintFromRule = (
+  rule: string,
+  index: number
+): { id: string; type: "deduction_fixed" | "deduction_per_count" | "score_cap" | "logic_check"; config: Record<string, unknown> } => {
+  const compact = rule.replace(/\s+/g, "");
+  const scoreCapMatch = compact.match(/(?:上限|封顶)(\d+(?:\.\d+)?)/);
+  if (scoreCapMatch) {
+    return {
+      id: `constraint-custom-${index + 1}`,
+      type: "score_cap",
+      config: {
+        description: rule,
+        maxScore: Number(scoreCapMatch[1])
+      }
+    };
+  }
+
+  const perCountMatch = compact.match(/每(\d+).{0,10}?扣(\d+(?:\.\d+)?)分?/);
+  if (perCountMatch) {
+    return {
+      id: `constraint-custom-${index + 1}`,
+      type: "deduction_per_count",
+      config: {
+        description: rule,
+        every: Number(perCountMatch[1]),
+        deduction: Number(perCountMatch[2])
+      }
+    };
+  }
+
+  const fixedMatch = compact.match(/扣(\d+(?:\.\d+)?)分?/);
+  if (fixedMatch) {
+    return {
+      id: `constraint-custom-${index + 1}`,
+      type: "deduction_fixed",
+      config: {
+        description: rule,
+        deduction: Number(fixedMatch[1])
+      }
+    };
+  }
+
+  return {
+    id: `constraint-custom-${index + 1}`,
+    type: "logic_check",
+    config: {
+      description: rule
+    }
+  };
+};
+
+const normalizeConstraints = (
+  root: Record<string, unknown>,
+  customRules?: string[]
+): Array<{ id: string; type: "deduction_fixed" | "deduction_per_count" | "score_cap" | "logic_check"; config: Record<string, unknown> }> => {
+  const fromRoot = toRecordList(root.constraints)
+    .map((row, index) => {
+      const type = normalizeConstraintType(row.type);
+      if (!type) {
+        return null;
+      }
+
+      return {
+        id: firstNonEmptyText(row.id) ?? `constraint-${index + 1}`,
+        type,
+        config: toRecord(row.config) ?? {}
+      };
+    })
+    .filter((item): item is { id: string; type: "deduction_fixed" | "deduction_per_count" | "score_cap" | "logic_check"; config: Record<string, unknown> } => Boolean(item));
+
+  const fromRules = (customRules ?? [])
+    .map((rule) => rule.trim())
+    .filter(Boolean)
+    .map((rule, index) => normalizeConstraintFromRule(rule, index));
+
+  const merged = [...fromRoot];
+  fromRules.forEach((constraint) => {
+    const duplicate = merged.some((item) => {
+      const left = firstNonEmptyText(item.config.description) ?? "";
+      const right = firstNonEmptyText(constraint.config.description) ?? "";
+      return item.type === constraint.type && left === right;
+    });
+    if (!duplicate) {
+      merged.push(constraint);
+    }
+  });
+
+  return merged;
+};
+
+const normalizeGlobalPolicy = (root: Record<string, unknown>): {
+  conflictPolicy: "checkpoints_first" | "segments_first";
+  minConfidence: number;
+  ocrTolerance: "low" | "medium" | "high";
+} => {
+  const policy = toRecord(root.globalPolicy) ?? {};
+  const minConfidence = Number(policy.minConfidence);
+
+  return {
+    conflictPolicy: policy.conflictPolicy === "checkpoints_first" ? "checkpoints_first" : "segments_first",
+    minConfidence: Number.isFinite(minConfidence) && minConfidence >= 0 && minConfidence <= 1 ? minConfidence : 0.6,
+    ocrTolerance: policy.ocrTolerance === "low" || policy.ocrTolerance === "high" ? policy.ocrTolerance : "medium"
+  };
+};
+
+const normalizeSegments = (input: {
+  root: Record<string, unknown>;
+  fallbackPoints: NormalizedRubricPoint[];
+  fallbackQuestionTypeText?: string;
+}): Array<Record<string, unknown>> => {
+  const rootSegments = toRecordList(input.root.segments);
+
+  if (rootSegments.length === 0) {
+    const totalScore = Math.max(1, sumPointsScore(input.fallbackPoints));
+    return [
+      {
+        id: "segment-1",
+        title: "默认题段",
+        questionType: input.fallbackQuestionTypeText ?? "综合题",
+        strategyType: "point_accumulation",
+        maxScore: totalScore,
+        matching: {
+          mode: "keyword"
+        },
+        scoring: {
+          type: "all"
+        },
+        content: {
+          scoringStrategy: {
+            type: "all"
+          },
+          points: input.fallbackPoints,
+          totalScore
+        }
+      }
+    ];
+  }
+
+  return rootSegments.map((segment, index) => {
+    const content = toRecord(segment.content) ?? {};
+    const rawStrategy = toStrategyType(segment.strategyType);
+    const strategyType = rawStrategy ?? "point_accumulation";
+    const points = [
+      ...normalizePointsFromUnknown(segment.points),
+      ...normalizePointsFromUnknown(content.points),
+      ...normalizePointsFromUnknown(content.steps)
+    ];
+
+    const normalizedPoints = points.length > 0 ? points : (index === 0 ? input.fallbackPoints : []);
+    const fallbackScore = normalizedPoints.length > 0 ? sumPointsScore(normalizedPoints) : 1;
+    const maxScoreRaw = Number(segment.maxScore);
+    const maxScore = Number.isFinite(maxScoreRaw) && maxScoreRaw > 0 ? maxScoreRaw : Math.max(1, fallbackScore);
+
+    const matching = toRecord(segment.matching) ?? {};
+    const scoring = toRecord(segment.scoring) ?? {};
+    const segmentConstraints = normalizeConstraints(segment);
+
+    if (strategyType === "rubric_matrix") {
+      const rawDimensions = toRecordList(content.dimensions);
+      const dimensions = rawDimensions
+        .map((dimension, dimensionIndex) => {
+          const levels = toRecordList(dimension.levels)
+            .map((level, levelIndex) => {
+              const label = firstNonEmptyText(level.label) ?? `等级${levelIndex + 1}`;
+              const score = Number(level.score);
+              return {
+                label,
+                score: Number.isFinite(score) && score >= 0 ? score : 0,
+                description: firstNonEmptyText(level.description) ?? undefined
+              };
+            })
+            .filter((level) => level.label.length > 0);
+
+          if (levels.length === 0) {
+            return null;
+          }
+
+          const weight = Number(dimension.weight);
+
+          return {
+            id: firstNonEmptyText(dimension.id) ?? `dimension-${index + 1}-${dimensionIndex + 1}`,
+            name: firstNonEmptyText(dimension.name) ?? `维度${dimensionIndex + 1}`,
+            weight: Number.isFinite(weight) && weight > 0 ? weight : 1,
+            levels
+          };
+        })
+        .filter((item): item is { id: string; name: string; weight: number; levels: Array<{ label: string; score: number; description: string | undefined }> } => Boolean(item));
+
+      if (dimensions.length > 0) {
+        const matrixScore = dimensions.reduce((sum, dimension) => {
+          const levelMax = dimension.levels.reduce((max, level) => Math.max(max, level.score), 0);
+          return sum + (levelMax * dimension.weight);
+        }, 0);
+
+        const matrixMaxScore = Number.isFinite(maxScoreRaw) && maxScoreRaw > 0 ? maxScoreRaw : Math.max(1, matrixScore);
+
+        return {
+          id: firstNonEmptyText(segment.id) ?? `segment-${index + 1}`,
+          title: firstNonEmptyText(segment.title, segment.name, segment.segment) ?? `第${index + 1}段`,
+          questionType: firstNonEmptyText(segment.questionType, input.fallbackQuestionTypeText) ?? "综合题",
+          strategyType: "rubric_matrix",
+          maxScore: matrixMaxScore,
+          matching: {
+            mode: toMatchMode(matching.mode)
+          },
+          scoring: {
+            type: toScoringType(scoring.type)
+          },
+          constraints: segmentConstraints.length > 0 ? segmentConstraints : undefined,
+          content: {
+            dimensions,
+            totalScore: matrixMaxScore
+          }
+        };
+      }
+    }
+
+    if (strategyType === "sequential_logic") {
+      const steps = normalizedPoints.map((point, pointIndex) => ({
+        id: point.id,
+        content: point.content,
+        keywords: point.keywords,
+        score: point.score,
+        order: point.order ?? (pointIndex + 1)
+      }));
+
+      return {
+        id: firstNonEmptyText(segment.id) ?? `segment-${index + 1}`,
+        title: firstNonEmptyText(segment.title, segment.name, segment.segment) ?? `第${index + 1}段`,
+        questionType: firstNonEmptyText(segment.questionType, input.fallbackQuestionTypeText) ?? "综合题",
+        strategyType: "sequential_logic",
+        maxScore,
+        matching: {
+          mode: toMatchMode(matching.mode)
+        },
+        scoring: {
+          type: toScoringType(scoring.type)
+        },
+        constraints: segmentConstraints.length > 0 ? segmentConstraints : undefined,
+        content: {
+          scoringStrategy: {
+            type: toScoringType(toRecord(content.scoringStrategy)?.type ?? scoring.type)
+          },
+          steps,
+          totalScore: maxScore
+        }
+      };
+    }
+
+    return {
+      id: firstNonEmptyText(segment.id) ?? `segment-${index + 1}`,
+      title: firstNonEmptyText(segment.title, segment.name, segment.segment) ?? `第${index + 1}段`,
+      questionType: firstNonEmptyText(segment.questionType, input.fallbackQuestionTypeText) ?? "综合题",
+      strategyType: "point_accumulation",
+      maxScore,
+      matching: {
+        mode: toMatchMode(matching.mode)
+      },
+      scoring: {
+        type: toScoringType(scoring.type)
+      },
+      constraints: segmentConstraints.length > 0 ? segmentConstraints : undefined,
+      content: {
+        scoringStrategy: {
+          type: toScoringType(toRecord(content.scoringStrategy)?.type ?? scoring.type)
+        },
+        points: normalizedPoints,
+        totalScore: maxScore
+      }
+    };
+  });
+};
+
 const buildRuleBasedRubric = (input: {
   questionId?: string;
   subject?: string;
@@ -316,23 +768,50 @@ const buildRuleBasedRubric = (input: {
   strategyType?: string;
   answerText?: string;
   totalScore?: number;
+  customRules?: string[];
 }): Record<string, unknown> => {
   const totalScore = Math.max(1, Math.floor(input.totalScore ?? 10));
   const answerPoints = buildAnswerPointsFromText(input.answerText ?? "", totalScore);
+  const questionId = normalizeNonEmpty(input.questionId) ?? `q-${Date.now()}`;
   const now = new Date().toISOString();
 
   return {
-    version: "2.0",
-    scoringStrategy: "all",
-    answerPoints,
-    gradingNotes: "按要点命中情况进行评分，可结合表达完整性酌情给分。",
+    version: "4.0",
     metadata: {
-      questionId: input.questionId ?? `q-${Date.now()}`,
-      title: `自动生成细则-${input.questionId ?? "未命名题目"}`,
+      questionId,
       subject: input.subject ?? "history",
-      questionType: input.questionType ?? "analysis",
-      strategyType: input.strategyType ?? "standard"
+      questionType: toQuestionTypeV4(input.questionType),
+      totalScore
     },
+    globalPolicy: {
+      conflictPolicy: "segments_first",
+      minConfidence: 0.6,
+      ocrTolerance: "medium"
+    },
+    segmentAggregation: "sum",
+    segments: [
+      {
+        id: "segment-1",
+        title: "默认题段",
+        questionType: input.questionType ?? "综合题",
+        strategyType: toStrategyType(input.strategyType) ?? "point_accumulation",
+        maxScore: totalScore,
+        matching: {
+          mode: "keyword"
+        },
+        scoring: {
+          type: "all"
+        },
+        content: {
+          scoringStrategy: {
+            type: "all"
+          },
+          points: answerPoints,
+          totalScore
+        }
+      }
+    ],
+    constraints: normalizeConstraints({}, input.customRules),
     createdAt: now,
     updatedAt: now
   };
@@ -347,6 +826,7 @@ const normalizeAiRubricResult = (
     strategyType?: string;
     answerText?: string;
     totalScore?: number;
+    customRules?: string[];
   }
 ): Record<string, unknown> => {
   const now = new Date().toISOString();
@@ -364,88 +844,48 @@ const normalizeAiRubricResult = (
       : {}
   ) as Record<string, unknown>;
 
-  const questionId =
-    normalizeNonEmpty(
-      typeof metadata.questionId === "string" ? metadata.questionId : undefined
-    ) ??
-    normalizeNonEmpty(input.questionId) ??
-    `q-${Date.now()}`;
+  const questionId = firstNonEmptyText(metadata.questionId, root.questionId, input.questionId) ?? `q-${Date.now()}`;
+  const fallbackTotalScore = Math.max(1, Math.floor(input.totalScore ?? 10));
+  const fallbackPoints = normalizePointsFromRoot(root, input.answerText ?? "", fallbackTotalScore);
+  const segments = normalizeSegments({
+    root,
+    fallbackPoints,
+    fallbackQuestionTypeText: input.questionType
+  });
 
-  const title =
-    normalizeNonEmpty(
-      typeof metadata.title === "string" ? metadata.title : undefined
-    ) ?? `自动生成细则-${questionId}`;
+  const metadataTotalScore = Number(metadata.totalScore);
+  const rootTotalScore = Number(root.totalScore);
+  const segmentsTotal = segments.reduce((sum, segment) => {
+    const score = Number(segment.maxScore);
+    return Number.isFinite(score) && score > 0 ? sum + score : sum;
+  }, 0);
 
-  const rawAnswerPoints = Array.isArray(root.answerPoints) ? root.answerPoints : [];
-
-  const normalizedAnswerPoints = rawAnswerPoints
-    .map((point, index) => {
-      if (!point || typeof point !== "object") {
-        return null;
-      }
-
-      const raw = point as {
-        id?: unknown;
-        content?: unknown;
-        keywords?: unknown;
-        score?: unknown;
-      };
-
-      const content = normalizeNonEmpty(
-        typeof raw.content === "string" ? raw.content : undefined
-      );
-
-      if (!content) {
-        return null;
-      }
-
-      const score = Number(raw.score);
-
-      return {
-        id: normalizeNonEmpty(typeof raw.id === "string" ? raw.id : undefined) ?? `p${index + 1}`,
-        content,
-        keywords: Array.isArray(raw.keywords)
-          ? raw.keywords.filter((item): item is string => typeof item === "string")
-          : extractKeywords(content),
-        score: Number.isFinite(score) && score > 0 ? score : 1
-      };
-    })
-    .filter((item): item is { id: string; content: string; keywords: string[]; score: number } => Boolean(item));
-
-  const answerPoints =
-    normalizedAnswerPoints.length > 0
-      ? normalizedAnswerPoints
-      : buildAnswerPointsFromText(input.answerText ?? "", Math.max(1, Math.floor(input.totalScore ?? 10)));
+  const totalScore = Number.isFinite(metadataTotalScore) && metadataTotalScore > 0
+    ? metadataTotalScore
+    : Number.isFinite(rootTotalScore) && rootTotalScore > 0
+      ? rootTotalScore
+      : segmentsTotal > 0
+        ? segmentsTotal
+        : fallbackTotalScore;
 
   return {
-    ...root,
-    version: "2.0",
-    scoringStrategy:
-      normalizeNonEmpty(typeof root.scoringStrategy === "string" ? root.scoringStrategy : undefined) ??
-      "all",
-    answerPoints,
-    gradingNotes:
-      normalizeNonEmpty(typeof root.gradingNotes === "string" ? root.gradingNotes : undefined) ??
-      "按要点命中情况进行评分，可结合表达完整性酌情给分。",
+    version: "4.0",
     metadata: {
-      ...metadata,
+      subject: firstNonEmptyText(metadata.subject, input.subject) ?? "history",
+      grade: firstNonEmptyText(metadata.grade) ?? undefined,
+      examName: firstNonEmptyText(metadata.examName) ?? undefined,
       questionId,
-      title,
-      subject:
-        normalizeNonEmpty(typeof metadata.subject === "string" ? metadata.subject : undefined) ??
-        input.subject ??
-        "history",
-      questionType:
-        normalizeNonEmpty(typeof metadata.questionType === "string" ? metadata.questionType : undefined) ??
-        input.questionType ??
-        "analysis",
-      strategyType:
-        normalizeNonEmpty(typeof metadata.strategyType === "string" ? metadata.strategyType : undefined) ??
-        input.strategyType ??
-        "standard"
+      questionType: toQuestionTypeV4(firstNonEmptyText(metadata.questionType, input.questionType)),
+      totalScore,
+      tags: Array.isArray(metadata.tags)
+        ? metadata.tags.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        : undefined
     },
-    createdAt:
-      normalizeNonEmpty(typeof root.createdAt === "string" ? root.createdAt : undefined) ?? now,
+    globalPolicy: normalizeGlobalPolicy(root),
+    segmentAggregation: toSegmentAggregation(root.segmentAggregation),
+    segments,
+    constraints: normalizeConstraints(root, input.customRules),
+    createdAt: firstNonEmptyText(root.createdAt, metadata.createdAt) ?? now,
     updatedAt: now
   };
 };
@@ -485,7 +925,42 @@ const extractRowsFromRubricObject = (rubric: Record<string, unknown>): Standardi
       ? (rubric as { content: { points: unknown[] } }).content.points
       : [];
 
-  const rows = rootPoints
+  const segmentPoints = Array.isArray(rubric.segments)
+    ? rubric.segments.flatMap((segment) => {
+      if (!segment || typeof segment !== "object") {
+        return [];
+      }
+
+      const row = segment as { points?: unknown[]; content?: { points?: unknown[]; steps?: unknown[]; dimensions?: unknown[] } };
+      const contentPoints = Array.isArray(row.content?.points) ? row.content.points : [];
+      const contentSteps = Array.isArray(row.content?.steps) ? row.content.steps : [];
+      const matrixRows = Array.isArray(row.content?.dimensions)
+        ? row.content.dimensions.flatMap((dimension) => {
+          if (!dimension || typeof dimension !== "object") {
+            return [];
+          }
+          const dim = dimension as { name?: unknown; levels?: unknown[] };
+          const levels = Array.isArray(dim.levels) ? dim.levels : [];
+          return levels.map((level) => {
+            if (!level || typeof level !== "object") {
+              return null;
+            }
+            const levelRow = level as { label?: unknown; score?: unknown; description?: unknown };
+            return {
+              content: `${normalizeNonEmpty(typeof dim.name === "string" ? dim.name : undefined) ?? "维度"}-${normalizeNonEmpty(typeof levelRow.label === "string" ? levelRow.label : undefined) ?? "等级"}`,
+              score: levelRow.score,
+              deductionRules: levelRow.description
+            };
+          }).filter(Boolean);
+        })
+        : [];
+      return [...(Array.isArray(row.points) ? row.points : []), ...contentPoints, ...contentSteps, ...matrixRows];
+    })
+    : [];
+
+  const sourcePoints = segmentPoints.length > 0 ? segmentPoints : rootPoints;
+
+  const rows = sourcePoints
     .map((item, index): StandardizedRubricRow | null => {
       if (!item || typeof item !== "object") {
         return null;
@@ -719,6 +1194,7 @@ export const generateRubricDraft = async (input: {
   totalScore?: number;
   questionImage?: string;
   answerImage?: string;
+  customRules?: string[];
   gatewayOverrides?: AiGatewayOverrides;
 }): Promise<{
   rubric: Record<string, unknown>;
@@ -743,9 +1219,11 @@ export const generateRubricDraft = async (input: {
 
   const systemPrompt = [
     "你是一名高中历史学科阅卷专家。",
-    "请输出 RubricJSON v2。",
+    "请输出 RubricV4 JSON。",
     "输出必须是 JSON 对象，禁止输出 markdown。",
-    "字段至少包含：version, scoringStrategy, answerPoints, gradingNotes, metadata。"
+    "字段至少包含：version, metadata, globalPolicy, segments, segmentAggregation。",
+    "version 必须是 4.0。",
+    "segments 至少包含 1 个 segment，且每个 segment 必须包含 strategyType、maxScore、matching、scoring、content。"
   ].join("\n");
 
   const userPrompt = [
@@ -754,6 +1232,9 @@ export const generateRubricDraft = async (input: {
     `题型: ${input.questionType ?? "analysis"}`,
     `评分策略: ${input.strategyType ?? "standard"}`,
     `总分: ${Math.max(1, Math.floor(input.totalScore ?? 10))}`,
+    input.customRules && input.customRules.length > 0
+      ? `特殊规则:\n${input.customRules.map((rule, index) => `${index + 1}. ${rule}`).join("\n")}`
+      : "特殊规则: 无",
     input.answerText ? `参考答案文本:\n${input.answerText}` : "参考答案文本: 未提供"
   ].join("\n");
 
