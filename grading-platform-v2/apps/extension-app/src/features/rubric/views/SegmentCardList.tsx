@@ -1,4 +1,5 @@
 import { parseKeywordInput } from "../utils/rubric-parser";
+import { MATCH_MODE_HINT, STRATEGY_VISUAL } from "../utils/rubric-visual-constants";
 import type {
   RubricMatrixDimensionPreview,
   RubricMatrixLevelPreview,
@@ -20,6 +21,12 @@ type SegmentCardListProps = {
   ) => void;
 };
 
+const STRATEGY_ICON: Record<string, string> = {
+  point_accumulation: "📍",
+  sequential_logic: "🔢",
+  rubric_matrix: "📊"
+};
+
 export const SegmentCardList = ({
   segments,
   busy,
@@ -35,7 +42,11 @@ export const SegmentCardList = ({
   return (
     <div className="classic-rubric-segment-list">
       {segments.map((segment, segmentIndex) => (
-        <section key={segment.id} className="classic-rubric-segment-card">
+        <section
+          key={segment.id}
+          className="classic-rubric-segment-card"
+          data-strategy={segment.strategyType}
+        >
           <header className="classic-rubric-segment-head">
             <span className="classic-rubric-segment-index">{segmentIndex + 1}</span>
             <input
@@ -44,10 +55,21 @@ export const SegmentCardList = ({
               onChange={(event) => onSegmentTitleChange(segment.id, event.target.value)}
               disabled={busy}
             />
-            <span className="classic-rubric-segment-tag">{segment.strategyLabel}</span>
+            <span
+              className="classic-rubric-strategy-badge strategy-badge"
+              data-type={segment.strategyType}
+              data-strategy={segment.strategyType}
+              title={STRATEGY_VISUAL[segment.strategyType]?.hint}
+            >
+              <span className="strategy-badge-icon" aria-hidden>{STRATEGY_ICON[segment.strategyType] ?? "🏷️"}</span>
+              <span>{segment.strategyLabel}</span>
+            </span>
             {segment.matchingMode ? (
-              <span className="classic-rubric-segment-tag classic-rubric-segment-tag-subtle">
-                匹配：{segment.matchingMode}
+              <span
+                className="classic-rubric-match-hint"
+                title={MATCH_MODE_HINT[segment.matchingMode]}
+              >
+                {segment.matchingMode === "strict" ? "精确" : segment.matchingMode === "semantic" ? "语义" : segment.matchingMode}
               </span>
             ) : null}
             <span className="classic-rubric-segment-score">

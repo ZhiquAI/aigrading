@@ -3,6 +3,10 @@ import type { RubricLifecycleStatus } from "../../../lib/api";
 import { GearIcon } from "../../shared/icons";
 import type { RubricResultPoint, RubricResultPreview, SegmentPreview } from "../types";
 import { firstText, toRecord, toRecordList } from "../utils/rubric-parser";
+import {
+  OCR_TOLERANCE_LABEL,
+  SEGMENT_AGGREGATION_LABEL
+} from "../utils/rubric-visual-constants";
 import { SegmentCardList } from "./SegmentCardList";
 
 type RubricResultViewProps = {
@@ -50,12 +54,28 @@ const buildConstraintLabel = (type: string): string => {
     return "按次数扣分";
   }
   if (type === "score_cap") {
-    return "分数封顶";
+    return "分数上限";
   }
   if (type === "logic_check") {
     return "逻辑校验";
   }
   return type;
+};
+
+const buildConstraintIcon = (type: string): string => {
+  if (type === "deduction_fixed") {
+    return "➖";
+  }
+  if (type === "deduction_per_count") {
+    return "🔁";
+  }
+  if (type === "score_cap") {
+    return "🛑";
+  }
+  if (type === "logic_check") {
+    return "🧠";
+  }
+  return "🔸";
 };
 
 export const RubricResultView = ({
@@ -317,22 +337,46 @@ export const RubricResultView = ({
         </div>
         <p className="classic-rubric-result-readonly">可编辑：题段标题、问题词、得分点、分值、关键词。</p>
 
-        {resultPreview.globalPolicy ? (
-          <div className="classic-rubric-result-policy">
-            <span>冲突策略：{resultPreview.globalPolicy.conflictPolicy}</span>
-            <span>最低置信度：{resultPreview.globalPolicy.minConfidence}</span>
-            <span>OCR 容忍度：{resultPreview.globalPolicy.ocrTolerance}</span>
-          </div>
-        ) : null}
-
-        {resultPreview.constraints.length > 0 ? (
-          <div className="classic-rubric-result-constraints">
-            {resultPreview.constraints.map((constraint) => (
-              <span key={constraint.id} className="classic-rubric-result-constraint-tag">
-                {buildConstraintLabel(constraint.type)}
+        {(resultPreview.globalPolicy || resultPreview.constraints.length > 0) ? (
+          <details className="classic-rubric-global-policy global-policy-panel" open>
+            <summary className="classic-rubric-global-policy-header global-policy-panel-header">
+              <span className="global-policy-panel-title">
+                <span className="global-policy-panel-title-icon" aria-hidden>🎯</span>
+                <strong>全局策略</strong>
               </span>
-            ))}
-          </div>
+              <span className="classic-rubric-global-policy-count">
+                {(resultPreview.globalPolicy ? 2 : 0) + resultPreview.constraints.length} 项
+              </span>
+            </summary>
+            <div className="classic-rubric-global-policy-content global-policy-panel-content">
+              {resultPreview.globalPolicy ? (
+                <>
+                  <div className="classic-rubric-global-policy-item global-policy-panel-item">
+                    <label>OCR 容错</label>
+                    <span>{OCR_TOLERANCE_LABEL[resultPreview.globalPolicy.ocrTolerance] || resultPreview.globalPolicy.ocrTolerance}</span>
+                  </div>
+                  <div className="classic-rubric-global-policy-item global-policy-panel-item">
+                    <label>分段聚合</label>
+                    <span>{SEGMENT_AGGREGATION_LABEL[resultPreview.segmentAggregation] || resultPreview.segmentAggregation}</span>
+                  </div>
+                </>
+              ) : null}
+              {resultPreview.constraints.length > 0 ? (
+                <div className="classic-rubric-result-constraints">
+                  {resultPreview.constraints.map((constraint) => (
+                    <span
+                      key={constraint.id}
+                      className="classic-rubric-result-constraint-tag constraint-tag"
+                      data-type={constraint.type}
+                    >
+                      <span className="constraint-tag-icon" aria-hidden>{buildConstraintIcon(constraint.type)}</span>
+                      <span>{buildConstraintLabel(constraint.type)}</span>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </details>
         ) : null}
       </article>
 

@@ -1156,3 +1156,330 @@
     transform: rotate(360deg);
   }
 }
+
+/* ========================================
+   v4 框架视觉化样式
+   ======================================== */
+
+/* 策略类型颜色 Token */
+:root {
+  --strategy-point: #3b82f6;
+  --strategy-sequential: #8b5cf6;
+  --strategy-matrix: #10b981;
+  
+  --constraint-warning: #f59e0b;
+  --constraint-error: #ef4444;
+  --constraint-info: #3b82f6;
+}
+
+/* 全局策略面板 */
+.classic-rubric-global-policy,
+.global-policy-panel {
+  background: #f0f4ff;
+  border: 1px solid #d6e2ff;
+  border-radius: 12px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.classic-rubric-global-policy-header,
+.global-policy-panel-header {
+  padding: 12px 16px;
+  background: #e8f0ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.classic-rubric-global-policy-header::-webkit-details-marker,
+.global-policy-panel-header::-webkit-details-marker {
+  display: none;
+}
+
+.classic-rubric-global-policy-header::after,
+.global-policy-panel-header::after {
+  content: "▾";
+  color: #5b6f9d;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.classic-rubric-global-policy[open] .classic-rubric-global-policy-header::after,
+.global-policy-panel[open] .global-policy-panel-header::after {
+  transform: rotate(180deg);
+}
+
+.global-policy-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.global-policy-panel-title-icon {
+  font-size: 14px;
+}
+
+.classic-rubric-global-policy-header strong,
+.global-policy-panel-header strong {
+  font-size: 13px;
+  color: #1e40af;
+  font-weight: 700;
+}
+
+.classic-rubric-global-policy-count {
+  background: var(--strategy-point);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.classic-rubric-global-policy-content,
+.global-policy-panel-content {
+  padding: 12px 16px;
+}
+
+.classic-rubric-global-policy-item,
+.global-policy-panel-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 12px;
+  border-bottom: 1px solid #e0e7ff;
+}
+
+.classic-rubric-global-policy-item:last-child,
+.global-policy-panel-item:last-child {
+  border-bottom: none;
+}
+
+.classic-rubric-global-policy-item label,
+.global-policy-panel-item label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.classic-rubric-global-policy-item span,
+.global-policy-panel-item span {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.classic-rubric-global-policy-constraint {
+  color: var(--constraint-warning);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 约束标签视觉化 */
+.classic-rubric-result-constraints {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.classic-rubric-result-constraint-tag,
+.constraint-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  color: #d97706;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.constraint-tag-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.classic-rubric-result-constraint-tag[data-type="score_cap"],
+.constraint-tag[data-type="score_cap"] {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.classic-rubric-result-constraint-tag[data-type="deduction_fixed"],
+.constraint-tag[data-type="deduction_fixed"] {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.classic-rubric-result-constraint-tag[data-type="deduction_per_count"],
+.constraint-tag[data-type="deduction_per_count"] {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+
+.classic-rubric-result-constraint-tag[data-type="logic_check"],
+.constraint-tag[data-type="logic_check"] {
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+/* Segment 卡片视觉优化 */
+.classic-rubric-segment-card {
+  position: relative;
+  --segment-accent: var(--strategy-point);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.classic-rubric-segment-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--segment-accent);
+}
+
+.classic-rubric-segment-card[data-strategy="point_accumulation"] {
+  --segment-accent: var(--strategy-point);
+}
+
+.classic-rubric-segment-card[data-strategy="sequential_logic"] {
+  --segment-accent: var(--strategy-sequential);
+}
+
+.classic-rubric-segment-card[data-strategy="rubric_matrix"] {
+  --segment-accent: var(--strategy-matrix);
+}
+
+.classic-rubric-segment-head {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.classic-rubric-segment-index {
+  background: #64748b;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.classic-rubric-segment-title {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  background: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 策略徽章视觉化 */
+.classic-rubric-strategy-badge,
+.strategy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.strategy-badge-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.classic-rubric-strategy-badge[data-type="point_accumulation"],
+.strategy-badge[data-type="point_accumulation"] {
+  border-color: var(--strategy-point);
+  color: var(--strategy-point);
+}
+
+.classic-rubric-strategy-badge[data-type="sequential_logic"],
+.strategy-badge[data-type="sequential_logic"] {
+  border-color: var(--strategy-sequential);
+  color: var(--strategy-sequential);
+}
+
+.classic-rubric-strategy-badge[data-type="rubric_matrix"],
+.strategy-badge[data-type="rubric_matrix"] {
+  border-color: var(--strategy-matrix);
+  color: var(--strategy-matrix);
+}
+
+.classic-rubric-segment-score {
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+/* 匹配模式提示 */
+.classic-rubric-match-hint {
+  font-size: 11px;
+  color: #64748b;
+  cursor: help;
+  padding: 2px 6px;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+/* 段落级约束 */
+.classic-rubric-segment-constraints {
+  padding: 12px 16px;
+  background: #fffbeb;
+  border-top: 1px solid #fef3c7;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.classic-rubric-segment-constraint-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid #fbbf24;
+  color: #d97706;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.classic-rubric-segment-constraint-tag::before {
+  content: "🔸";
+}
